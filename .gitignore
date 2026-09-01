@@ -1,0 +1,41 @@
+# Go
+bin/
+*.exe
+vendor/
+
+# Node
+node_modules/
+.next/
+out/
+dist/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Electron
+desktop/dist/
+desktop/out/
+release/
+
+# Ortam
+.env
+.env.local
+
+# Veri
+ml/data/*
+!ml/data/.gitkeep
+ml/models/*
+!ml/models/.gitkeep
+*.gguf
+*.safetensors
+
+# Sistem
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
