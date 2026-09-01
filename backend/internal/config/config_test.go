@@ -7,6 +7,7 @@ import (
 
 func TestLoad_DefaultPort(t *testing.T) {
 	t.Setenv("PORT", "")
+	t.Setenv("MONGO_URI", "mongodb://localhost:27017")
 
 	cfg, err := Load()
 	if err != nil {
@@ -18,16 +19,13 @@ func TestLoad_DefaultPort(t *testing.T) {
 }
 
 func TestLoad_MissingRequired(t *testing.T) {
-	previous := requiredNames
-	requiredNames = []string{"MUST_BE_SET"}
-	t.Cleanup(func() { requiredNames = previous })
+	t.Setenv("MONGO_URI", "")
 
-	t.Setenv("MUST_BE_SET", "")
 	_, err := Load()
 	if err == nil {
 		t.Fatal("eksik zorunlu değişken için hata bekleniyordu")
 	}
-	if !strings.Contains(err.Error(), "MUST_BE_SET") {
+	if !strings.Contains(err.Error(), "MONGO_URI") {
 		t.Fatalf("hata mesajında değişken adı yok: %v", err)
 	}
 }

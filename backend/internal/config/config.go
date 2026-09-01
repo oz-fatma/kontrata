@@ -15,10 +15,6 @@ type Config struct {
 	MongoURI string
 }
 
-// requiredNames açılışta dolu olması gereken ortam değişkenleri.
-// Şimdilik boş; Aşama 2'de MONGO_URI eklenecek.
-var requiredNames []string
-
 // Load ortam değişkenlerini okur. Zorunlu bir değişken eksikse hata döner.
 func Load() (Config, error) {
 	port, err := parsePort(os.Getenv("PORT"))
@@ -26,29 +22,15 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 
-	cfg := Config{
+	mongoURI := strings.TrimSpace(os.Getenv("MONGO_URI"))
+	if mongoURI == "" {
+		return Config{}, fmt.Errorf("zorunlu ortam değişkeni eksik: MONGO_URI")
+	}
+
+	return Config{
 		Port:     port,
-		MongoURI: strings.TrimSpace(os.Getenv("MONGO_URI")),
-	}
-
-	if err := checkRequired(os.Getenv); err != nil {
-		return Config{}, err
-	}
-
-	return cfg, nil
-}
-
-func checkRequired(getenv func(string) string) error {
-	var missing []string
-	for _, name := range requiredNames {
-		if strings.TrimSpace(getenv(name)) == "" {
-			missing = append(missing, name)
-		}
-	}
-	if len(missing) > 0 {
-		return fmt.Errorf("zorunlu ortam değişkeni eksik: %s", strings.Join(missing, ", "))
-	}
-	return nil
+		MongoURI: mongoURI,
+	}, nil
 }
 
 func parsePort(raw string) (int, error) {

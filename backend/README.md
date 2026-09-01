@@ -8,10 +8,11 @@ Go modül yolu: `github.com/oz-fatma/kontrata/backend`.
 ## Gereksinimler
 
 - Go 1.26 veya üzeri
+- MongoDB 8 (yerel geliştirmede `docker compose up -d`)
 
 ## Nasıl çalıştırılır
 
-Ortam değişkenleri için `.env.example` dosyasına bakın. Gerçek `.env` dosyasını kendiniz oluşturun; uygulama ortam değişkenlerini doğrudan okur.
+Ortam değişkenleri için `.env.example` dosyasına bakın. `backend/.env` varsa açılışta yüklenir; yoksa ortam değişkenleri olduğu gibi kullanılır.
 
 ```sh
 make run
@@ -29,11 +30,11 @@ Sürümü açık vermek için: `make build VERSION=0.1.0`
 
 | Metot | Yol | Açıklama |
 | --- | --- | --- |
-| `GET` | `/healthz` | Sağlık denetimi. `{"status":"ok","version":"..."}` döner. |
+| `GET` | `/healthz` | Sağlık denetimi. Veritabanı bağlıysa `200` ve `"database":"connected"`; erişilemezse `503` ve `"database":"unreachable"`. |
 
 ## Ortam değişkenleri
 
 | Değişken | Zorunlu | Varsayılan | Açıklama |
 | --- | --- | --- | --- |
 | `PORT` | hayır | `8080` | HTTP dinleme kapısı |
-| `MONGO_URI` | hayır | — | MongoDB bağlantı adresi. Aşama 2'de kullanılacak. |
+| `MONGO_URI` | evet | — | MongoDB bağlantı adresi. Günlüğe yazılmaz. |

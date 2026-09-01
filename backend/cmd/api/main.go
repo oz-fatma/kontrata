@@ -13,21 +13,37 @@ import (
 	"time"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/joho/godotenv"
 
 	"github.com/oz-fatma/kontrata/backend/internal/config"
+	"github.com/oz-fatma/kontrata/backend/internal/mongo"
 )
 
 // version derleme sırasında ldflags ile gömülür; verilmezse "dev".
 var version = "dev"
 
 func main() {
+	// Yerel geliştirmede .env varsa yükle. Dosya yoksa (üretim) sessizce devam.
+	if err := godotenv.Load(); err != nil && !errors.Is(err, os.ErrNotExist) {
+		log.Fatalf("ortam dosyası okunamadı: %v", err)
+	}
+
 	cfg, err := config.Load()
 	if err != nil {
 		log.Fatalf("yapılandırma yüklenemedi: %v", err)
 	}
 	log.Printf("yapılandırma yüklendi %s sürüm=%s", cfg.String(), version)
 
-	srv := newServer(cfg)
+	connectCtx, connectCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	db, err := mongo.Connect(connectCtx, cfg.MongoURI)
+	connectCancel()
+	if err != nil {
+		log.Printf("%v; sunucu degraded başlıyor", err)
+	} else {
+		log.Printf("veritabanına bağlanıldı")
+	}
+
+	srv := newServer(cfg, db)
 
 	go func() {
 		log.Printf("sunucu dinliyor addr=:%d", cfg.Port)
@@ -46,14 +62,22 @@ func main() {
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("düzgün kapanış başarısız: %v", err)
 	}
+
+	discCtx, discCancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer discCancel()
+	if err := db.Disconnect(discCtx); err != nil {
+		log.Printf("veritabanı bağlantısı kapatılamadı")
+	}
 	log.Printf("sunucu durdu")
 }
 
-func newServer(cfg config.Config) *http.Server {
+func newServer(cfg config.Config, db *mongo.Client) *http.Server {
 	r := chi.NewRouter()
 	r.Use(recoverPanic)
 	r.Use(logRequest)
-	r.Get("/healthz", handleHealthz)
+	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
+		handleHealthz(w, r, db)
+	})
 
 	return &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
@@ -66,13 +90,29 @@ func newServer(cfg config.Config) *http.Server {
 }
 
 type healthResponse struct {
-	Status  string `json:"status"`
-	Version string `json:"version"`
+	Status   string `json:"status"`
+	Version  string `json:"version"`
+	Database string `json:"database"`
 }
 
-func handleHealthz(w http.ResponseWriter, _ *http.Request) {
+func handleHealthz(w http.ResponseWriter, r *http.Request, db *mongo.Client) {
+	pingCtx, cancel := context.WithTimeout(r.Context(), 2*time.Second)
+	defer cancel()
+
+	resp := healthResponse{
+		Status:   "ok",
+		Version:  version,
+		Database: "connected",
+	}
+	code := http.StatusOK
+	if err := db.Ping(pingCtx); err != nil {
+		resp.Status = "degraded"
+		resp.Database = "unreachable"
+		code = http.StatusServiceUnavailable
+	}
+
 	w.Header().Set("Content-Type", "application/json")
-	resp := healthResponse{Status: "ok", Version: version}
+	w.WriteHeader(code)
 	if err := json.NewEncoder(w).Encode(resp); err != nil {
 		log.Printf("healthz yanıtı yazılamadı: %v", err)
 	}
