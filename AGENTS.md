@@ -7,7 +7,7 @@ eksik madde ve riskli şart arar. Sözleşme verisi tesisten çıkmaz —
 masaüstü tercihinin sebebi budur.
 
 ## Teknoloji (değiştirilemez)
-- Backend: Go 1.23+, Chi router, gqlgen (GraphQL)
+- Backend: Go 1.25, Chi router, gqlgen (GraphQL)
 - Veritabanı: MongoDB
 - Arayüz: Next.js + TypeScript (static export)
 - Masaüstü: Electron (Windows + macOS)

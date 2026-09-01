@@ -7,7 +7,7 @@ Go modül yolu: `github.com/oz-fatma/kontrata/backend`.
 
 ## Gereksinimler
 
-- Go 1.26 veya üzeri
+- Go 1.25 veya üzeri
 - MongoDB 8 (yerel geliştirmede `docker compose up -d`)
 
 ## Nasıl çalıştırılır
