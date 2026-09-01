@@ -1,0 +1,5 @@
+# Varsayılan linter seti. Agresif kurallar açılmaz.
+version: "2"
+
+linters:
+  default: standard

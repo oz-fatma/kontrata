@@ -1,5 +1,7 @@
 # Kontrata
 
+[![CI](https://github.com/oz-fatma/kontrata/actions/workflows/ci.yml/badge.svg)](https://github.com/oz-fatma/kontrata/actions/workflows/ci.yml)
+
 Otellerin tur operatörlerinden aldığı kontenjan sözleşmelerini okuyup yapılandırılmış veriye çeviren masaüstü uygulaması.
 
 ## Dizin yapısı
