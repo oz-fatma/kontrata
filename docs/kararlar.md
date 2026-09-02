@@ -34,3 +34,11 @@ Durum: kabul edildi
 Bağlam: Yerelde Go 1.26 kurulu, ancak golangci-lint henüz 1.26 ile derlenmiş sürüm yayınlamadı; CI lint işi bu yüzden başarısız oluyor.
 Karar: `go.mod` hedefi 1.25'e sabitlendi.
 Sonuç: Go 1.26 özellikleri kullanılamaz; araç zinciri yakaladığında yükseltilecek.
+
+## 6. Kayıt ve e-posta doğrulama
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Kullanıcı hesabı e-posta ile doğrulanacak; hesap varlığı yanıt veya günlüklerden sızmamalı, şifreler geri döndürülemez saklanmalı.
+Karar: Şifre argon2id (OWASP varsayılan maliyet) ile PHC biçiminde tutulur. Doğrulama kodu 32 bayt rastgele değer, veritabanında SHA-256. `kayitOl` ve `dogrulamaTekrarGonder` e-posta kayıtlı olsa da aynı yanıtı verir. Denetim kaydına kimlik işlemi yazılır; şifre, token ve e-posta loglanmaz.
+Sonuç: GraphQL yüzeyi kullanıcı veya oturum token'ı dönmez; geliştirmede ConsoleMailer alıcıyı maskeleyerek iletiyi basar.
+

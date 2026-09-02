@@ -88,6 +88,11 @@ type IptalKosuluGirdi struct {
 	TazminatAciklama *string `json:"tazminatAciklama,omitempty"`
 }
 
+type KayitSonucu struct {
+	Basarili bool   `json:"basarili"`
+	Mesaj    string `json:"mesaj"`
+}
+
 type Mutation struct {
 }
 

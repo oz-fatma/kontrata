@@ -13,13 +13,14 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
+	"github.com/oz-fatma/kontrata/backend/internal/auth"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 	"github.com/oz-fatma/kontrata/backend/internal/service"
 )
 
 // RegisterRoutes /graphql ucunu ve isteğe bağlı playground'u bağlar.
-func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, enablePlayground bool) {
-	srv := handler.New(NewExecutableSchema(Config{Resolvers: &Resolver{Service: svc}}))
+func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service.AuthService, enablePlayground bool) {
+	srv := handler.New(NewExecutableSchema(Config{Resolvers: &Resolver{Service: svc, Auth: authSvc}}))
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
@@ -30,7 +31,8 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, enablePlayground
 	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
 		err := graphql.DefaultErrorPresenter(ctx, e)
 		switch {
-		case errors.Is(e, repository.ErrNotFound), errors.Is(e, repository.ErrInvalidID), errors.Is(e, repository.ErrUnavailable):
+		case errors.Is(e, repository.ErrNotFound), errors.Is(e, repository.ErrInvalidID), errors.Is(e, repository.ErrUnavailable),
+			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail):
 			err.Message = e.Error()
 		default:
 			err.Message = "işlem tamamlanamadı"
@@ -40,7 +42,12 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, enablePlayground
 	})
 	if enablePlayground {
 		srv.Use(extension.Introspection{})
-		r.Handle("/playground", playground.Handler("Kontrata", "/graphql"))
 	}
-	r.Handle("/graphql", srv)
+	r.Group(func(r chi.Router) {
+		r.Use(auth.RequestMiddleware)
+		if enablePlayground {
+			r.Handle("/playground", playground.Handler("Kontrata", "/graphql"))
+		}
+		r.Handle("/graphql", srv)
+	})
 }

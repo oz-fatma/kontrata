@@ -14,16 +14,15 @@ import (
 )
 
 const (
-	databaseName   = "kontrata"
 	collectionName = "sozlesmeler"
 	opTimeout      = 5 * time.Second
 )
 
 var (
-	ErrNotFound     = errors.New("sözleşme bulunamadı")
-	ErrUnavailable  = errors.New("veritabanı kullanılamıyor")
-	ErrInvalidID    = errors.New("geçersiz kimlik")
-	ErrStore        = errors.New("veri kaydı başarısız")
+	ErrNotFound    = errors.New("sözleşme bulunamadı")
+	ErrUnavailable = errors.New("veritabanı kullanılamıyor")
+	ErrInvalidID   = errors.New("geçersiz kimlik")
+	ErrStore       = errors.New("veri kaydı başarısız")
 )
 
 // Sozlesme MongoDB belgesidir.
@@ -144,7 +143,7 @@ func NewSozlesmeRepository(client *appmongo.Client) *SozlesmeRepository {
 	if client == nil {
 		return &SozlesmeRepository{}
 	}
-	return &SozlesmeRepository{col: client.Collection(databaseName, collectionName)}
+	return &SozlesmeRepository{col: client.Collection(appmongo.DatabaseName(), collectionName)}
 }
 
 func (r *SozlesmeRepository) ready() bool {

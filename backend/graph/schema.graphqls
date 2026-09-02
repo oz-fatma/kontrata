@@ -280,8 +280,18 @@ type Query {
   sozlesme(id: ID!): Sozlesme
 }
 
+type KayitSonucu {
+  basarili: Boolean!
+  mesaj: String!
+}
+
 type Mutation {
   sozlesmeOlustur(girdi: SozlesmeGirdi!): Sozlesme!
   sozlesmeGuncelle(id: ID!, girdi: SozlesmeGirdi!): Sozlesme!
   sozlesmeSil(id: ID!): Boolean!
+  kayitOl(eposta: String!, sifre: String!): KayitSonucu!
+  epostaDogrula(token: String!): Boolean!
+  dogrulamaTekrarGonder(eposta: String!): Boolean!
+  sifreSifirlamaIste(eposta: String!): Boolean!
+  sifreSifirla(token: String!, yeniSifre: String!): Boolean!
 }

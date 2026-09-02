@@ -26,6 +26,31 @@ func (r *mutationResolver) SozlesmeSil(ctx context.Context, id string) (bool, er
 	return r.Service.Delete(ctx, id)
 }
 
+// KayitOl is the resolver for the kayitOl field.
+func (r *mutationResolver) KayitOl(ctx context.Context, eposta string, sifre string) (*model.KayitSonucu, error) {
+	return r.Auth.KayitOl(ctx, eposta, sifre)
+}
+
+// EpostaDogrula is the resolver for the epostaDogrula field.
+func (r *mutationResolver) EpostaDogrula(ctx context.Context, token string) (bool, error) {
+	return r.Auth.EpostaDogrula(ctx, token)
+}
+
+// DogrulamaTekrarGonder is the resolver for the dogrulamaTekrarGonder field.
+func (r *mutationResolver) DogrulamaTekrarGonder(ctx context.Context, eposta string) (bool, error) {
+	return r.Auth.DogrulamaTekrarGonder(ctx, eposta)
+}
+
+// SifreSifirlamaIste is the resolver for the sifreSifirlamaIste field.
+func (r *mutationResolver) SifreSifirlamaIste(ctx context.Context, eposta string) (bool, error) {
+	return r.Auth.SifreSifirlamaIste(ctx, eposta)
+}
+
+// SifreSifirla is the resolver for the sifreSifirla field.
+func (r *mutationResolver) SifreSifirla(ctx context.Context, token string, yeniSifre string) (bool, error) {
+	return r.Auth.SifreSifirla(ctx, token, yeniSifre)
+}
+
 // Sozlesmeler is the resolver for the sozlesmeler field.
 func (r *queryResolver) Sozlesmeler(ctx context.Context, limit *int32, offset *int32) ([]*model.Sozlesme, error) {
 	return r.Service.List(ctx, limit, offset)

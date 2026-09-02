@@ -46,4 +46,14 @@ make generate
 | --- | --- | --- | --- |
 | `PORT` | hayır | `8080` | HTTP dinleme kapısı |
 | `MONGO_URI` | evet | — | MongoDB bağlantı adresi. Günlüğe yazılmaz. |
+| `MONGO_DATABASE` | hayır | `kontrata` | Veritabanı adı. Testler `kontrata_test_*` kullanır. |
 | `GRAPHQL_PLAYGROUND` | hayır | kapalı | `true` ise `/playground` açılır. |
+| `MAILER` | hayır | `console` | `console` veya `smtp`. Konsol alıcıyı maskeler. |
+| `SMTP_HOST` | `MAILER=smtp` iken | — | SMTP sunucusu |
+| `SMTP_PORT` | hayır | `587` | SMTP kapısı |
+| `SMTP_USER` | hayır | — | SMTP kullanıcı adı |
+| `SMTP_PASSWORD` | hayır | — | SMTP parolası. Günlüğe yazılmaz. |
+| `SMTP_FROM` | `MAILER=smtp` iken | — | Gönderen adresi |
+| `ARGON2_TIME` | hayır | `2` | argon2id yineleme sayısı |
+| `ARGON2_MEMORY` | hayır | `19456` | argon2id bellek (KiB) |
+| `ARGON2_THREADS` | hayır | `1` | argon2id paralellik |

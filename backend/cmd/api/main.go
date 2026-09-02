@@ -17,6 +17,7 @@ import (
 
 	"github.com/oz-fatma/kontrata/backend/graph"
 	"github.com/oz-fatma/kontrata/backend/internal/config"
+	"github.com/oz-fatma/kontrata/backend/internal/mailer"
 	"github.com/oz-fatma/kontrata/backend/internal/mongo"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 	"github.com/oz-fatma/kontrata/backend/internal/service"
@@ -41,20 +42,34 @@ func main() {
 	db, err := mongo.Connect(connectCtx, cfg.MongoURI)
 	connectCancel()
 	repo := repository.NewSozlesmeRepository(db)
+	kullanicilar := repository.NewKullaniciRepository(db)
+	tokenlar := repository.NewDogrulamaTokenRepository(db)
+	denetim := repository.NewDenetimRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
 		repo = repository.NewSozlesmeRepository(nil)
+		kullanicilar = repository.NewKullaniciRepository(nil)
+		tokenlar = repository.NewDogrulamaTokenRepository(nil)
+		denetim = repository.NewDenetimRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
 		idxCtx, idxCancel := context.WithTimeout(context.Background(), 10*time.Second)
-		if err := repo.EnsureIndexes(idxCtx); err != nil {
-			log.Printf("indeksler oluşturulamadı")
+		for _, ensure := range []func(context.Context) error{
+			repo.EnsureIndexes,
+			kullanicilar.EnsureIndexes,
+			tokenlar.EnsureIndexes,
+			denetim.EnsureIndexes,
+		} {
+			if err := ensure(idxCtx); err != nil {
+				log.Printf("indeksler oluşturulamadı")
+			}
 		}
 		idxCancel()
 	}
 	sozlesmeler := service.NewSozlesmeService(repo)
+	authSvc := service.NewAuthService(kullanicilar, tokenlar, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2)
 
-	srv := newServer(cfg, db, sozlesmeler)
+	srv := newServer(cfg, db, sozlesmeler, authSvc)
 
 	go func() {
 		log.Printf("sunucu dinliyor addr=:%d", cfg.Port)
@@ -82,14 +97,14 @@ func main() {
 	log.Printf("sunucu durdu")
 }
 
-func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.SozlesmeService) *http.Server {
+func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.SozlesmeService, authSvc *service.AuthService) *http.Server {
 	r := chi.NewRouter()
 	r.Use(recoverPanic)
 	r.Use(logRequest)
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		handleHealthz(w, r, db)
 	})
-	graph.RegisterRoutes(r, sozlesmeler, cfg.Playground)
+	graph.RegisterRoutes(r, sozlesmeler, authSvc, cfg.Playground)
 
 	return &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
