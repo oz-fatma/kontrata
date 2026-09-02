@@ -3,6 +3,10 @@
 package model
 
 import (
+	"bytes"
+	"fmt"
+	"io"
+	"strconv"
 	"time"
 )
 
@@ -145,6 +149,14 @@ type OdemeGirdi struct {
 	AvansAciklama    *string `json:"avansAciklama,omitempty"`
 }
 
+type Organizasyon struct {
+	ID              string             `json:"id"`
+	Ad              string             `json:"ad"`
+	VergiNo         *string            `json:"vergiNo,omitempty"`
+	Durum           OrganizasyonDurumu `json:"durum"`
+	OlusturmaTarihi time.Time          `json:"olusturmaTarihi"`
+}
+
 type OturumBilgisi struct {
 	ID              string    `json:"id"`
 	OlusturmaTarihi time.Time `json:"olusturmaTarihi"`
@@ -257,4 +269,178 @@ type StopSaleAraligiGirdi struct {
 	Kapsam          *string          `json:"kapsam,omitempty"`
 	BildirimYontemi *BildirimYontemi `json:"bildirimYontemi,omitempty"`
 	KaynakIfade     *string          `json:"kaynakIfade,omitempty"`
+}
+
+type Uye struct {
+	ID        string    `json:"id"`
+	Eposta    string    `json:"eposta"`
+	Rol       Rol       `json:"rol"`
+	HesapTipi HesapTipi `json:"hesapTipi"`
+}
+
+type HesapTipi string
+
+const (
+	HesapTipiBireysel HesapTipi = "BIREYSEL"
+	HesapTipiKurumsal HesapTipi = "KURUMSAL"
+)
+
+var AllHesapTipi = []HesapTipi{
+	HesapTipiBireysel,
+	HesapTipiKurumsal,
+}
+
+func (e HesapTipi) IsValid() bool {
+	switch e {
+	case HesapTipiBireysel, HesapTipiKurumsal:
+		return true
+	}
+	return false
+}
+
+func (e HesapTipi) String() string {
+	return string(e)
+}
+
+func (e *HesapTipi) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = HesapTipi(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid HesapTipi", str)
+	}
+	return nil
+}
+
+func (e HesapTipi) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *HesapTipi) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e HesapTipi) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type OrganizasyonDurumu string
+
+const (
+	OrganizasyonDurumuAktif  OrganizasyonDurumu = "AKTIF"
+	OrganizasyonDurumuAskida OrganizasyonDurumu = "ASKIDA"
+)
+
+var AllOrganizasyonDurumu = []OrganizasyonDurumu{
+	OrganizasyonDurumuAktif,
+	OrganizasyonDurumuAskida,
+}
+
+func (e OrganizasyonDurumu) IsValid() bool {
+	switch e {
+	case OrganizasyonDurumuAktif, OrganizasyonDurumuAskida:
+		return true
+	}
+	return false
+}
+
+func (e OrganizasyonDurumu) String() string {
+	return string(e)
+}
+
+func (e *OrganizasyonDurumu) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = OrganizasyonDurumu(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid OrganizasyonDurumu", str)
+	}
+	return nil
+}
+
+func (e OrganizasyonDurumu) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *OrganizasyonDurumu) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e OrganizasyonDurumu) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type Rol string
+
+const (
+	RolSahip         Rol = "SAHIP"
+	RolYonetici      Rol = "YONETICI"
+	RolGoruntuleyici Rol = "GORUNTULEYICI"
+)
+
+var AllRol = []Rol{
+	RolSahip,
+	RolYonetici,
+	RolGoruntuleyici,
+}
+
+func (e Rol) IsValid() bool {
+	switch e {
+	case RolSahip, RolYonetici, RolGoruntuleyici:
+		return true
+	}
+	return false
+}
+
+func (e Rol) String() string {
+	return string(e)
+}
+
+func (e *Rol) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = Rol(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid Rol", str)
+	}
+	return nil
+}
+
+func (e Rol) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *Rol) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e Rol) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
 }

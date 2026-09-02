@@ -7,6 +7,7 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"strings"
 	"sync"
 	"time"
 
@@ -34,6 +35,8 @@ type AuthService struct {
 	sessions     *repository.OturumRepository
 	devices      *repository.CihazRepository
 	soz          *repository.SozlesmeRepository
+	orgs         *repository.OrganizasyonRepository
+	davets       *repository.DavetRepository
 	audit        *repository.DenetimRepository
 	db           *appmongo.Client
 	mailer       mailer.Mailer
@@ -54,6 +57,8 @@ func NewAuthService(
 	sessions *repository.OturumRepository,
 	devices *repository.CihazRepository,
 	soz *repository.SozlesmeRepository,
+	orgs *repository.OrganizasyonRepository,
+	davets *repository.DavetRepository,
 	audit *repository.DenetimRepository,
 	m mailer.Mailer,
 	params auth.Params,
@@ -74,6 +79,8 @@ func NewAuthService(
 		sessions:     sessions,
 		devices:      devices,
 		soz:          soz,
+		orgs:         orgs,
+		davets:       davets,
 		audit:        audit,
 		db:           db,
 		mailer:       m,
@@ -89,8 +96,20 @@ func NewAuthService(
 
 // KayitOl yeni hesap açar veya mevcut e-posta için aynı yanıtı döner.
 // Kullanıcı nesnesi ve token dönülmez.
-func (s *AuthService) KayitOl(ctx context.Context, eposta, sifre string) (*model.KayitSonucu, error) {
+func (s *AuthService) KayitOl(ctx context.Context, eposta, sifre string, hesapTipi *model.HesapTipi, organizasyonAdi *string) (*model.KayitSonucu, error) {
 	sonuc := &model.KayitSonucu{Basarili: true, Mesaj: kayitMesaji}
+
+	tip := repository.HesapBireysel
+	if hesapTipi != nil && *hesapTipi != "" {
+		tip = string(*hesapTipi)
+	}
+	orgAd := ""
+	if organizasyonAdi != nil {
+		orgAd = strings.TrimSpace(*organizasyonAdi)
+	}
+	if tip == repository.HesapKurumsal && orgAd == "" {
+		return nil, auth.ErrOrgNameRequired
+	}
 
 	norm, err := auth.NormalizeEposta(eposta)
 	if err != nil {
@@ -107,6 +126,8 @@ func (s *AuthService) KayitOl(ctx context.Context, eposta, sifre string) (*model
 		SifreHash:        hash,
 		EpostaDogrulandi: false,
 		Durum:            repository.DurumBeklemede,
+		HesapTipi:        tip,
+		Rol:              repository.RolSahip,
 		OlusturmaTarihi:  now,
 		GuncellemeTarihi: now,
 	}
@@ -122,6 +143,23 @@ func (s *AuthService) KayitOl(ctx context.Context, eposta, sifre string) (*model
 		}
 		log.Printf("kullanıcı kaydı başarısız: %v", err)
 		return nil, err
+	}
+	if tip == repository.HesapKurumsal {
+		org := repository.Organizasyon{
+			Ad:               orgAd,
+			SahipKullaniciID: user.ID,
+			Durum:            repository.OrgDurumAktif,
+			OlusturmaTarihi:  now,
+		}
+		if err := s.orgs.Create(ctx, &org); err != nil {
+			log.Printf("organizasyon kaydı başarısız: %v", err)
+			return nil, err
+		}
+		if err := s.users.SetOrganizasyon(ctx, user.ID, org.ID, repository.HesapKurumsal, repository.RolSahip); err != nil {
+			log.Printf("organizasyon bağlanamadı: %v", err)
+			return nil, err
+		}
+		user.OrganizasyonID = org.ID
 	}
 	if err := s.issueVerification(ctx, &user); err != nil {
 		log.Printf("doğrulama kodu hazırlanamadı: %v", err)

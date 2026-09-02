@@ -18,14 +18,22 @@ const (
 
 // SozlesmeService sözleşme iş kurallarını taşır.
 type SozlesmeService struct {
-	repo *repository.SozlesmeRepository
+	repo  *repository.SozlesmeRepository
+	users *repository.KullaniciRepository
 }
 
-func NewSozlesmeService(repo *repository.SozlesmeRepository) *SozlesmeService {
-	return &SozlesmeService{repo: repo}
+func NewSozlesmeService(repo *repository.SozlesmeRepository, users *repository.KullaniciRepository) *SozlesmeService {
+	return &SozlesmeService{repo: repo, users: users}
 }
 
 func (s *SozlesmeService) Create(ctx context.Context, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
+	act, err := s.actor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !act.can(opSozlesmeYaz) {
+		return nil, auth.ErrForbidden
+	}
 	doc := fromGirdi(girdi)
 	now := time.Now().UTC()
 	doc.OlusturmaTarihi = now
@@ -33,9 +41,8 @@ func (s *SozlesmeService) Create(ctx context.Context, girdi model.SozlesmeGirdi)
 	if doc.Durum == "" {
 		doc.Durum = string(model.SozlesmeDurumuYuklendi)
 	}
-	if id, ok := auth.IdentityFrom(ctx); ok {
-		doc.KullaniciID = id.UserID
-	}
+	doc.KullaniciID = act.user.ID
+	doc.OrganizasyonID = act.orgID()
 	if err := s.repo.Create(ctx, &doc); err != nil {
 		log.Printf("sozlesme oluşturma başarısız: %v", err)
 		return nil, err
@@ -44,6 +51,13 @@ func (s *SozlesmeService) Create(ctx context.Context, girdi model.SozlesmeGirdi)
 }
 
 func (s *SozlesmeService) Get(ctx context.Context, id string) (*model.Sozlesme, error) {
+	act, err := s.actor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !act.can(opSozlesmeOku) {
+		return nil, auth.ErrForbidden
+	}
 	doc, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
@@ -55,10 +69,20 @@ func (s *SozlesmeService) Get(ctx context.Context, id string) (*model.Sozlesme, 
 		log.Printf("sozlesme okuma başarısız: %v", err)
 		return nil, err
 	}
+	if !act.ownsSozlesme(doc) {
+		return nil, nil
+	}
 	return toModel(doc), nil
 }
 
 func (s *SozlesmeService) List(ctx context.Context, limit, offset *int32) ([]*model.Sozlesme, error) {
+	act, err := s.actor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !act.can(opSozlesmeOku) {
+		return nil, auth.ErrForbidden
+	}
 	l, o := defaultListLimit, 0
 	if limit != nil {
 		l = int(*limit)
@@ -75,7 +99,7 @@ func (s *SozlesmeService) List(ctx context.Context, limit, offset *int32) ([]*mo
 	if o < 0 {
 		o = 0
 	}
-	docs, err := s.repo.List(ctx, int64(l), int64(o))
+	docs, err := s.repo.List(ctx, act.sozlesmeFilter(), int64(l), int64(o))
 	if err != nil {
 		log.Printf("sozlesme listeleme başarısız: %v", err)
 		return nil, err
@@ -88,6 +112,13 @@ func (s *SozlesmeService) List(ctx context.Context, limit, offset *int32) ([]*mo
 }
 
 func (s *SozlesmeService) Update(ctx context.Context, id string, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
+	act, err := s.actor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !act.can(opSozlesmeYaz) {
+		return nil, auth.ErrForbidden
+	}
 	existing, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		if errors.Is(err, repository.ErrNotFound) || errors.Is(err, repository.ErrInvalidID) {
@@ -96,9 +127,13 @@ func (s *SozlesmeService) Update(ctx context.Context, id string, girdi model.Soz
 		log.Printf("sozlesme güncelleme (okuma) başarısız: %v", err)
 		return nil, err
 	}
+	if !act.ownsSozlesme(existing) {
+		return nil, repository.ErrNotFound
+	}
 	doc := fromGirdi(girdi)
 	doc.ID = existing.ID
 	doc.KullaniciID = existing.KullaniciID
+	doc.OrganizasyonID = existing.OrganizasyonID
 	doc.OlusturmaTarihi = existing.OlusturmaTarihi
 	doc.GuncellemeTarihi = time.Now().UTC()
 	if doc.Durum == "" {
@@ -112,6 +147,24 @@ func (s *SozlesmeService) Update(ctx context.Context, id string, girdi model.Soz
 }
 
 func (s *SozlesmeService) Delete(ctx context.Context, id string) (bool, error) {
+	act, err := s.actor(ctx)
+	if err != nil {
+		return false, err
+	}
+	if !act.can(opSozlesmeSil) {
+		return false, auth.ErrForbidden
+	}
+	existing, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) || errors.Is(err, repository.ErrInvalidID) {
+			return false, err
+		}
+		log.Printf("sozlesme silme başarısız: %v", err)
+		return false, err
+	}
+	if !act.ownsSozlesme(existing) {
+		return false, repository.ErrNotFound
+	}
 	if err := s.repo.Delete(ctx, id); err != nil {
 		if errors.Is(err, repository.ErrNotFound) || errors.Is(err, repository.ErrInvalidID) {
 			return false, err

@@ -277,12 +277,45 @@ input SozlesmeGirdi {
 
 directive @auth on FIELD_DEFINITION
 
+enum HesapTipi {
+  BIREYSEL
+  KURUMSAL
+}
+
+enum Rol {
+  SAHIP
+  YONETICI
+  GORUNTULEYICI
+}
+
+enum OrganizasyonDurumu {
+  AKTIF
+  ASKIDA
+}
+
+type Organizasyon {
+  id: ID!
+  ad: String!
+  vergiNo: String
+  durum: OrganizasyonDurumu!
+  olusturmaTarihi: Time!
+}
+
+type Uye {
+  id: ID!
+  eposta: String!
+  rol: Rol!
+  hesapTipi: HesapTipi!
+}
+
 type Query {
 	sozlesmeler(limit: Int, offset: Int): [Sozlesme!]! @auth
   sozlesme(id: ID!): Sozlesme @auth
   oturumlarim: [OturumBilgisi!]! @auth
   cihazlarim: [Cihaz!]! @auth
   verilerimiIndir: String! @auth
+  organizasyonum: Organizasyon @auth
+  uyeler: [Uye!]! @auth
 }
 
 type KayitSonucu {
@@ -323,7 +356,7 @@ type Mutation {
   sozlesmeOlustur(girdi: SozlesmeGirdi!): Sozlesme! @auth
   sozlesmeGuncelle(id: ID!, girdi: SozlesmeGirdi!): Sozlesme! @auth
   sozlesmeSil(id: ID!): Boolean! @auth
-  kayitOl(eposta: String!, sifre: String!): KayitSonucu!
+  kayitOl(eposta: String!, sifre: String!, hesapTipi: HesapTipi = BIREYSEL, organizasyonAdi: String): KayitSonucu!
   epostaDogrula(token: String!): Boolean!
   dogrulamaTekrarGonder(eposta: String!): Boolean!
   sifreSifirlamaIste(eposta: String!): Boolean!
@@ -338,4 +371,9 @@ type Mutation {
   cihazGuvenilirYap(id: ID!): Cihaz! @auth
   hesapSilmeIste: Boolean! @auth
   hesapSil(token: String!): Boolean!
+  uyeDavetEt(eposta: String!, rol: Rol!): Boolean! @auth
+  davetiKabulEt(token: String!, sifre: String!): Boolean!
+  uyeRolDegistir(kullaniciId: ID!, rol: Rol!): Uye! @auth
+  uyeCikar(kullaniciId: ID!): Boolean! @auth
+  organizasyonSil: Boolean! @auth
 }

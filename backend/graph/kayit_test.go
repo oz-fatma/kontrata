@@ -91,6 +91,7 @@ type kayitEnv struct {
 	audit    *repository.DenetimRepository
 	mail     *stubMailer
 	devices  *repository.CihazRepository
+	orgs     *repository.OrganizasyonRepository
 	db       *mongo.Client
 }
 
@@ -113,9 +114,29 @@ func graphqlClient(h http.Handler, access, deviceID string) *client.Client {
 	return client.New(h, opts...)
 }
 
+func requireMongoURI(t *testing.T) {
+	t.Helper()
+	if strings.TrimSpace(os.Getenv("MONGO_URI")) == "" {
+		t.Fatal("MONGO_URI yok; akış testi atlanamaz. docker compose up -d çalıştırın, backend/.env dosyasına MONGO_URI=mongodb://localhost:27017 yazın (veya değişkeni export edin), ardından make test-akis / make test-org.")
+	}
+}
+
+func requireReplicaSet(t *testing.T, db *mongo.Client, ctx context.Context) {
+	t.Helper()
+	if !db.ReplicaSet(ctx) {
+		t.Fatal("replica set gerekli; akış testi atlanamaz. docker compose up -d çalıştırın (mongo:8 --replSet rs0).")
+	}
+}
+
+func setupKayitRequired(t *testing.T) (context.Context, kayitEnv) {
+	t.Helper()
+	requireMongoURI(t)
+	return setupKayit(t)
+}
+
 func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	t.Helper()
-	uri := os.Getenv("MONGO_URI")
+	uri := strings.TrimSpace(os.Getenv("MONGO_URI"))
 	if uri == "" {
 		t.Skip("MONGO_URI yok")
 	}
@@ -139,9 +160,12 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	devices := repository.NewCihazRepository(db)
 	denetim := repository.NewDenetimRepository(db)
 	sozRepo := repository.NewSozlesmeRepository(db)
+	orgs := repository.NewOrganizasyonRepository(db)
+	davets := repository.NewDavetRepository(db)
 	for _, ensure := range []func(context.Context) error{
 		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
 		sessions.EnsureIndexes, devices.EnsureIndexes, denetim.EnsureIndexes, sozRepo.EnsureIndexes,
+		orgs.EnsureIndexes, davets.EnsureIndexes, users.BackfillHesapAlanlari,
 	} {
 		if err := ensure(ctx); err != nil {
 			t.Fatalf("indeks oluşturulamadı")
@@ -152,8 +176,8 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	if err != nil {
 		t.Fatalf("jwt: %v", err)
 	}
-	authSvc := service.NewAuthService(users, tokens, mfa, sessions, devices, sozRepo, denetim, mail, testParams(), signer, db)
-	sozSvc := service.NewSozlesmeService(sozRepo)
+	authSvc := service.NewAuthService(users, tokens, mfa, sessions, devices, sozRepo, orgs, davets, denetim, mail, testParams(), signer, db)
+	sozSvc := service.NewSozlesmeService(sozRepo, users)
 	srv := handler.New(NewExecutableSchema(Config{
 		Resolvers:  &Resolver{Service: sozSvc, Auth: authSvc},
 		Directives: DirectiveRoot{Auth: AuthDirective},
@@ -163,7 +187,7 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	return ctx, kayitEnv{
 		h: h, c: graphqlClient(h, "", ""), users: users, tokens: tokens,
 		mfa: mfa, sessions: sessions, soz: sozRepo, audit: denetim, mail: mail,
-		devices: devices, db: db,
+		devices: devices, orgs: orgs, db: db,
 	}
 }
 
@@ -301,6 +325,12 @@ func TestKayitOlVeEpostaDogrula(t *testing.T) {
 	}
 	if !user.EpostaDogrulandi || user.Durum != repository.DurumAktif {
 		t.Fatalf("doğrulama sonrası durum = %s dogrulandi=%v", user.Durum, user.EpostaDogrulandi)
+	}
+	if user.HesapTipi != repository.HesapBireysel || user.Rol != repository.RolSahip {
+		t.Fatalf("hesapTipi=%s rol=%s", user.HesapTipi, user.Rol)
+	}
+	if !user.OrganizasyonID.IsZero() {
+		t.Fatal("bireysel hesapta organizasyonId dolu")
 	}
 	if postDogrula(t, env.c, plain) {
 		t.Fatal("kullanılmış kod ikinci kez kabul edildi")

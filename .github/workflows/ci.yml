@@ -9,6 +9,8 @@ jobs:
   backend:
     runs-on: ubuntu-latest
     timeout-minutes: 10
+    env:
+      MONGO_URI: mongodb://localhost:27017
     defaults:
       run:
         working-directory: backend
@@ -37,8 +39,8 @@ jobs:
       - run: go vet ./...
       - run: go build ./...
       - run: go test ./...
-        env:
-          MONGO_URI: mongodb://localhost:27017
+      - run: make test-akis
+      - run: make test-org
 
   lint:
     runs-on: ubuntu-latest

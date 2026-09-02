@@ -19,7 +19,7 @@ import (
 func TestAuthAkis(t *testing.T) {
 	dbName := fmt.Sprintf("%s_akis_%s", mongo.TestDatabasePrefix, bson.NewObjectID().Hex())
 	t.Setenv("MONGO_DATABASE", dbName)
-	ctx, env := setupKayit(t)
+	ctx, env := setupKayitRequired(t)
 	t.Cleanup(func() {
 		dropCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -27,9 +27,7 @@ func TestAuthAkis(t *testing.T) {
 			t.Errorf("akis veritabanı silinemedi: %v", err)
 		}
 	})
-	if !env.db.ReplicaSet(ctx) {
-		t.Skip("hesap silme atomik işlem için replica set gerekli")
-	}
+	requireReplicaSet(t, env.db, ctx)
 
 	eposta := uniqueEposta()
 	const cihazA, cihazB = "akis-cihaz-a", "akis-cihaz-b"

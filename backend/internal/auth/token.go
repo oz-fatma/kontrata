@@ -18,6 +18,8 @@ const (
 	PasswordResetTTL = 1 * time.Hour
 	// AccountDeleteTTL hesap silme onay kodunun geçerlilik süresidir.
 	AccountDeleteTTL = 1 * time.Hour
+	// InviteTTL organizasyon davetinin geçerlilik süresidir.
+	InviteTTL = 7 * 24 * time.Hour
 )
 
 var errTokenFailed = errors.New("doğrulama kodu üretilemedi")

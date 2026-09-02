@@ -27,8 +27,8 @@ func (r *mutationResolver) SozlesmeSil(ctx context.Context, id string) (bool, er
 }
 
 // KayitOl is the resolver for the kayitOl field.
-func (r *mutationResolver) KayitOl(ctx context.Context, eposta string, sifre string) (*model.KayitSonucu, error) {
-	return r.Auth.KayitOl(ctx, eposta, sifre)
+func (r *mutationResolver) KayitOl(ctx context.Context, eposta string, sifre string, hesapTipi *model.HesapTipi, organizasyonAdi *string) (*model.KayitSonucu, error) {
+	return r.Auth.KayitOl(ctx, eposta, sifre, hesapTipi, organizasyonAdi)
 }
 
 // EpostaDogrula is the resolver for the epostaDogrula field.
@@ -101,6 +101,31 @@ func (r *mutationResolver) HesapSil(ctx context.Context, token string) (bool, er
 	return r.Auth.HesapSil(ctx, token)
 }
 
+// UyeDavetEt is the resolver for the uyeDavetEt field.
+func (r *mutationResolver) UyeDavetEt(ctx context.Context, eposta string, rol model.Rol) (bool, error) {
+	return r.Auth.UyeDavetEt(ctx, eposta, rol)
+}
+
+// DavetiKabulEt is the resolver for the davetiKabulEt field.
+func (r *mutationResolver) DavetiKabulEt(ctx context.Context, token string, sifre string) (bool, error) {
+	return r.Auth.DavetiKabulEt(ctx, token, sifre)
+}
+
+// UyeRolDegistir is the resolver for the uyeRolDegistir field.
+func (r *mutationResolver) UyeRolDegistir(ctx context.Context, kullaniciID string, rol model.Rol) (*model.Uye, error) {
+	return r.Auth.UyeRolDegistir(ctx, kullaniciID, rol)
+}
+
+// UyeCikar is the resolver for the uyeCikar field.
+func (r *mutationResolver) UyeCikar(ctx context.Context, kullaniciID string) (bool, error) {
+	return r.Auth.UyeCikar(ctx, kullaniciID)
+}
+
+// OrganizasyonSil is the resolver for the organizasyonSil field.
+func (r *mutationResolver) OrganizasyonSil(ctx context.Context) (bool, error) {
+	return r.Auth.OrganizasyonSil(ctx)
+}
+
 // Sozlesmeler is the resolver for the sozlesmeler field.
 func (r *queryResolver) Sozlesmeler(ctx context.Context, limit *int32, offset *int32) ([]*model.Sozlesme, error) {
 	return r.Service.List(ctx, limit, offset)
@@ -128,6 +153,16 @@ func (r *queryResolver) Cihazlarim(ctx context.Context) ([]*model.Cihaz, error) 
 // VerilerimiIndir is the resolver for the verilerimiIndir field.
 func (r *queryResolver) VerilerimiIndir(ctx context.Context) (string, error) {
 	return r.Auth.VerilerimiIndir(ctx)
+}
+
+// Organizasyonum is the resolver for the organizasyonum field.
+func (r *queryResolver) Organizasyonum(ctx context.Context) (*model.Organizasyon, error) {
+	return r.Auth.Organizasyonum(ctx)
+}
+
+// Uyeler is the resolver for the uyeler field.
+func (r *queryResolver) Uyeler(ctx context.Context) ([]*model.Uye, error) {
+	return r.Auth.Uyeler(ctx)
 }
 
 // Mutation returns MutationResolver implementation.

@@ -42,10 +42,13 @@ func TestHesapSilmeHataGeriAlinir(t *testing.T) {
 	sessions := repository.NewOturumRepository(db)
 	devices := repository.NewCihazRepository(db)
 	soz := repository.NewSozlesmeRepository(db)
+	orgs := repository.NewOrganizasyonRepository(db)
+	davets := repository.NewDavetRepository(db)
 	audit := repository.NewDenetimRepository(db)
 	for _, ensure := range []func(context.Context) error{
 		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
 		sessions.EnsureIndexes, devices.EnsureIndexes, soz.EnsureIndexes, audit.EnsureIndexes,
+		orgs.EnsureIndexes, davets.EnsureIndexes,
 	} {
 		if err := ensure(ctx); err != nil {
 			t.Fatalf("indeks: %v", err)
@@ -55,7 +58,7 @@ func TestHesapSilmeHataGeriAlinir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	svc := NewAuthService(users, tokens, mfa, sessions, devices, soz, audit, silentMailer{}, auth.Params{Time: 1, Memory: 8 * 1024, Threads: 1, KeyLen: 32, SaltLen: 16}, signer, db)
+	svc := NewAuthService(users, tokens, mfa, sessions, devices, soz, orgs, davets, audit, silentMailer{}, auth.Params{Time: 1, Memory: 8 * 1024, Threads: 1, KeyLen: 32, SaltLen: 16}, signer, db)
 
 	hash, err := auth.HashPassword("oniki-karakter", svc.params)
 	if err != nil {
@@ -67,6 +70,8 @@ func TestHesapSilmeHataGeriAlinir(t *testing.T) {
 		SifreHash:        hash,
 		EpostaDogrulandi: true,
 		Durum:            repository.DurumAktif,
+		HesapTipi:        repository.HesapBireysel,
+		Rol:              repository.RolSahip,
 		OlusturmaTarihi:  now,
 		GuncellemeTarihi: now,
 	}

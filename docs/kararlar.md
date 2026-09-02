@@ -63,4 +63,11 @@ Bağlam: Hesap silme transaction replica set ister. GitHub Actions `services` bl
 Karar: CI, yerel ortamla aynı `mongo:8 --replSet rs0` sürecini iş adımında `docker run` ile başlatır. Testler `rs.status()` ve birincil olana kadar beklemeden başlamaz.
 Sonuç: Yerel ve CI aynı motoru ve replica set adını (`rs0`) kullanır. GHA `services` bloğunda Mongo yoktur.
 
+## 10. Organizasyon kapsamı ve roller
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Bireysel hesap kendi sözleşmesinin sahibidir; kurumsal hesapta sözleşme kuruma aittir. Çok kiracılı sistemlerde en sık hata başka kiracının belgesini kimlik ile okumaktır.
+Karar: `sozlesmeler` koleksiyonuna `organizasyonId` yazılır. Kurumsal listede süzgeç yalnızca bu alandır; bireyselde `kullaniciId` ve boş `organizasyonId`. Resolver, kaydı getirmeden önce kullanıcının organizasyonuyla karşılaştırır; eşleşmezse `null` döner (yokmuş gibi). Rol yetkisi (`SAHIP` / `YONETICI` / `GORUNTULEYICI`) arayüz gizlemesine bırakılmaz, resolver'da kesilir. Mevcut belgeler açılışta kurumsal kullanıcının `organizasyonId` değeriyle doldurulur.
+Sonuç: Üye daveti 7 günlük TTL kodla gelir; sahip başka üye varken hesabını silemez, önce devir veya `organizasyonSil` gerekir.
+
 

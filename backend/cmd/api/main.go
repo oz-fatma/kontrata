@@ -48,6 +48,8 @@ func main() {
 	mfaKodlari := repository.NewMFAKoduRepository(db)
 	oturumlar := repository.NewOturumRepository(db)
 	cihazlar := repository.NewCihazRepository(db)
+	organizasyonlar := repository.NewOrganizasyonRepository(db)
+	davetler := repository.NewDavetRepository(db)
 	denetim := repository.NewDenetimRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
@@ -57,6 +59,8 @@ func main() {
 		mfaKodlari = repository.NewMFAKoduRepository(nil)
 		oturumlar = repository.NewOturumRepository(nil)
 		cihazlar = repository.NewCihazRepository(nil)
+		organizasyonlar = repository.NewOrganizasyonRepository(nil)
+		davetler = repository.NewDavetRepository(nil)
 		denetim = repository.NewDenetimRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
@@ -68,11 +72,19 @@ func main() {
 			mfaKodlari.EnsureIndexes,
 			oturumlar.EnsureIndexes,
 			cihazlar.EnsureIndexes,
+			organizasyonlar.EnsureIndexes,
+			davetler.EnsureIndexes,
 			denetim.EnsureIndexes,
 		} {
 			if err := ensure(idxCtx); err != nil {
 				log.Printf("indeksler oluşturulamadı: %v", err)
 			}
+		}
+		if err := kullanicilar.BackfillHesapAlanlari(idxCtx); err != nil {
+			log.Printf("hesap alanı geçişi başarısız: %v", err)
+		}
+		if err := backfillSozlesmeOrg(idxCtx, kullanicilar, repo); err != nil {
+			log.Printf("sözleşme organizasyon geçişi başarısız: %v", err)
 		}
 		if err := oturumlar.RevokeMissingCihaz(idxCtx); err != nil {
 			log.Printf("eski oturum geçişi başarısız: %v", err)
@@ -83,8 +95,8 @@ func main() {
 	if err != nil {
 		log.Fatalf("yapılandırma yüklenemedi: %v", err)
 	}
-	sozlesmeler := service.NewSozlesmeService(repo)
-	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
+	sozlesmeler := service.NewSozlesmeService(repo, kullanicilar)
+	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, organizasyonlar, davetler, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
 
 	srv := newServer(cfg, db, sozlesmeler, authSvc)
 
@@ -112,6 +124,22 @@ func main() {
 		log.Printf("veritabanı bağlantısı kapatılamadı: %v", err)
 	}
 	log.Printf("sunucu durdu")
+}
+
+func backfillSozlesmeOrg(ctx context.Context, users *repository.KullaniciRepository, soz *repository.SozlesmeRepository) error {
+	uyeler, err := users.ListKurumsal(ctx)
+	if err != nil {
+		return err
+	}
+	for i := range uyeler {
+		if uyeler[i].OrganizasyonID.IsZero() {
+			continue
+		}
+		if err := soz.BackfillOrganizasyon(ctx, uyeler[i].ID, uyeler[i].OrganizasyonID); err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.SozlesmeService, authSvc *service.AuthService) *http.Server {

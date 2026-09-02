@@ -28,6 +28,12 @@ var (
 	ErrMFAFailed = errors.New("doğrulama başarısız")
 	// ErrInvalidName kullanıcıdan gelen ad boş veya geçersizdir.
 	ErrInvalidName = errors.New("ad geçersiz")
+	// ErrForbidden işlem için rol yetkisi yoktur.
+	ErrForbidden = errors.New("bu işlem için yetkiniz yok")
+	// ErrOrgNameRequired kurumsal kayıtta organizasyon adı eksiktir.
+	ErrOrgNameRequired = errors.New("organizasyon adı gerekli")
+	// ErrSahipDevret sahip hesabı, başka üye varken silinemez.
+	ErrSahipDevret = errors.New("önce sahipliği devredin veya organizasyonu silin")
 )
 
 var errJWT = errors.New("jeton geçersiz")

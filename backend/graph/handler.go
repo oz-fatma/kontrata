@@ -37,7 +37,8 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service
 		case errors.Is(e, repository.ErrNotFound), errors.Is(e, repository.ErrInvalidID), errors.Is(e, repository.ErrUnavailable),
 			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail),
 			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrGecersizYenilemeJetonu), errors.Is(e, auth.ErrMFAFailed),
-			errors.Is(e, auth.ErrInvalidName):
+			errors.Is(e, auth.ErrInvalidName), errors.Is(e, auth.ErrForbidden), errors.Is(e, auth.ErrOrgNameRequired),
+			errors.Is(e, auth.ErrSahipDevret):
 			err.Message = e.Error()
 		default:
 			err.Message = "işlem tamamlanamadı"

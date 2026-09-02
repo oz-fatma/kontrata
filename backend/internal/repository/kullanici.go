@@ -19,6 +19,13 @@ const (
 	DurumAktif     = "AKTIF"
 	DurumBeklemede = "BEKLEMEDE"
 	DurumAskida    = "ASKIDA"
+
+	HesapBireysel = "BIREYSEL"
+	HesapKurumsal = "KURUMSAL"
+
+	RolSahip         = "SAHIP"
+	RolYonetici      = "YONETICI"
+	RolGoruntuleyici = "GORUNTULEYICI"
 )
 
 // ErrDuplicate benzersiz indeks çakışmasıdır; GraphQL'e yansımaz.
@@ -31,6 +38,9 @@ type Kullanici struct {
 	SifreHash        string        `bson:"sifreHash"`
 	EpostaDogrulandi bool          `bson:"epostaDogrulandi"`
 	Durum            string        `bson:"durum"`
+	HesapTipi        string        `bson:"hesapTipi"`
+	OrganizasyonID   bson.ObjectID `bson:"organizasyonId,omitempty"`
+	Rol              string        `bson:"rol"`
 	OlusturmaTarihi  time.Time     `bson:"olusturmaTarihi"`
 	GuncellemeTarihi time.Time     `bson:"guncellemeTarihi"`
 }
@@ -58,9 +68,12 @@ func (r *KullaniciRepository) EnsureIndexes(ctx context.Context) error {
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	_, err := r.col.Indexes().CreateOne(ctx, mongo.IndexModel{
-		Keys:    bson.D{{Key: "eposta", Value: 1}},
-		Options: options.Index().SetUnique(true),
+	_, err := r.col.Indexes().CreateMany(ctx, []mongo.IndexModel{
+		{
+			Keys:    bson.D{{Key: "eposta", Value: 1}},
+			Options: options.Index().SetUnique(true),
+		},
+		{Keys: bson.D{{Key: "organizasyonId", Value: 1}}},
 	})
 	if err != nil {
 		return ErrStore
@@ -186,6 +199,176 @@ func (r *KullaniciRepository) Delete(ctx context.Context, id bson.ObjectID) erro
 	}
 	if res.DeletedCount == 0 {
 		return ErrNotFound
+	}
+	return nil
+}
+
+// BackfillHesapAlanlari eski belgelere bireysel / sahip yazar.
+func (r *KullaniciRepository) BackfillHesapAlanlari(ctx context.Context) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.UpdateMany(ctx, bson.M{
+		"$or": bson.A{
+			bson.M{"hesapTipi": bson.M{"$exists": false}},
+			bson.M{"hesapTipi": ""},
+		},
+	}, bson.M{"$set": bson.M{"hesapTipi": HesapBireysel}})
+	if err != nil {
+		return ErrStore
+	}
+	_, err = r.col.UpdateMany(ctx, bson.M{
+		"$or": bson.A{
+			bson.M{"rol": bson.M{"$exists": false}},
+			bson.M{"rol": ""},
+		},
+	}, bson.M{"$set": bson.M{"rol": RolSahip}})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+func (r *KullaniciRepository) SetOrganizasyon(ctx context.Context, id, orgID bson.ObjectID, hesapTipi, rol string) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{
+		"organizasyonId":   orgID,
+		"hesapTipi":        hesapTipi,
+		"rol":              rol,
+		"guncellemeTarihi": time.Now().UTC(),
+	}})
+	if err != nil {
+		return ErrStore
+	}
+	if res.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *KullaniciRepository) SetRol(ctx context.Context, id bson.ObjectID, rol string) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{
+		"rol":              rol,
+		"guncellemeTarihi": time.Now().UTC(),
+	}})
+	if err != nil {
+		return ErrStore
+	}
+	if res.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *KullaniciRepository) ListByOrg(ctx context.Context, orgID bson.ObjectID) ([]Kullanici, error) {
+	if !r.ready() {
+		return nil, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	cur, err := r.col.Find(ctx, bson.M{"organizasyonId": orgID},
+		options.Find().SetSort(bson.D{{Key: "olusturmaTarihi", Value: 1}}))
+	if err != nil {
+		return nil, ErrStore
+	}
+	defer func() { _ = cur.Close(ctx) }()
+	var out []Kullanici
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, ErrStore
+	}
+	if out == nil {
+		out = []Kullanici{}
+	}
+	return out, nil
+}
+
+func (r *KullaniciRepository) CountByOrg(ctx context.Context, orgID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"organizasyonId": orgID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
+}
+
+func (r *KullaniciRepository) ListKurumsal(ctx context.Context) ([]Kullanici, error) {
+	if !r.ready() {
+		return nil, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	cur, err := r.col.Find(ctx, bson.M{
+		"organizasyonId": bson.M{"$exists": true, "$ne": bson.NilObjectID},
+	})
+	if err != nil {
+		return nil, ErrStore
+	}
+	defer func() { _ = cur.Close(ctx) }()
+	var out []Kullanici
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, ErrStore
+	}
+	if out == nil {
+		out = []Kullanici{}
+	}
+	return out, nil
+}
+
+// DetachOrg üyeyi bireysel sahip yapar (organizasyon bağı kesilir).
+func (r *KullaniciRepository) DetachOrg(ctx context.Context, id bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	res, err := r.col.UpdateByID(ctx, id, bson.M{
+		"$set": bson.M{
+			"hesapTipi":        HesapBireysel,
+			"rol":              RolSahip,
+			"guncellemeTarihi": time.Now().UTC(),
+		},
+		"$unset": bson.M{"organizasyonId": ""},
+	})
+	if err != nil {
+		return ErrStore
+	}
+	if res.MatchedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}
+
+func (r *KullaniciRepository) DetachOrgByOrg(ctx context.Context, orgID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.UpdateMany(ctx, bson.M{"organizasyonId": orgID}, bson.M{
+		"$set": bson.M{
+			"hesapTipi":        HesapBireysel,
+			"rol":              RolSahip,
+			"guncellemeTarihi": time.Now().UTC(),
+		},
+		"$unset": bson.M{"organizasyonId": ""},
+	})
+	if err != nil {
+		return ErrStore
 	}
 	return nil
 }

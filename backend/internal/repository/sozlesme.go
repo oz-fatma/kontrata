@@ -29,6 +29,7 @@ var (
 type Sozlesme struct {
 	ID               bson.ObjectID     `bson:"_id,omitempty"`
 	KullaniciID      bson.ObjectID     `bson:"kullaniciId,omitempty"`
+	OrganizasyonID   bson.ObjectID     `bson:"organizasyonId,omitempty"`
 	OlusturmaTarihi  time.Time         `bson:"olusturmaTarihi"`
 	GuncellemeTarihi time.Time         `bson:"guncellemeTarihi"`
 	Durum            string            `bson:"durum"`
@@ -169,6 +170,7 @@ func (r *SozlesmeRepository) EnsureIndexes(ctx context.Context) error {
 		{Keys: bson.D{{Key: "olusturmaTarihi", Value: -1}}},
 		{Keys: bson.D{{Key: "durum", Value: 1}}},
 		{Keys: bson.D{{Key: "kullaniciId", Value: 1}}},
+		{Keys: bson.D{{Key: "organizasyonId", Value: 1}}},
 	})
 	if err != nil {
 		return ErrStore
@@ -216,9 +218,12 @@ func (r *SozlesmeRepository) GetByID(ctx context.Context, id string) (*Sozlesme,
 	return &doc, nil
 }
 
-func (r *SozlesmeRepository) List(ctx context.Context, limit, offset int64) ([]Sozlesme, error) {
+func (r *SozlesmeRepository) List(ctx context.Context, filter bson.M, limit, offset int64) ([]Sozlesme, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
+	}
+	if filter == nil {
+		filter = bson.M{}
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -226,7 +231,7 @@ func (r *SozlesmeRepository) List(ctx context.Context, limit, offset int64) ([]S
 		SetSort(bson.D{{Key: "olusturmaTarihi", Value: -1}}).
 		SetSkip(offset).
 		SetLimit(limit)
-	cur, err := r.col.Find(ctx, bson.M{}, opts)
+	cur, err := r.col.Find(ctx, filter, opts)
 	if err != nil {
 		return nil, ErrStore
 	}
@@ -334,4 +339,76 @@ func (r *SozlesmeRepository) CountByUser(ctx context.Context, kullaniciID bson.O
 		return 0, ErrStore
 	}
 	return n, nil
+}
+
+func (r *SozlesmeRepository) DeleteByOrg(ctx context.Context, orgID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.DeleteMany(ctx, bson.M{"organizasyonId": orgID})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+func (r *SozlesmeRepository) ListByOrg(ctx context.Context, orgID bson.ObjectID) ([]Sozlesme, error) {
+	if !r.ready() {
+		return nil, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	cur, err := r.col.Find(ctx, bson.M{"organizasyonId": orgID},
+		options.Find().SetSort(bson.D{{Key: "olusturmaTarihi", Value: -1}}))
+	if err != nil {
+		return nil, ErrStore
+	}
+	defer func() {
+		if err := cur.Close(ctx); err != nil {
+			log.Printf("imleç kapatılamadı: %v", err)
+		}
+	}()
+	var out []Sozlesme
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, ErrStore
+	}
+	if out == nil {
+		out = []Sozlesme{}
+	}
+	return out, nil
+}
+
+func (r *SozlesmeRepository) CountByOrg(ctx context.Context, orgID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"organizasyonId": orgID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
+}
+
+// BackfillOrganizasyon kullanıcının kurumsal sözleşmelerine organizasyonId yazar.
+func (r *SozlesmeRepository) BackfillOrganizasyon(ctx context.Context, kullaniciID, orgID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.UpdateMany(ctx, bson.M{
+		"kullaniciId": kullaniciID,
+		"$or": bson.A{
+			bson.M{"organizasyonId": bson.M{"$exists": false}},
+			bson.M{"organizasyonId": bson.NilObjectID},
+		},
+	}, bson.M{"$set": bson.M{"organizasyonId": orgID}})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
 }

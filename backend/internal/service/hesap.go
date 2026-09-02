@@ -97,7 +97,28 @@ func (s *AuthService) HesapSil(ctx context.Context, token string) (bool, error) 
 }
 
 func (s *AuthService) purgeAccount(ctx context.Context, kullaniciID bson.ObjectID) error {
-	if err := s.soz.DeleteByUser(ctx, kullaniciID); err != nil {
+	user, err := s.users.GetByID(ctx, kullaniciID)
+	if err != nil {
+		return err
+	}
+	if baska, err := s.sahipBaskaUyeVar(ctx, user); err != nil {
+		return err
+	} else if baska {
+		return auth.ErrSahipDevret
+	}
+	if !user.OrganizasyonID.IsZero() {
+		n, err := s.users.CountByOrg(ctx, user.OrganizasyonID)
+		if err != nil {
+			return err
+		}
+		if user.Rol == repository.RolSahip || n <= 1 {
+			if err := s.silOrganizasyon(ctx, user.OrganizasyonID); err != nil {
+				return err
+			}
+		} else if err := s.users.DetachOrg(ctx, kullaniciID); err != nil {
+			return err
+		}
+	} else if err := s.soz.DeleteByUser(ctx, kullaniciID); err != nil {
 		return err
 	}
 	if err := s.tokens.DeleteByUser(ctx, kullaniciID); err != nil {
@@ -151,6 +172,13 @@ func (s *AuthService) VerilerimiIndir(ctx context.Context) (string, error) {
 	sozlesmeler, err := s.soz.ListByUser(ctx, id.UserID)
 	if err != nil {
 		return "", err
+	}
+	if !user.OrganizasyonID.IsZero() {
+		orgSoz, err := s.soz.ListByOrg(ctx, user.OrganizasyonID)
+		if err != nil {
+			return "", err
+		}
+		sozlesmeler = orgSoz
 	}
 	denetim, err := s.audit.ListByUser(ctx, id.UserID)
 	if err != nil {

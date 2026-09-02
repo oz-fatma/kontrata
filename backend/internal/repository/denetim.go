@@ -30,6 +30,10 @@ const (
 	OlayHesapKilitlendi           = "HESAP_KILITLENDI"
 	OlayHesapSilindi              = "HESAP_SILINDI"
 	OlayTumOturumlarKapatildi     = "TUM_OTURUMLAR_KAPATILDI"
+	OlayUyeDavet                   = "UYE_DAVET"
+	OlayUyeCikar                   = "UYE_CIKAR"
+	OlayRolDegistir                = "ROL_DEGISTIR"
+	OlayOrganizasyonSilindi        = "ORGANIZASYON_SILINDI"
 )
 
 // KullaniciSilinmis denetim kaydında anonimleştirilmiş kullanıcı kimliğidir.
