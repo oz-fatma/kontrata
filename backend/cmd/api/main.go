@@ -42,26 +42,26 @@ func main() {
 	connectCtx, connectCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	db, err := mongo.Connect(connectCtx, cfg.MongoURI)
 	connectCancel()
-	repo := repository.NewSozlesmeRepository(db)
-	kullanicilar := repository.NewKullaniciRepository(db)
-	tokenlar := repository.NewDogrulamaTokenRepository(db)
-	mfaKodlari := repository.NewMFAKoduRepository(db)
-	oturumlar := repository.NewOturumRepository(db)
-	cihazlar := repository.NewCihazRepository(db)
-	organizasyonlar := repository.NewOrganizasyonRepository(db)
-	davetler := repository.NewDavetRepository(db)
-	denetim := repository.NewDenetimRepository(db)
+	repo := repository.NewContractRepository(db)
+	kullanicilar := repository.NewUserRepository(db)
+	tokenlar := repository.NewVerificationTokenRepository(db)
+	mfaKodlari := repository.NewMFACodeRepository(db)
+	oturumlar := repository.NewSessionRepository(db)
+	cihazlar := repository.NewDeviceRepository(db)
+	organizasyonlar := repository.NewOrganizationRepository(db)
+	davetler := repository.NewInviteRepository(db)
+	denetim := repository.NewAuditRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
-		repo = repository.NewSozlesmeRepository(nil)
-		kullanicilar = repository.NewKullaniciRepository(nil)
-		tokenlar = repository.NewDogrulamaTokenRepository(nil)
-		mfaKodlari = repository.NewMFAKoduRepository(nil)
-		oturumlar = repository.NewOturumRepository(nil)
-		cihazlar = repository.NewCihazRepository(nil)
-		organizasyonlar = repository.NewOrganizasyonRepository(nil)
-		davetler = repository.NewDavetRepository(nil)
-		denetim = repository.NewDenetimRepository(nil)
+		repo = repository.NewContractRepository(nil)
+		kullanicilar = repository.NewUserRepository(nil)
+		tokenlar = repository.NewVerificationTokenRepository(nil)
+		mfaKodlari = repository.NewMFACodeRepository(nil)
+		oturumlar = repository.NewSessionRepository(nil)
+		cihazlar = repository.NewDeviceRepository(nil)
+		organizasyonlar = repository.NewOrganizationRepository(nil)
+		davetler = repository.NewInviteRepository(nil)
+		denetim = repository.NewAuditRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
 		idxCtx, idxCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -80,13 +80,13 @@ func main() {
 				log.Printf("indeksler oluşturulamadı: %v", err)
 			}
 		}
-		if err := kullanicilar.BackfillHesapAlanlari(idxCtx); err != nil {
+		if err := kullanicilar.BackfillAccountFields(idxCtx); err != nil {
 			log.Printf("hesap alanı geçişi başarısız: %v", err)
 		}
 		if err := backfillSozlesmeOrg(idxCtx, kullanicilar, repo); err != nil {
 			log.Printf("sözleşme organizasyon geçişi başarısız: %v", err)
 		}
-		if err := oturumlar.RevokeMissingCihaz(idxCtx); err != nil {
+		if err := oturumlar.RevokeMissingDevice(idxCtx); err != nil {
 			log.Printf("eski oturum geçişi başarısız: %v", err)
 		}
 		idxCancel()
@@ -95,7 +95,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("yapılandırma yüklenemedi: %v", err)
 	}
-	sozlesmeler := service.NewSozlesmeService(repo, kullanicilar)
+	sozlesmeler := service.NewContractService(repo, kullanicilar)
 	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, organizasyonlar, davetler, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
 
 	srv := newServer(cfg, db, sozlesmeler, authSvc)
@@ -126,23 +126,23 @@ func main() {
 	log.Printf("sunucu durdu")
 }
 
-func backfillSozlesmeOrg(ctx context.Context, users *repository.KullaniciRepository, soz *repository.SozlesmeRepository) error {
-	uyeler, err := users.ListKurumsal(ctx)
+func backfillSozlesmeOrg(ctx context.Context, users *repository.UserRepository, soz *repository.ContractRepository) error {
+	uyeler, err := users.ListCorporate(ctx)
 	if err != nil {
 		return err
 	}
 	for i := range uyeler {
-		if uyeler[i].OrganizasyonID.IsZero() {
+		if uyeler[i].OrganizationID.IsZero() {
 			continue
 		}
-		if err := soz.BackfillOrganizasyon(ctx, uyeler[i].ID, uyeler[i].OrganizasyonID); err != nil {
+		if err := soz.BackfillOrganization(ctx, uyeler[i].ID, uyeler[i].OrganizationID); err != nil {
 			return err
 		}
 	}
 	return nil
 }
 
-func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.SozlesmeService, authSvc *service.AuthService) *http.Server {
+func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.ContractService, authSvc *service.AuthService) *http.Server {
 	r := chi.NewRouter()
 	r.Use(recoverPanic)
 	r.Use(logRequest)

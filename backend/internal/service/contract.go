@@ -16,33 +16,33 @@ const (
 	maxListLimit     = 100
 )
 
-// SozlesmeService sözleşme iş kurallarını taşır.
-type SozlesmeService struct {
-	repo  *repository.SozlesmeRepository
-	users *repository.KullaniciRepository
+// ContractService sözleşme iş kurallarını taşır.
+type ContractService struct {
+	repo  *repository.ContractRepository
+	users *repository.UserRepository
 }
 
-func NewSozlesmeService(repo *repository.SozlesmeRepository, users *repository.KullaniciRepository) *SozlesmeService {
-	return &SozlesmeService{repo: repo, users: users}
+func NewContractService(repo *repository.ContractRepository, users *repository.UserRepository) *ContractService {
+	return &ContractService{repo: repo, users: users}
 }
 
-func (s *SozlesmeService) Create(ctx context.Context, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
+func (s *ContractService) Create(ctx context.Context, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !act.can(opSozlesmeYaz) {
+	if !act.can(opContractWrite) {
 		return nil, auth.ErrForbidden
 	}
-	doc := fromGirdi(girdi)
+	doc := fromInput(girdi)
 	now := time.Now().UTC()
-	doc.OlusturmaTarihi = now
-	doc.GuncellemeTarihi = now
-	if doc.Durum == "" {
-		doc.Durum = string(model.SozlesmeDurumuYuklendi)
+	doc.CreatedAt = now
+	doc.UpdatedAt = now
+	if doc.Status == "" {
+		doc.Status = string(model.SozlesmeDurumuYuklendi)
 	}
-	doc.KullaniciID = act.user.ID
-	doc.OrganizasyonID = act.orgID()
+	doc.UserID = act.user.ID
+	doc.OrganizationID = act.orgID()
 	if err := s.repo.Create(ctx, &doc); err != nil {
 		log.Printf("sozlesme oluşturma başarısız: %v", err)
 		return nil, err
@@ -50,12 +50,12 @@ func (s *SozlesmeService) Create(ctx context.Context, girdi model.SozlesmeGirdi)
 	return toModel(&doc), nil
 }
 
-func (s *SozlesmeService) Get(ctx context.Context, id string) (*model.Sozlesme, error) {
+func (s *ContractService) Get(ctx context.Context, id string) (*model.Sozlesme, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !act.can(opSozlesmeOku) {
+	if !act.can(opContractRead) {
 		return nil, auth.ErrForbidden
 	}
 	doc, err := s.repo.GetByID(ctx, id)
@@ -69,18 +69,18 @@ func (s *SozlesmeService) Get(ctx context.Context, id string) (*model.Sozlesme, 
 		log.Printf("sozlesme okuma başarısız: %v", err)
 		return nil, err
 	}
-	if !act.ownsSozlesme(doc) {
+	if !act.ownsContract(doc) {
 		return nil, nil
 	}
 	return toModel(doc), nil
 }
 
-func (s *SozlesmeService) List(ctx context.Context, limit, offset *int32) ([]*model.Sozlesme, error) {
+func (s *ContractService) List(ctx context.Context, limit, offset *int32) ([]*model.Sozlesme, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !act.can(opSozlesmeOku) {
+	if !act.can(opContractRead) {
 		return nil, auth.ErrForbidden
 	}
 	l, o := defaultListLimit, 0
@@ -99,7 +99,7 @@ func (s *SozlesmeService) List(ctx context.Context, limit, offset *int32) ([]*mo
 	if o < 0 {
 		o = 0
 	}
-	docs, err := s.repo.List(ctx, act.sozlesmeFilter(), int64(l), int64(o))
+	docs, err := s.repo.List(ctx, act.contractFilter(), int64(l), int64(o))
 	if err != nil {
 		log.Printf("sozlesme listeleme başarısız: %v", err)
 		return nil, err
@@ -111,12 +111,12 @@ func (s *SozlesmeService) List(ctx context.Context, limit, offset *int32) ([]*mo
 	return out, nil
 }
 
-func (s *SozlesmeService) Update(ctx context.Context, id string, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
+func (s *ContractService) Update(ctx context.Context, id string, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !act.can(opSozlesmeYaz) {
+	if !act.can(opContractWrite) {
 		return nil, auth.ErrForbidden
 	}
 	existing, err := s.repo.GetByID(ctx, id)
@@ -127,17 +127,17 @@ func (s *SozlesmeService) Update(ctx context.Context, id string, girdi model.Soz
 		log.Printf("sozlesme güncelleme (okuma) başarısız: %v", err)
 		return nil, err
 	}
-	if !act.ownsSozlesme(existing) {
+	if !act.ownsContract(existing) {
 		return nil, repository.ErrNotFound
 	}
-	doc := fromGirdi(girdi)
+	doc := fromInput(girdi)
 	doc.ID = existing.ID
-	doc.KullaniciID = existing.KullaniciID
-	doc.OrganizasyonID = existing.OrganizasyonID
-	doc.OlusturmaTarihi = existing.OlusturmaTarihi
-	doc.GuncellemeTarihi = time.Now().UTC()
-	if doc.Durum == "" {
-		doc.Durum = existing.Durum
+	doc.UserID = existing.UserID
+	doc.OrganizationID = existing.OrganizationID
+	doc.CreatedAt = existing.CreatedAt
+	doc.UpdatedAt = time.Now().UTC()
+	if doc.Status == "" {
+		doc.Status = existing.Status
 	}
 	if err := s.repo.Update(ctx, &doc); err != nil {
 		log.Printf("sozlesme güncelleme başarısız: %v", err)
@@ -146,12 +146,12 @@ func (s *SozlesmeService) Update(ctx context.Context, id string, girdi model.Soz
 	return toModel(&doc), nil
 }
 
-func (s *SozlesmeService) Delete(ctx context.Context, id string) (bool, error) {
+func (s *ContractService) Delete(ctx context.Context, id string) (bool, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return false, err
 	}
-	if !act.can(opSozlesmeSil) {
+	if !act.can(opContractDelete) {
 		return false, auth.ErrForbidden
 	}
 	existing, err := s.repo.GetByID(ctx, id)
@@ -162,7 +162,7 @@ func (s *SozlesmeService) Delete(ctx context.Context, id string) (bool, error) {
 		log.Printf("sozlesme silme başarısız: %v", err)
 		return false, err
 	}
-	if !act.ownsSozlesme(existing) {
+	if !act.ownsContract(existing) {
 		return false, repository.ErrNotFound
 	}
 	if err := s.repo.Delete(ctx, id); err != nil {

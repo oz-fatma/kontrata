@@ -5,7 +5,7 @@ import (
 	"testing"
 )
 
-func TestNewTokenHashSaklanir(t *testing.T) {
+func TestNewTokenStoresHash(t *testing.T) {
 	plain, hash, err := NewToken()
 	if err != nil {
 		t.Fatalf("NewToken: %v", err)

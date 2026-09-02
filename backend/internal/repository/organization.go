@@ -11,40 +11,40 @@ import (
 	appmongo "github.com/oz-fatma/kontrata/backend/internal/mongo"
 )
 
-const organizasyonCollection = "organizasyonlar"
+const organizationCollection = "organizasyonlar"
 
 const (
-	OrgDurumAktif  = "AKTIF"
-	OrgDurumAskida = "ASKIDA"
+	OrgStatusActive    = "AKTIF"
+	OrgStatusSuspended = "ASKIDA"
 )
 
-// Organizasyon kurumsal hesabın ev sahibi belgesidir.
-type Organizasyon struct {
-	ID               bson.ObjectID `bson:"_id,omitempty"`
-	Ad               string        `bson:"ad"`
-	VergiNo          string        `bson:"vergiNo,omitempty"`
-	SahipKullaniciID bson.ObjectID `bson:"sahipKullaniciId"`
-	Durum            string        `bson:"durum"`
-	OlusturmaTarihi  time.Time     `bson:"olusturmaTarihi"`
+// Organization kurumsal hesabın ev sahibi belgesidir.
+type Organization struct {
+	ID          bson.ObjectID `bson:"_id,omitempty"`
+	Name        string        `bson:"ad"`
+	TaxID       string        `bson:"vergiNo,omitempty"`
+	OwnerUserID bson.ObjectID `bson:"sahipKullaniciId"`
+	Status      string        `bson:"durum"`
+	CreatedAt   time.Time     `bson:"olusturmaTarihi"`
 }
 
-// OrganizasyonRepository organizasyonlar koleksiyonuna erişir.
-type OrganizasyonRepository struct {
+// OrganizationRepository organizasyonlar koleksiyonuna erişir.
+type OrganizationRepository struct {
 	col *mongo.Collection
 }
 
-func NewOrganizasyonRepository(client *appmongo.Client) *OrganizasyonRepository {
+func NewOrganizationRepository(client *appmongo.Client) *OrganizationRepository {
 	if client == nil {
-		return &OrganizasyonRepository{}
+		return &OrganizationRepository{}
 	}
-	return &OrganizasyonRepository{col: client.Collection(appmongo.DatabaseName(), organizasyonCollection)}
+	return &OrganizationRepository{col: client.Collection(appmongo.DatabaseName(), organizationCollection)}
 }
 
-func (r *OrganizasyonRepository) ready() bool {
+func (r *OrganizationRepository) ready() bool {
 	return r != nil && r.col != nil
 }
 
-func (r *OrganizasyonRepository) EnsureIndexes(ctx context.Context) error {
+func (r *OrganizationRepository) EnsureIndexes(ctx context.Context) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -60,7 +60,7 @@ func (r *OrganizasyonRepository) EnsureIndexes(ctx context.Context) error {
 	return nil
 }
 
-func (r *OrganizasyonRepository) Create(ctx context.Context, doc *Organizasyon) error {
+func (r *OrganizationRepository) Create(ctx context.Context, doc *Organization) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -79,13 +79,13 @@ func (r *OrganizasyonRepository) Create(ctx context.Context, doc *Organizasyon) 
 	return nil
 }
 
-func (r *OrganizasyonRepository) GetByID(ctx context.Context, id bson.ObjectID) (*Organizasyon, error) {
+func (r *OrganizationRepository) GetByID(ctx context.Context, id bson.ObjectID) (*Organization, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc Organizasyon
+	var doc Organization
 	err := r.col.FindOne(ctx, bson.M{"_id": id}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
@@ -96,13 +96,13 @@ func (r *OrganizasyonRepository) GetByID(ctx context.Context, id bson.ObjectID) 
 	return &doc, nil
 }
 
-func (r *OrganizasyonRepository) SetSahip(ctx context.Context, id, sahip bson.ObjectID) error {
+func (r *OrganizationRepository) SetOwner(ctx context.Context, id, owner bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{"sahipKullaniciId": sahip}})
+	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{"sahipKullaniciId": owner}})
 	if err != nil {
 		return ErrStore
 	}
@@ -112,7 +112,7 @@ func (r *OrganizasyonRepository) SetSahip(ctx context.Context, id, sahip bson.Ob
 	return nil
 }
 
-func (r *OrganizasyonRepository) Delete(ctx context.Context, id bson.ObjectID) error {
+func (r *OrganizationRepository) Delete(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}

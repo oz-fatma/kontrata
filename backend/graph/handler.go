@@ -19,7 +19,7 @@ import (
 )
 
 // RegisterRoutes /graphql ucunu ve isteğe bağlı playground'u bağlar.
-func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service.AuthService, enablePlayground bool) {
+func RegisterRoutes(r chi.Router, svc *service.ContractService, authSvc *service.AuthService, enablePlayground bool) {
 	srv := handler.New(NewExecutableSchema(Config{
 		Resolvers:  &Resolver{Service: svc, Auth: authSvc},
 		Directives: DirectiveRoot{Auth: AuthDirective},
@@ -36,9 +36,9 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service
 		switch {
 		case errors.Is(e, repository.ErrNotFound), errors.Is(e, repository.ErrInvalidID), errors.Is(e, repository.ErrUnavailable),
 			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail),
-			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrGecersizYenilemeJetonu), errors.Is(e, auth.ErrMFAFailed),
+			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrInvalidRefreshToken), errors.Is(e, auth.ErrMFAFailed),
 			errors.Is(e, auth.ErrInvalidName), errors.Is(e, auth.ErrForbidden), errors.Is(e, auth.ErrOrgNameRequired),
-			errors.Is(e, auth.ErrSahipDevret):
+			errors.Is(e, auth.ErrTransferOwnership):
 			err.Message = e.Error()
 		default:
 			err.Message = "işlem tamamlanamadı"

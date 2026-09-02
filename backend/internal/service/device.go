@@ -14,9 +14,9 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
-const yeniCihazKonu = "Yeni cihazdan giriş"
+const newDeviceSubject = "Yeni cihazdan giriş"
 
-func (s *AuthService) rememberDevice(ctx context.Context, kullaniciID bson.ObjectID, user *repository.Kullanici) (bson.ObjectID, error) {
+func (s *AuthService) rememberDevice(ctx context.Context, kullaniciID bson.ObjectID, user *repository.User) (bson.ObjectID, error) {
 	meta := auth.MetaFrom(ctx)
 	hash := auth.DeviceFingerprint(meta.DeviceID, meta.UserAgent, meta.AcceptLanguage)
 	now := time.Now().UTC()
@@ -30,15 +30,15 @@ func (s *AuthService) rememberDevice(ctx context.Context, kullaniciID bson.Objec
 	if !errors.Is(err, repository.ErrNotFound) {
 		return bson.ObjectID{}, err
 	}
-	doc := repository.Cihaz{
-		KullaniciID:    kullaniciID,
-		CihazParmakIzi: hash,
-		Ad:             auth.DeviceLabel(meta.UserAgent),
-		Guvenilir:      false,
-		IlkGorulme:     now,
-		SonGorulme:     now,
-		IPAdresi:       meta.IP,
-		KullaniciAjani: meta.UserAgent,
+	doc := repository.Device{
+		UserID:      kullaniciID,
+		Fingerprint: hash,
+		Name:        auth.DeviceLabel(meta.UserAgent),
+		Trusted:     false,
+		FirstSeen:   now,
+		LastSeen:    now,
+		IPAddress:   meta.IP,
+		UserAgent:   meta.UserAgent,
 	}
 	if err := s.devices.Create(ctx, &doc); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
@@ -54,8 +54,8 @@ func (s *AuthService) rememberDevice(ctx context.Context, kullaniciID bson.Objec
 		return bson.ObjectID{}, err
 	}
 	if user != nil {
-		govde := "Kontrata güvenlik bildirimi\n\nhesabınıza yeni bir cihazdan giriş yapıldı\n\nCihaz: " + doc.Ad + "\n"
-		if err := s.mailer.Gonder(user.Eposta, yeniCihazKonu, govde); err != nil {
+		govde := "Kontrata güvenlik bildirimi\n\nhesabınıza yeni bir cihazdan giriş yapıldı\n\nCihaz: " + doc.Name + "\n"
+		if err := s.mailer.Send(user.Email, newDeviceSubject, govde); err != nil {
 			log.Printf("yeni cihaz iletisi gönderilemedi: %v", err)
 		}
 	}
@@ -63,7 +63,7 @@ func (s *AuthService) rememberDevice(ctx context.Context, kullaniciID bson.Objec
 }
 
 // Cihazlarim kullanıcının kayıtlı cihazlarını listeler.
-func (s *AuthService) Cihazlarim(ctx context.Context) ([]*model.Cihaz, error) {
+func (s *AuthService) ListDevices(ctx context.Context) ([]*model.Cihaz, error) {
 	id, ok := auth.IdentityFrom(ctx)
 	if !ok {
 		return nil, auth.ErrUnauthorized
@@ -75,14 +75,14 @@ func (s *AuthService) Cihazlarim(ctx context.Context) ([]*model.Cihaz, error) {
 	}
 	out := make([]*model.Cihaz, 0, len(docs))
 	for i := range docs {
-		out = append(out, toCihazModel(&docs[i]))
+		out = append(out, toDeviceModel(&docs[i]))
 	}
 	return out, nil
 }
 
 // CihazAdlandir cihazın görünen adını değiştirir.
-func (s *AuthService) CihazAdlandir(ctx context.Context, id, ad string) (*model.Cihaz, error) {
-	doc, err := s.ownedCihaz(ctx, id)
+func (s *AuthService) RenameDevice(ctx context.Context, id, ad string) (*model.Cihaz, error) {
+	doc, err := s.ownedDevice(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -94,17 +94,17 @@ func (s *AuthService) CihazAdlandir(ctx context.Context, id, ad string) (*model.
 		log.Printf("cihaz adı güncellenemedi: %v", err)
 		return nil, err
 	}
-	doc.Ad = ad
-	return toCihazModel(doc), nil
+	doc.Name = ad
+	return toDeviceModel(doc), nil
 }
 
 // CihazKaldir cihazı siler ve oturumlarını iptal eder.
-func (s *AuthService) CihazKaldir(ctx context.Context, id string) (bool, error) {
-	doc, err := s.ownedCihaz(ctx, id)
+func (s *AuthService) RemoveDevice(ctx context.Context, id string) (bool, error) {
+	doc, err := s.ownedDevice(ctx, id)
 	if err != nil {
 		return false, err
 	}
-	if err := s.sessions.RevokeByCihaz(ctx, doc.ID, repository.IptalCihazKaldir); err != nil {
+	if err := s.sessions.RevokeByDevice(ctx, doc.ID, repository.RevokeDeviceRemoved); err != nil {
 		log.Printf("cihaz oturumları iptal edilemedi: %v", err)
 		return false, err
 	}
@@ -116,8 +116,8 @@ func (s *AuthService) CihazKaldir(ctx context.Context, id string) (bool, error) 
 }
 
 // CihazGuvenilirYap cihazı güvenilir işaretler.
-func (s *AuthService) CihazGuvenilirYap(ctx context.Context, id string) (*model.Cihaz, error) {
-	doc, err := s.ownedCihaz(ctx, id)
+func (s *AuthService) TrustDevice(ctx context.Context, id string) (*model.Cihaz, error) {
+	doc, err := s.ownedDevice(ctx, id)
 	if err != nil {
 		return nil, err
 	}
@@ -125,11 +125,11 @@ func (s *AuthService) CihazGuvenilirYap(ctx context.Context, id string) (*model.
 		log.Printf("cihaz güvenilir yapılamadı: %v", err)
 		return nil, err
 	}
-	doc.Guvenilir = true
-	return toCihazModel(doc), nil
+	doc.Trusted = true
+	return toDeviceModel(doc), nil
 }
 
-func (s *AuthService) ownedCihaz(ctx context.Context, id string) (*repository.Cihaz, error) {
+func (s *AuthService) ownedDevice(ctx context.Context, id string) (*repository.Device, error) {
 	ident, ok := auth.IdentityFrom(ctx)
 	if !ok {
 		return nil, auth.ErrUnauthorized
@@ -145,26 +145,26 @@ func (s *AuthService) ownedCihaz(ctx context.Context, id string) (*repository.Ci
 		}
 		return nil, err
 	}
-	if doc.KullaniciID != ident.UserID {
+	if doc.UserID != ident.UserID {
 		return nil, repository.ErrNotFound
 	}
 	return doc, nil
 }
 
-func toCihazModel(d *repository.Cihaz) *model.Cihaz {
+func toDeviceModel(d *repository.Device) *model.Cihaz {
 	out := &model.Cihaz{
 		ID:         d.ID.Hex(),
-		Ad:         d.Ad,
-		Guvenilir:  d.Guvenilir,
-		IlkGorulme: d.IlkGorulme,
-		SonGorulme: d.SonGorulme,
+		Ad:         d.Name,
+		Guvenilir:  d.Trusted,
+		IlkGorulme: d.FirstSeen,
+		SonGorulme: d.LastSeen,
 	}
-	if d.IPAdresi != "" {
-		ip := d.IPAdresi
+	if d.IPAddress != "" {
+		ip := d.IPAddress
 		out.IPAdresi = &ip
 	}
-	if d.KullaniciAjani != "" {
-		ua := d.KullaniciAjani
+	if d.UserAgent != "" {
+		ua := d.UserAgent
 		out.KullaniciAjani = &ua
 	}
 	return out

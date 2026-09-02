@@ -14,62 +14,62 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
-const davetKonu = "Organizasyon daveti"
+const inviteSubject = "Organizasyon daveti"
 
-func rolFromModel(r model.Rol) string {
+func roleFromModel(r model.Rol) string {
 	return string(r)
 }
 
-func toRol(s string) model.Rol {
+func toRole(s string) model.Rol {
 	switch s {
-	case repository.RolYonetici:
+	case repository.RoleAdmin:
 		return model.RolYonetici
-	case repository.RolGoruntuleyici:
+	case repository.RoleViewer:
 		return model.RolGoruntuleyici
 	default:
 		return model.RolSahip
 	}
 }
 
-func toHesapTipi(s string) model.HesapTipi {
-	if s == repository.HesapKurumsal {
+func toAccountType(s string) model.HesapTipi {
+	if s == repository.AccountCorporate {
 		return model.HesapTipiKurumsal
 	}
 	return model.HesapTipiBireysel
 }
 
-func toOrgDurum(s string) model.OrganizasyonDurumu {
-	if s == repository.OrgDurumAskida {
+func toOrgStatus(s string) model.OrganizasyonDurumu {
+	if s == repository.OrgStatusSuspended {
 		return model.OrganizasyonDurumuAskida
 	}
 	return model.OrganizasyonDurumuAktif
 }
 
-func toUye(u *repository.Kullanici) *model.Uye {
+func toMember(u *repository.User) *model.Uye {
 	return &model.Uye{
 		ID:        u.ID.Hex(),
-		Eposta:    u.Eposta,
-		Rol:       toRol(u.Rol),
-		HesapTipi: toHesapTipi(u.HesapTipi),
+		Eposta:    u.Email,
+		Rol:       toRole(u.Role),
+		HesapTipi: toAccountType(u.AccountType),
 	}
 }
 
-func toOrganizasyon(o *repository.Organizasyon) *model.Organizasyon {
+func toOrganization(o *repository.Organization) *model.Organizasyon {
 	out := &model.Organizasyon{
 		ID:              o.ID.Hex(),
-		Ad:              o.Ad,
-		Durum:           toOrgDurum(o.Durum),
-		OlusturmaTarihi: o.OlusturmaTarihi,
+		Ad:              o.Name,
+		Durum:           toOrgStatus(o.Status),
+		OlusturmaTarihi: o.CreatedAt,
 	}
-	if o.VergiNo != "" {
-		v := o.VergiNo
+	if o.TaxID != "" {
+		v := o.TaxID
 		out.VergiNo = &v
 	}
 	return out
 }
 
 // Organizasyonum kullanıcının kurumunu döner; bireyselde null.
-func (s *AuthService) Organizasyonum(ctx context.Context) (*model.Organizasyon, error) {
+func (s *AuthService) MyOrganization(ctx context.Context) (*model.Organizasyon, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return nil, err
@@ -85,20 +85,20 @@ func (s *AuthService) Organizasyonum(ctx context.Context) (*model.Organizasyon, 
 		log.Printf("organizasyon okunamadı: %v", err)
 		return nil, err
 	}
-	return toOrganizasyon(org), nil
+	return toOrganization(org), nil
 }
 
 // Uyeler organizasyon üyelerini listeler.
-func (s *AuthService) Uyeler(ctx context.Context) ([]*model.Uye, error) {
+func (s *AuthService) Members(ctx context.Context) ([]*model.Uye, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !act.can(opUyeGor) {
+	if !act.can(opMemberView) {
 		return nil, auth.ErrForbidden
 	}
 	if !act.hasOrg() {
-		return []*model.Uye{toUye(&act.user)}, nil
+		return []*model.Uye{toMember(&act.user)}, nil
 	}
 	docs, err := s.users.ListByOrg(ctx, act.orgID())
 	if err != nil {
@@ -107,29 +107,29 @@ func (s *AuthService) Uyeler(ctx context.Context) ([]*model.Uye, error) {
 	}
 	out := make([]*model.Uye, 0, len(docs))
 	for i := range docs {
-		out = append(out, toUye(&docs[i]))
+		out = append(out, toMember(&docs[i]))
 	}
 	return out, nil
 }
 
 // UyeDavetEt e-posta ile üyelik daveti gönderir.
-func (s *AuthService) UyeDavetEt(ctx context.Context, eposta string, rol model.Rol) (bool, error) {
+func (s *AuthService) InviteMember(ctx context.Context, eposta string, rol model.Rol) (bool, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return false, err
 	}
-	if !act.can(opUyeYonet) || !act.hasOrg() {
+	if !act.can(opMemberManage) || !act.hasOrg() {
 		return false, auth.ErrForbidden
 	}
-	r := rolFromModel(rol)
-	if r == repository.RolSahip || r == "" {
+	r := roleFromModel(rol)
+	if r == repository.RoleOwner || r == "" {
 		return false, auth.ErrForbidden
 	}
-	norm, nerr := auth.NormalizeEposta(eposta)
+	norm, nerr := auth.NormalizeEmail(eposta)
 	if nerr != nil {
 		return true, nil
 	}
-	if existing, gerr := s.users.GetByEposta(ctx, norm); gerr == nil && existing.OrganizasyonID == act.orgID() {
+	if existing, gerr := s.users.GetByEmail(ctx, norm); gerr == nil && existing.OrganizationID == act.orgID() {
 		return true, nil
 	} else if gerr != nil && !errors.Is(gerr, repository.ErrNotFound) {
 		log.Printf("üye daveti okunamadı: %v", gerr)
@@ -143,29 +143,29 @@ func (s *AuthService) UyeDavetEt(ctx context.Context, eposta string, rol model.R
 	if err != nil {
 		return false, err
 	}
-	doc := repository.Davet{
-		OrganizasyonID:     act.orgID(),
-		Eposta:             norm,
-		Rol:                r,
-		TokenHash:          hash,
-		SonKullanma:        time.Now().UTC().Add(auth.InviteTTL),
-		Kullanildi:         false,
-		DavetEdenKullanici: act.user.ID,
+	doc := repository.Invite{
+		OrganizationID: act.orgID(),
+		Email:          norm,
+		Role:           r,
+		TokenHash:      hash,
+		ExpiresAt:      time.Now().UTC().Add(auth.InviteTTL),
+		Used:           false,
+		InvitedBy:      act.user.ID,
 	}
 	if err := s.davets.Create(ctx, &doc); err != nil {
 		log.Printf("davet yazılamadı: %v", err)
 		return false, err
 	}
 	govde := fmt.Sprintf("Kontrata organizasyon daveti\n\nDavet kodunuz:\n\n%s\n\nBu kod 7 gün geçerlidir.\n", plain)
-	if err := s.mailer.Gonder(norm, davetKonu, govde); err != nil {
+	if err := s.mailer.Send(norm, inviteSubject, govde); err != nil {
 		log.Printf("davet iletisi gönderilemedi: %v", err)
 	}
-	s.writeAudit(ctx, &act.user.ID, repository.OlayUyeDavet, r)
+	s.writeAudit(ctx, &act.user.ID, repository.EventMemberInvited, r)
 	return true, nil
 }
 
 // DavetiKabulEt davet koduyla yeni üyeyi oluşturur.
-func (s *AuthService) DavetiKabulEt(ctx context.Context, token, sifre string) (bool, error) {
+func (s *AuthService) AcceptInvite(ctx context.Context, token, sifre string) (bool, error) {
 	if token == "" {
 		return false, nil
 	}
@@ -181,8 +181,8 @@ func (s *AuthService) DavetiKabulEt(ctx context.Context, token, sifre string) (b
 		log.Printf("davet okunamadı: %v", err)
 		return false, err
 	}
-	if existing, gerr := s.users.GetByEposta(ctx, davet.Eposta); gerr == nil {
-		if existing.OrganizasyonID == davet.OrganizasyonID {
+	if existing, gerr := s.users.GetByEmail(ctx, davet.Email); gerr == nil {
+		if existing.OrganizationID == davet.OrganizationID {
 			_, _ = s.davets.Consume(ctx, auth.HashToken(token), time.Now().UTC())
 			return true, nil
 		}
@@ -199,16 +199,16 @@ func (s *AuthService) DavetiKabulEt(ctx context.Context, token, sifre string) (b
 		return false, err
 	}
 	now := time.Now().UTC()
-	user := repository.Kullanici{
-		Eposta:           consumed.Eposta,
-		SifreHash:        hash,
-		EpostaDogrulandi: true,
-		Durum:            repository.DurumAktif,
-		HesapTipi:        repository.HesapKurumsal,
-		OrganizasyonID:   consumed.OrganizasyonID,
-		Rol:              consumed.Rol,
-		OlusturmaTarihi:  now,
-		GuncellemeTarihi: now,
+	user := repository.User{
+		Email:          consumed.Email,
+		PasswordHash:   hash,
+		EmailVerified:  true,
+		Status:         repository.StatusActive,
+		AccountType:    repository.AccountCorporate,
+		OrganizationID: consumed.OrganizationID,
+		Role:           consumed.Role,
+		CreatedAt:      now,
+		UpdatedAt:      now,
 	}
 	if err := s.users.Create(ctx, &user); err != nil {
 		if errors.Is(err, repository.ErrDuplicate) {
@@ -217,17 +217,17 @@ func (s *AuthService) DavetiKabulEt(ctx context.Context, token, sifre string) (b
 		log.Printf("davet kaydı başarısız: %v", err)
 		return false, err
 	}
-	s.writeAudit(ctx, &user.ID, repository.OlayKayit, "davet")
+	s.writeAudit(ctx, &user.ID, repository.EventRegister, "davet")
 	return true, nil
 }
 
 // UyeRolDegistir üyenin rolünü değiştirir. SAHIP ataması sahipliği devreder.
-func (s *AuthService) UyeRolDegistir(ctx context.Context, kullaniciID string, rol model.Rol) (*model.Uye, error) {
+func (s *AuthService) ChangeMemberRole(ctx context.Context, kullaniciID string, rol model.Rol) (*model.Uye, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return nil, err
 	}
-	if !act.can(opUyeYonet) || !act.hasOrg() {
+	if !act.can(opMemberManage) || !act.hasOrg() {
 		return nil, auth.ErrForbidden
 	}
 	oid, err := bson.ObjectIDFromHex(kullaniciID)
@@ -238,49 +238,49 @@ func (s *AuthService) UyeRolDegistir(ctx context.Context, kullaniciID string, ro
 	if err != nil {
 		return nil, err
 	}
-	if hedef.OrganizasyonID != act.orgID() {
+	if hedef.OrganizationID != act.orgID() {
 		return nil, repository.ErrNotFound
 	}
-	yeni := rolFromModel(rol)
+	yeni := roleFromModel(rol)
 	if yeni == "" {
 		return nil, auth.ErrForbidden
 	}
-	if yeni == repository.RolSahip {
+	if yeni == repository.RoleOwner {
 		if hedef.ID == act.user.ID {
-			return toUye(hedef), nil
+			return toMember(hedef), nil
 		}
-		if err := s.users.SetRol(ctx, hedef.ID, repository.RolSahip); err != nil {
+		if err := s.users.SetRole(ctx, hedef.ID, repository.RoleOwner); err != nil {
 			return nil, err
 		}
-		if err := s.users.SetRol(ctx, act.user.ID, repository.RolYonetici); err != nil {
+		if err := s.users.SetRole(ctx, act.user.ID, repository.RoleAdmin); err != nil {
 			return nil, err
 		}
-		if err := s.orgs.SetSahip(ctx, act.orgID(), hedef.ID); err != nil {
+		if err := s.orgs.SetOwner(ctx, act.orgID(), hedef.ID); err != nil {
 			return nil, err
 		}
-		hedef.Rol = repository.RolSahip
-		s.writeAudit(ctx, &act.user.ID, repository.OlayRolDegistir, "devir")
-		return toUye(hedef), nil
+		hedef.Role = repository.RoleOwner
+		s.writeAudit(ctx, &act.user.ID, repository.EventRoleChanged, "devir")
+		return toMember(hedef), nil
 	}
-	if hedef.Rol == repository.RolSahip {
-		return nil, auth.ErrSahipDevret
+	if hedef.Role == repository.RoleOwner {
+		return nil, auth.ErrTransferOwnership
 	}
-	if err := s.users.SetRol(ctx, hedef.ID, yeni); err != nil {
+	if err := s.users.SetRole(ctx, hedef.ID, yeni); err != nil {
 		log.Printf("rol güncellenemedi: %v", err)
 		return nil, err
 	}
-	hedef.Rol = yeni
-	s.writeAudit(ctx, &act.user.ID, repository.OlayRolDegistir, yeni)
-	return toUye(hedef), nil
+	hedef.Role = yeni
+	s.writeAudit(ctx, &act.user.ID, repository.EventRoleChanged, yeni)
+	return toMember(hedef), nil
 }
 
 // UyeCikar üyeyi organizasyondan ayırır.
-func (s *AuthService) UyeCikar(ctx context.Context, kullaniciID string) (bool, error) {
+func (s *AuthService) RemoveMember(ctx context.Context, kullaniciID string) (bool, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return false, err
 	}
-	if !act.can(opUyeYonet) || !act.hasOrg() {
+	if !act.can(opMemberManage) || !act.hasOrg() {
 		return false, auth.ErrForbidden
 	}
 	oid, err := bson.ObjectIDFromHex(kullaniciID)
@@ -291,11 +291,11 @@ func (s *AuthService) UyeCikar(ctx context.Context, kullaniciID string) (bool, e
 	if err != nil {
 		return false, err
 	}
-	if hedef.OrganizasyonID != act.orgID() {
+	if hedef.OrganizationID != act.orgID() {
 		return false, repository.ErrNotFound
 	}
-	if hedef.Rol == repository.RolSahip {
-		return false, auth.ErrSahipDevret
+	if hedef.Role == repository.RoleOwner {
+		return false, auth.ErrTransferOwnership
 	}
 	if err := s.users.DetachOrg(ctx, hedef.ID); err != nil {
 		log.Printf("üye çıkarılamadı: %v", err)
@@ -306,32 +306,32 @@ func (s *AuthService) UyeCikar(ctx context.Context, kullaniciID string) (bool, e
 		return false, err
 	}
 	if n == 0 {
-		if err := s.silOrganizasyon(ctx, act.orgID()); err != nil {
+		if err := s.deleteOrganization(ctx, act.orgID()); err != nil {
 			return false, err
 		}
 	}
-	s.writeAudit(ctx, &act.user.ID, repository.OlayUyeCikar, "")
+	s.writeAudit(ctx, &act.user.ID, repository.EventMemberRemoved, "")
 	return true, nil
 }
 
 // OrganizasyonSil kurumu, sözleşmelerini ve davetleri kaldırır; üye bağını keser.
-func (s *AuthService) OrganizasyonSil(ctx context.Context) (bool, error) {
+func (s *AuthService) DeleteOrganization(ctx context.Context) (bool, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return false, err
 	}
-	if !act.can(opOrgSil) || !act.hasOrg() {
+	if !act.can(opOrgDelete) || !act.hasOrg() {
 		return false, auth.ErrForbidden
 	}
-	if err := s.silOrganizasyon(ctx, act.orgID()); err != nil {
+	if err := s.deleteOrganization(ctx, act.orgID()); err != nil {
 		log.Printf("organizasyon silinemedi: %v", err)
 		return false, err
 	}
-	s.writeAudit(ctx, &act.user.ID, repository.OlayOrganizasyonSilindi, "")
+	s.writeAudit(ctx, &act.user.ID, repository.EventOrganizationDeleted, "")
 	return true, nil
 }
 
-func (s *AuthService) silOrganizasyon(ctx context.Context, orgID bson.ObjectID) error {
+func (s *AuthService) deleteOrganization(ctx context.Context, orgID bson.ObjectID) error {
 	if err := s.soz.DeleteByOrg(ctx, orgID); err != nil {
 		return err
 	}
@@ -347,11 +347,11 @@ func (s *AuthService) silOrganizasyon(ctx context.Context, orgID bson.ObjectID) 
 	return nil
 }
 
-func (s *AuthService) sahipBaskaUyeVar(ctx context.Context, user *repository.Kullanici) (bool, error) {
-	if user.Rol != repository.RolSahip || user.OrganizasyonID.IsZero() {
+func (s *AuthService) ownerHasOtherMembers(ctx context.Context, user *repository.User) (bool, error) {
+	if user.Role != repository.RoleOwner || user.OrganizationID.IsZero() {
 		return false, nil
 	}
-	n, err := s.users.CountByOrg(ctx, user.OrganizasyonID)
+	n, err := s.users.CountByOrg(ctx, user.OrganizationID)
 	if err != nil {
 		return false, err
 	}

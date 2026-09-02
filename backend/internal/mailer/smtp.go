@@ -40,10 +40,10 @@ func New(kind string, cfg SMTPConfig) Mailer {
 	return NewConsole()
 }
 
-// Gonder SMTP üzerinden düz metin ileti yollar. Alıcı ve gövde loglanmaz.
-func (m *SMTPMailer) Gonder(alici, konu, govde string) error {
+// Send SMTP üzerinden düz metin ileti yollar. Alıcı ve gövde loglanmaz.
+func (m *SMTPMailer) Send(to, subject, body string) error {
 	from := strings.TrimSpace(m.cfg.From)
-	if from == "" || alici == "" {
+	if from == "" || to == "" {
 		return errSend
 	}
 	port := m.cfg.Port
@@ -53,13 +53,13 @@ func (m *SMTPMailer) Gonder(alici, konu, govde string) error {
 	addr := net.JoinHostPort(m.cfg.Host, strconv.Itoa(port))
 	msg := []byte(fmt.Sprintf(
 		"From: %s\r\nTo: %s\r\nSubject: %s\r\nMIME-Version: 1.0\r\nContent-Type: text/plain; charset=UTF-8\r\n\r\n%s",
-		from, alici, mime.QEncoding.Encode("UTF-8", konu), govde,
+		from, to, mime.QEncoding.Encode("UTF-8", subject), body,
 	))
 	var auth smtp.Auth
 	if m.cfg.User != "" {
 		auth = smtp.PlainAuth("", m.cfg.User, m.cfg.Password, m.cfg.Host)
 	}
-	if err := smtp.SendMail(addr, auth, from, []string{alici}, msg); err != nil {
+	if err := smtp.SendMail(addr, auth, from, []string{to}, msg); err != nil {
 		log.Printf("smtp gönderimi başarısız: %v", err)
 		return errSend
 	}

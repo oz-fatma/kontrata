@@ -12,37 +12,37 @@ import (
 	appmongo "github.com/oz-fatma/kontrata/backend/internal/mongo"
 )
 
-const davetCollection = "davetler"
+const inviteCollection = "davetler"
 
-// Davet organizasyona e-posta ile gönderilen üyelik davetidir. Token yalnızca hash olarak durur.
-type Davet struct {
-	ID                 bson.ObjectID `bson:"_id,omitempty"`
-	OrganizasyonID     bson.ObjectID `bson:"organizasyonId"`
-	Eposta             string        `bson:"eposta"`
-	Rol                string        `bson:"rol"`
-	TokenHash          string        `bson:"tokenHash"`
-	SonKullanma        time.Time     `bson:"sonKullanma"`
-	Kullanildi         bool          `bson:"kullanildi"`
-	DavetEdenKullanici bson.ObjectID `bson:"davetEdenKullaniciId"`
+// Invite organizasyona e-posta ile gönderilen üyelik davetidir. Token yalnızca hash olarak durur.
+type Invite struct {
+	ID             bson.ObjectID `bson:"_id,omitempty"`
+	OrganizationID bson.ObjectID `bson:"organizasyonId"`
+	Email          string        `bson:"eposta"`
+	Role           string        `bson:"rol"`
+	TokenHash      string        `bson:"tokenHash"`
+	ExpiresAt      time.Time     `bson:"sonKullanma"`
+	Used           bool          `bson:"kullanildi"`
+	InvitedBy      bson.ObjectID `bson:"davetEdenKullaniciId"`
 }
 
-// DavetRepository davetler koleksiyonuna erişir.
-type DavetRepository struct {
+// InviteRepository davetler koleksiyonuna erişir.
+type InviteRepository struct {
 	col *mongo.Collection
 }
 
-func NewDavetRepository(client *appmongo.Client) *DavetRepository {
+func NewInviteRepository(client *appmongo.Client) *InviteRepository {
 	if client == nil {
-		return &DavetRepository{}
+		return &InviteRepository{}
 	}
-	return &DavetRepository{col: client.Collection(appmongo.DatabaseName(), davetCollection)}
+	return &InviteRepository{col: client.Collection(appmongo.DatabaseName(), inviteCollection)}
 }
 
-func (r *DavetRepository) ready() bool {
+func (r *InviteRepository) ready() bool {
 	return r != nil && r.col != nil
 }
 
-func (r *DavetRepository) EnsureIndexes(ctx context.Context) error {
+func (r *InviteRepository) EnsureIndexes(ctx context.Context) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -65,7 +65,7 @@ func (r *DavetRepository) EnsureIndexes(ctx context.Context) error {
 	return nil
 }
 
-func (r *DavetRepository) Create(ctx context.Context, doc *Davet) error {
+func (r *InviteRepository) Create(ctx context.Context, doc *Invite) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -87,13 +87,13 @@ func (r *DavetRepository) Create(ctx context.Context, doc *Davet) error {
 	return nil
 }
 
-func (r *DavetRepository) GetByHash(ctx context.Context, hash string, now time.Time) (*Davet, error) {
+func (r *InviteRepository) GetByHash(ctx context.Context, hash string, now time.Time) (*Invite, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc Davet
+	var doc Invite
 	err := r.col.FindOne(ctx, bson.M{
 		"tokenHash":   hash,
 		"kullanildi":  false,
@@ -108,13 +108,13 @@ func (r *DavetRepository) GetByHash(ctx context.Context, hash string, now time.T
 	return &doc, nil
 }
 
-func (r *DavetRepository) Consume(ctx context.Context, hash string, now time.Time) (*Davet, error) {
+func (r *InviteRepository) Consume(ctx context.Context, hash string, now time.Time) (*Invite, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc Davet
+	var doc Invite
 	err := r.col.FindOneAndUpdate(ctx, bson.M{
 		"tokenHash":   hash,
 		"kullanildi":  false,
@@ -129,7 +129,7 @@ func (r *DavetRepository) Consume(ctx context.Context, hash string, now time.Tim
 	return &doc, nil
 }
 
-func (r *DavetRepository) InvalidateUnused(ctx context.Context, orgID bson.ObjectID, eposta string) error {
+func (r *InviteRepository) InvalidateUnused(ctx context.Context, orgID bson.ObjectID, email string) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -137,7 +137,7 @@ func (r *DavetRepository) InvalidateUnused(ctx context.Context, orgID bson.Objec
 	defer cancel()
 	_, err := r.col.UpdateMany(ctx, bson.M{
 		"organizasyonId": orgID,
-		"eposta":         eposta,
+		"eposta":         email,
 		"kullanildi":     false,
 	}, bson.M{"$set": bson.M{"kullanildi": true}})
 	if err != nil {
@@ -146,7 +146,7 @@ func (r *DavetRepository) InvalidateUnused(ctx context.Context, orgID bson.Objec
 	return nil
 }
 
-func (r *DavetRepository) DeleteByOrg(ctx context.Context, orgID bson.ObjectID) error {
+func (r *InviteRepository) DeleteByOrg(ctx context.Context, orgID bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}

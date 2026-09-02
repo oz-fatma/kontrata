@@ -16,9 +16,9 @@ import (
 
 type silentMailer struct{}
 
-func (silentMailer) Gonder(_, _, _ string) error { return nil }
+func (silentMailer) Send(_, _, _ string) error { return nil }
 
-func TestHesapSilmeHataGeriAlinir(t *testing.T) {
+func TestAccountDeleteRollback(t *testing.T) {
 	uri := os.Getenv("MONGO_URI")
 	if uri == "" {
 		t.Skip("MONGO_URI yok")
@@ -36,15 +36,15 @@ func TestHesapSilmeHataGeriAlinir(t *testing.T) {
 		t.Skip("hesap silme atomik işlem için replica set gerekli")
 	}
 
-	users := repository.NewKullaniciRepository(db)
-	tokens := repository.NewDogrulamaTokenRepository(db)
-	mfa := repository.NewMFAKoduRepository(db)
-	sessions := repository.NewOturumRepository(db)
-	devices := repository.NewCihazRepository(db)
-	soz := repository.NewSozlesmeRepository(db)
-	orgs := repository.NewOrganizasyonRepository(db)
-	davets := repository.NewDavetRepository(db)
-	audit := repository.NewDenetimRepository(db)
+	users := repository.NewUserRepository(db)
+	tokens := repository.NewVerificationTokenRepository(db)
+	mfa := repository.NewMFACodeRepository(db)
+	sessions := repository.NewSessionRepository(db)
+	devices := repository.NewDeviceRepository(db)
+	soz := repository.NewContractRepository(db)
+	orgs := repository.NewOrganizationRepository(db)
+	davets := repository.NewInviteRepository(db)
+	audit := repository.NewAuditRepository(db)
 	for _, ensure := range []func(context.Context) error{
 		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
 		sessions.EnsureIndexes, devices.EnsureIndexes, soz.EnsureIndexes, audit.EnsureIndexes,
@@ -65,33 +65,33 @@ func TestHesapSilmeHataGeriAlinir(t *testing.T) {
 		t.Fatal(err)
 	}
 	now := time.Now().UTC()
-	user := repository.Kullanici{
-		Eposta:           "silme-" + bson.NewObjectID().Hex() + "@ornek.test",
-		SifreHash:        hash,
-		EpostaDogrulandi: true,
-		Durum:            repository.DurumAktif,
-		HesapTipi:        repository.HesapBireysel,
-		Rol:              repository.RolSahip,
-		OlusturmaTarihi:  now,
-		GuncellemeTarihi: now,
+	user := repository.User{
+		Email:         "silme-" + bson.NewObjectID().Hex() + "@ornek.test",
+		PasswordHash:  hash,
+		EmailVerified: true,
+		Status:        repository.StatusActive,
+		AccountType:   repository.AccountIndividual,
+		Role:          repository.RoleOwner,
+		CreatedAt:     now,
+		UpdatedAt:     now,
 	}
 	if err := users.Create(ctx, &user); err != nil {
 		t.Fatal(err)
 	}
-	if err := soz.Create(ctx, &repository.Sozlesme{
-		KullaniciID:      user.ID,
-		OlusturmaTarihi:  now,
-		GuncellemeTarihi: now,
-		Durum:            "YUKLENDI",
+	if err := soz.Create(ctx, &repository.Contract{
+		UserID:    user.ID,
+		CreatedAt: now,
+		UpdatedAt: now,
+		Status:    "YUKLENDI",
 	}); err != nil {
 		t.Fatal(err)
 	}
-	if err := devices.Create(ctx, &repository.Cihaz{
-		KullaniciID:    user.ID,
-		CihazParmakIzi: "abc",
-		Ad:             "test",
-		IlkGorulme:     now,
-		SonGorulme:     now,
+	if err := devices.Create(ctx, &repository.Device{
+		UserID:      user.ID,
+		Fingerprint: "abc",
+		Name:        "test",
+		FirstSeen:   now,
+		LastSeen:    now,
 	}); err != nil {
 		t.Fatal(err)
 	}
@@ -99,17 +99,17 @@ func TestHesapSilmeHataGeriAlinir(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if err := tokens.Create(ctx, &repository.DogrulamaTokeni{
-		KullaniciID: user.ID,
-		Token:       tokHash,
-		Amac:        repository.AmacHesapSilme,
-		SonKullanma: now.Add(time.Hour),
+	if err := tokens.Create(ctx, &repository.VerificationToken{
+		UserID:    user.ID,
+		Token:     tokHash,
+		Purpose:   repository.PurposeAccountDelete,
+		ExpiresAt: now.Add(time.Hour),
 	}); err != nil {
 		t.Fatal(err)
 	}
 
 	svc.deleteFailAt = deleteStepUser
-	ok, err := svc.HesapSil(ctx, plain)
+	ok, err := svc.DeleteAccount(ctx, plain)
 	if ok || err == nil {
 		t.Fatal("hata bekleniyordu")
 	}

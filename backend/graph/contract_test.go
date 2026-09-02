@@ -29,11 +29,11 @@ func sozlesmeGirdi() map[string]any {
 	}
 }
 
-func TestSozlesmeOlusturVeOku(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
-	access, _ := loginSession(t, env, eposta, testSifre)
+func TestCreateAndReadContract(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
+	access, _ := loginSession(t, env, eposta, testPassword)
 	c := env.withToken(access)
 
 	var created struct {
@@ -167,13 +167,13 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 	if len(stored.StopSale) != 0 {
 		t.Fatalf("Mongo stopSale uzunluğu = %d", len(stored.StopSale))
 	}
-	if len(stored.Fiyatlar) != 1 || stored.Fiyatlar[0].Birim != "oda_gecelik" {
+	if len(stored.Prices) != 1 || stored.Prices[0].Unit != "oda_gecelik" {
 		t.Fatalf("Mongo birim kontrat.json değeri değil")
 	}
 }
 
-func TestSozlesmeAuthOlmadanReddedilir(t *testing.T) {
-	_, env := setupKayit(t)
+func TestContractRequiresAuth(t *testing.T) {
+	_, env := setupRegister(t)
 	var out struct{ Sozlesmeler []any }
 	err := env.c.Post(`query { sozlesmeler { id } }`, &out)
 	if err == nil {

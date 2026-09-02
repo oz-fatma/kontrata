@@ -21,177 +21,177 @@ func toEnum[T ~string](v *string) *T {
 	return &t
 }
 
-func fromGirdi(g model.SozlesmeGirdi) repository.Sozlesme {
-	doc := repository.Sozlesme{
-		DosyaAdi:         g.DosyaAdi,
-		OdaKontenjanlari: []repository.OdaKontenjani{},
-		Fiyatlar:         []repository.Fiyat{},
-		StopSale:         []repository.StopSaleAraligi{},
+func fromInput(g model.SozlesmeGirdi) repository.Contract {
+	doc := repository.Contract{
+		FileName:       g.DosyaAdi,
+		RoomAllotments: []repository.RoomAllotment{},
+		Prices:         []repository.Price{},
+		StopSale:       []repository.StopSaleRange{},
 	}
 	if g.Durum != nil {
-		doc.Durum = string(*g.Durum)
+		doc.Status = string(*g.Durum)
 	}
 	if g.Meta != nil {
-		doc.Meta = &repository.SozlesmeMeta{
-			OtelAdi:        g.Meta.OtelAdi,
-			AcenteAdi:      g.Meta.AcenteAdi,
-			SozlesmeTipi:   enumPtr(g.Meta.SozlesmeTipi),
-			Sezon:          enumPtr(g.Meta.Sezon),
-			ParaBirimi:     g.Meta.ParaBirimi,
-			KurEsasi:       enumPtr(g.Meta.KurEsasi),
-			YetkiliMahkeme: g.Meta.YetkiliMahkeme,
-			ImzaTarihi:     g.Meta.ImzaTarihi,
+		doc.Meta = &repository.ContractMeta{
+			HotelName:      g.Meta.OtelAdi,
+			AgencyName:     g.Meta.AcenteAdi,
+			ContractType:   enumPtr(g.Meta.SozlesmeTipi),
+			Season:         enumPtr(g.Meta.Sezon),
+			Currency:       g.Meta.ParaBirimi,
+			ExchangeBasis:  enumPtr(g.Meta.KurEsasi),
+			CompetentCourt: g.Meta.YetkiliMahkeme,
+			SignatureDate:  g.Meta.ImzaTarihi,
 		}
 	}
 	if g.Donem != nil {
-		d := &repository.Donem{Baslangic: g.Donem.Baslangic, Bitis: g.Donem.Bitis}
+		d := &repository.Period{Start: g.Donem.Baslangic, End: g.Donem.Bitis}
 		for _, a := range g.Donem.AltDonemler {
 			if a == nil {
 				continue
 			}
-			d.AltDonemler = append(d.AltDonemler, repository.AltDonem{Ad: a.Ad, Baslangic: a.Baslangic, Bitis: a.Bitis})
+			d.SubPeriods = append(d.SubPeriods, repository.SubPeriod{Name: a.Ad, Start: a.Baslangic, End: a.Bitis})
 		}
-		doc.Donem = d
+		doc.Period = d
 	}
 	for _, o := range g.OdaKontenjanlari {
 		if o == nil {
 			continue
 		}
-		doc.OdaKontenjanlari = append(doc.OdaKontenjanlari, repository.OdaKontenjani{OdaTipi: o.OdaTipi, Adet: o.Adet, Aciklama: o.Aciklama})
+		doc.RoomAllotments = append(doc.RoomAllotments, repository.RoomAllotment{RoomType: o.OdaTipi, Quantity: o.Adet, Description: o.Aciklama})
 	}
 	for _, f := range g.Fiyatlar {
 		if f == nil {
 			continue
 		}
-		doc.Fiyatlar = append(doc.Fiyatlar, repository.Fiyat{
-			OdaTipi:    f.OdaTipi,
-			Pansiyon:   enumPtr(f.Pansiyon),
-			Tutar:      f.Tutar,
-			Birim:      string(f.Birim),
-			AltDonemAd: f.AltDonemAd,
+		doc.Prices = append(doc.Prices, repository.Price{
+			RoomType:      f.OdaTipi,
+			Board:         enumPtr(f.Pansiyon),
+			Amount:        f.Tutar,
+			Unit:          string(f.Birim),
+			SubPeriodName: f.AltDonemAd,
 		})
 	}
 	if g.Release != nil {
-		doc.Release = &repository.ReleaseKurali{Gun: g.Release.Gun, Kapsam: enumPtr(g.Release.Kapsam), KaynakIfade: g.Release.KaynakIfade}
+		doc.Release = &repository.ReleaseRule{Days: g.Release.Gun, Scope: enumPtr(g.Release.Kapsam), SourcePhrase: g.Release.KaynakIfade}
 	}
 	for _, s := range g.StopSale {
 		if s == nil {
 			continue
 		}
-		doc.StopSale = append(doc.StopSale, repository.StopSaleAraligi{
-			Baslangic: s.Baslangic, Bitis: s.Bitis, Kapsam: s.Kapsam,
-			BildirimYontemi: enumPtr(s.BildirimYontemi), KaynakIfade: s.KaynakIfade,
+		doc.StopSale = append(doc.StopSale, repository.StopSaleRange{
+			Start: s.Baslangic, End: s.Bitis, Scope: s.Kapsam,
+			NotificationMethod: enumPtr(s.BildirimYontemi), SourcePhrase: s.KaynakIfade,
 		})
 	}
 	for _, c := range g.CocukPolitikasi {
 		if c == nil {
 			continue
 		}
-		doc.CocukPolitikasi = append(doc.CocukPolitikasi, repository.CocukPolitikasi{
-			YasMin: c.YasMin, YasMax: c.YasMax, IndirimYuzde: c.IndirimYuzde, Ucretsiz: c.Ucretsiz, Kosul: c.Kosul,
+		doc.ChildPolicies = append(doc.ChildPolicies, repository.ChildPolicy{
+			AgeMin: c.YasMin, AgeMax: c.YasMax, DiscountPercent: c.IndirimYuzde, Free: c.Ucretsiz, Condition: c.Kosul,
 		})
 	}
 	for _, i := range g.IptalKosullari {
 		if i == nil {
 			continue
 		}
-		doc.IptalKosullari = append(doc.IptalKosullari, repository.IptalKosulu{Kapsam: i.Kapsam, Gun: i.Gun, TazminatAciklama: i.TazminatAciklama})
+		doc.CancellationTerms = append(doc.CancellationTerms, repository.CancellationTerm{Scope: i.Kapsam, Days: i.Gun, CompensationNote: i.TazminatAciklama})
 	}
 	if g.NoShow != nil {
-		doc.NoShow = &repository.NoShow{SorumluTaraf: g.NoShow.SorumluTaraf, TazminatAciklama: g.NoShow.TazminatAciklama}
+		doc.NoShow = &repository.NoShow{ResponsibleParty: g.NoShow.SorumluTaraf, CompensationNote: g.NoShow.TazminatAciklama}
 	}
 	if g.Overbooking != nil {
-		doc.Overbooking = &repository.Overbooking{SorumluTaraf: g.Overbooking.SorumluTaraf, Aciklama: g.Overbooking.Aciklama}
+		doc.Overbooking = &repository.Overbooking{ResponsibleParty: g.Overbooking.SorumluTaraf, Description: g.Overbooking.Aciklama}
 	}
 	if g.Odeme != nil {
-		doc.Odeme = &repository.Odeme{FaturaSonrasiGun: g.Odeme.FaturaSonrasiGun, AvansVar: g.Odeme.AvansVar, AvansAciklama: g.Odeme.AvansAciklama}
+		doc.Payment = &repository.Payment{DaysAfterInvoice: g.Odeme.FaturaSonrasiGun, HasAdvance: g.Odeme.AvansVar, AdvanceNote: g.Odeme.AvansAciklama}
 	}
 	for _, c := range g.CikarimMeta {
 		if c == nil {
 			continue
 		}
-		doc.CikarimMeta = append(doc.CikarimMeta, repository.CikarimMeta{AlanYolu: c.AlanYolu, Guven: c.Guven, KaynakSayfa: c.KaynakSayfa, KaynakMadde: c.KaynakMadde})
+		doc.ExtractionMeta = append(doc.ExtractionMeta, repository.ExtractionMeta{FieldPath: c.AlanYolu, Confidence: c.Guven, SourcePage: c.KaynakSayfa, SourceClause: c.KaynakMadde})
 	}
 	return doc
 }
 
-func toModel(doc *repository.Sozlesme) *model.Sozlesme {
+func toModel(doc *repository.Contract) *model.Sozlesme {
 	if doc == nil {
 		return nil
 	}
 	out := &model.Sozlesme{
 		ID:               doc.ID.Hex(),
-		OlusturmaTarihi:  doc.OlusturmaTarihi,
-		GuncellemeTarihi: doc.GuncellemeTarihi,
-		Durum:            model.SozlesmeDurumu(doc.Durum),
-		DosyaAdi:         doc.DosyaAdi,
+		OlusturmaTarihi:  doc.CreatedAt,
+		GuncellemeTarihi: doc.UpdatedAt,
+		Durum:            model.SozlesmeDurumu(doc.Status),
+		DosyaAdi:         doc.FileName,
 		OdaKontenjanlari: []*model.OdaKontenjani{},
 		Fiyatlar:         []*model.Fiyat{},
 		StopSale:         []*model.StopSaleAraligi{},
 	}
 	if doc.Meta != nil {
 		out.Meta = &model.SozlesmeMeta{
-			OtelAdi:        doc.Meta.OtelAdi,
-			AcenteAdi:      doc.Meta.AcenteAdi,
-			SozlesmeTipi:   toEnum[model.SozlesmeTipi](doc.Meta.SozlesmeTipi),
-			Sezon:          toEnum[model.Sezon](doc.Meta.Sezon),
-			ParaBirimi:     doc.Meta.ParaBirimi,
-			KurEsasi:       toEnum[model.KurEsasi](doc.Meta.KurEsasi),
-			YetkiliMahkeme: doc.Meta.YetkiliMahkeme,
-			ImzaTarihi:     doc.Meta.ImzaTarihi,
+			OtelAdi:        doc.Meta.HotelName,
+			AcenteAdi:      doc.Meta.AgencyName,
+			SozlesmeTipi:   toEnum[model.SozlesmeTipi](doc.Meta.ContractType),
+			Sezon:          toEnum[model.Sezon](doc.Meta.Season),
+			ParaBirimi:     doc.Meta.Currency,
+			KurEsasi:       toEnum[model.KurEsasi](doc.Meta.ExchangeBasis),
+			YetkiliMahkeme: doc.Meta.CompetentCourt,
+			ImzaTarihi:     doc.Meta.SignatureDate,
 		}
 	}
-	if doc.Donem != nil {
-		d := &model.Donem{Baslangic: doc.Donem.Baslangic, Bitis: doc.Donem.Bitis}
-		for i := range doc.Donem.AltDonemler {
-			a := doc.Donem.AltDonemler[i]
-			d.AltDonemler = append(d.AltDonemler, &model.AltDonem{Ad: a.Ad, Baslangic: a.Baslangic, Bitis: a.Bitis})
+	if doc.Period != nil {
+		d := &model.Donem{Baslangic: doc.Period.Start, Bitis: doc.Period.End}
+		for i := range doc.Period.SubPeriods {
+			a := doc.Period.SubPeriods[i]
+			d.AltDonemler = append(d.AltDonemler, &model.AltDonem{Ad: a.Name, Baslangic: a.Start, Bitis: a.End})
 		}
 		out.Donem = d
 	}
-	for i := range doc.OdaKontenjanlari {
-		o := doc.OdaKontenjanlari[i]
-		out.OdaKontenjanlari = append(out.OdaKontenjanlari, &model.OdaKontenjani{OdaTipi: o.OdaTipi, Adet: o.Adet, Aciklama: o.Aciklama})
+	for i := range doc.RoomAllotments {
+		o := doc.RoomAllotments[i]
+		out.OdaKontenjanlari = append(out.OdaKontenjanlari, &model.OdaKontenjani{OdaTipi: o.RoomType, Adet: o.Quantity, Aciklama: o.Description})
 	}
-	for i := range doc.Fiyatlar {
-		f := doc.Fiyatlar[i]
+	for i := range doc.Prices {
+		f := doc.Prices[i]
 		out.Fiyatlar = append(out.Fiyatlar, &model.Fiyat{
-			OdaTipi: f.OdaTipi, Pansiyon: toEnum[model.Pansiyon](f.Pansiyon),
-			Tutar: f.Tutar, Birim: model.FiyatBirimi(f.Birim), AltDonemAd: f.AltDonemAd,
+			OdaTipi: f.RoomType, Pansiyon: toEnum[model.Pansiyon](f.Board),
+			Tutar: f.Amount, Birim: model.FiyatBirimi(f.Unit), AltDonemAd: f.SubPeriodName,
 		})
 	}
 	if doc.Release != nil {
-		out.Release = &model.ReleaseKurali{Gun: doc.Release.Gun, Kapsam: toEnum[model.ReleaseKapsami](doc.Release.Kapsam), KaynakIfade: doc.Release.KaynakIfade}
+		out.Release = &model.ReleaseKurali{Gun: doc.Release.Days, Kapsam: toEnum[model.ReleaseKapsami](doc.Release.Scope), KaynakIfade: doc.Release.SourcePhrase}
 	}
 	for i := range doc.StopSale {
 		s := doc.StopSale[i]
 		out.StopSale = append(out.StopSale, &model.StopSaleAraligi{
-			Baslangic: s.Baslangic, Bitis: s.Bitis, Kapsam: s.Kapsam,
-			BildirimYontemi: toEnum[model.BildirimYontemi](s.BildirimYontemi), KaynakIfade: s.KaynakIfade,
+			Baslangic: s.Start, Bitis: s.End, Kapsam: s.Scope,
+			BildirimYontemi: toEnum[model.BildirimYontemi](s.NotificationMethod), KaynakIfade: s.SourcePhrase,
 		})
 	}
-	for i := range doc.CocukPolitikasi {
-		c := doc.CocukPolitikasi[i]
+	for i := range doc.ChildPolicies {
+		c := doc.ChildPolicies[i]
 		out.CocukPolitikasi = append(out.CocukPolitikasi, &model.CocukPolitikasi{
-			YasMin: c.YasMin, YasMax: c.YasMax, IndirimYuzde: c.IndirimYuzde, Ucretsiz: c.Ucretsiz, Kosul: c.Kosul,
+			YasMin: c.AgeMin, YasMax: c.AgeMax, IndirimYuzde: c.DiscountPercent, Ucretsiz: c.Free, Kosul: c.Condition,
 		})
 	}
-	for i := range doc.IptalKosullari {
-		k := doc.IptalKosullari[i]
-		out.IptalKosullari = append(out.IptalKosullari, &model.IptalKosulu{Kapsam: k.Kapsam, Gun: k.Gun, TazminatAciklama: k.TazminatAciklama})
+	for i := range doc.CancellationTerms {
+		k := doc.CancellationTerms[i]
+		out.IptalKosullari = append(out.IptalKosullari, &model.IptalKosulu{Kapsam: k.Scope, Gun: k.Days, TazminatAciklama: k.CompensationNote})
 	}
 	if doc.NoShow != nil {
-		out.NoShow = &model.NoShow{SorumluTaraf: doc.NoShow.SorumluTaraf, TazminatAciklama: doc.NoShow.TazminatAciklama}
+		out.NoShow = &model.NoShow{SorumluTaraf: doc.NoShow.ResponsibleParty, TazminatAciklama: doc.NoShow.CompensationNote}
 	}
 	if doc.Overbooking != nil {
-		out.Overbooking = &model.Overbooking{SorumluTaraf: doc.Overbooking.SorumluTaraf, Aciklama: doc.Overbooking.Aciklama}
+		out.Overbooking = &model.Overbooking{SorumluTaraf: doc.Overbooking.ResponsibleParty, Aciklama: doc.Overbooking.Description}
 	}
-	if doc.Odeme != nil {
-		out.Odeme = &model.Odeme{FaturaSonrasiGun: doc.Odeme.FaturaSonrasiGun, AvansVar: doc.Odeme.AvansVar, AvansAciklama: doc.Odeme.AvansAciklama}
+	if doc.Payment != nil {
+		out.Odeme = &model.Odeme{FaturaSonrasiGun: doc.Payment.DaysAfterInvoice, AvansVar: doc.Payment.HasAdvance, AvansAciklama: doc.Payment.AdvanceNote}
 	}
-	for i := range doc.CikarimMeta {
-		c := doc.CikarimMeta[i]
-		out.CikarimMeta = append(out.CikarimMeta, &model.CikarimMeta{AlanYolu: c.AlanYolu, Guven: c.Guven, KaynakSayfa: c.KaynakSayfa, KaynakMadde: c.KaynakMadde})
+	for i := range doc.ExtractionMeta {
+		c := doc.ExtractionMeta[i]
+		out.CikarimMeta = append(out.CikarimMeta, &model.CikarimMeta{AlanYolu: c.FieldPath, Guven: c.Confidence, KaynakSayfa: c.SourcePage, KaynakMadde: c.SourceClause})
 	}
 	return out
 }

@@ -9,6 +9,6 @@ import "github.com/oz-fatma/kontrata/backend/internal/service"
 
 // Resolver GraphQL kök çözümleyicisidir.
 type Resolver struct {
-	Service *service.SozlesmeService
+	Service *service.ContractService
 	Auth    *service.AuthService
 }

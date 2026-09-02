@@ -9,8 +9,8 @@ import (
 // ErrInvalidEmail kullanıcıya dönebilen biçim hatasıdır.
 var ErrInvalidEmail = errors.New("e-posta adresi geçersiz")
 
-// NormalizeEposta boşlukları atar ve küçük harfe çevirir.
-func NormalizeEposta(raw string) (string, error) {
+// NormalizeEmail boşlukları atar ve küçük harfe çevirir.
+func NormalizeEmail(raw string) (string, error) {
 	s := strings.ToLower(strings.TrimSpace(raw))
 	at := strings.LastIndex(s, "@")
 	if at < 1 || at == len(s)-1 {

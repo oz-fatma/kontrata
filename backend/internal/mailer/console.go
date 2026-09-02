@@ -10,8 +10,8 @@ func NewConsole() *ConsoleMailer {
 	return &ConsoleMailer{}
 }
 
-// Gonder alıcıyı maskeleyerek konu ve gövdeyi basar.
-func (m *ConsoleMailer) Gonder(alici, konu, govde string) error {
-	log.Printf("posta gönderildi alici=%s konu=%s\n%s", MaskEposta(alici), konu, govde)
+// Send alıcıyı maskeleyerek konu ve gövdeyi basar.
+func (m *ConsoleMailer) Send(to, subject, body string) error {
+	log.Printf("posta gönderildi alici=%s konu=%s\n%s", MaskEmail(to), subject, body)
 	return nil
 }

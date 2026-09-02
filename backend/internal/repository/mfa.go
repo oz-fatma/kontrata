@@ -14,34 +14,34 @@ import (
 
 const mfaCollection = "mfa_kodlari"
 
-// MFAKodu hash'lenmiş altı haneli giriş kodudur.
-type MFAKodu struct {
-	ID              bson.ObjectID `bson:"_id,omitempty"`
-	KullaniciID     bson.ObjectID `bson:"kullaniciId"`
-	KodHash         string        `bson:"kodHash"`
-	SonKullanma     time.Time     `bson:"sonKullanma"`
-	Kullanildi      bool          `bson:"kullanildi"`
-	DenemeSayisi    int32         `bson:"denemeSayisi"`
-	OlusturmaTarihi time.Time     `bson:"olusturmaTarihi"`
+// MFACode hash'lenmiş altı haneli giriş kodudur.
+type MFACode struct {
+	ID           bson.ObjectID `bson:"_id,omitempty"`
+	UserID       bson.ObjectID `bson:"kullaniciId"`
+	CodeHash     string        `bson:"kodHash"`
+	ExpiresAt    time.Time     `bson:"sonKullanma"`
+	Used         bool          `bson:"kullanildi"`
+	AttemptCount int32         `bson:"denemeSayisi"`
+	CreatedAt    time.Time     `bson:"olusturmaTarihi"`
 }
 
-// MFAKoduRepository mfa_kodlari koleksiyonuna erişir.
-type MFAKoduRepository struct {
+// MFACodeRepository mfa_kodlari koleksiyonuna erişir.
+type MFACodeRepository struct {
 	col *mongo.Collection
 }
 
-func NewMFAKoduRepository(client *appmongo.Client) *MFAKoduRepository {
+func NewMFACodeRepository(client *appmongo.Client) *MFACodeRepository {
 	if client == nil {
-		return &MFAKoduRepository{}
+		return &MFACodeRepository{}
 	}
-	return &MFAKoduRepository{col: client.Collection(appmongo.DatabaseName(), mfaCollection)}
+	return &MFACodeRepository{col: client.Collection(appmongo.DatabaseName(), mfaCollection)}
 }
 
-func (r *MFAKoduRepository) ready() bool {
+func (r *MFACodeRepository) ready() bool {
 	return r != nil && r.col != nil
 }
 
-func (r *MFAKoduRepository) EnsureIndexes(ctx context.Context) error {
+func (r *MFACodeRepository) EnsureIndexes(ctx context.Context) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -60,7 +60,7 @@ func (r *MFAKoduRepository) EnsureIndexes(ctx context.Context) error {
 	return nil
 }
 
-func (r *MFAKoduRepository) Create(ctx context.Context, doc *MFAKodu) error {
+func (r *MFACodeRepository) Create(ctx context.Context, doc *MFACode) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -79,14 +79,14 @@ func (r *MFAKoduRepository) Create(ctx context.Context, doc *MFAKodu) error {
 	return nil
 }
 
-func (r *MFAKoduRepository) InvalidateUnused(ctx context.Context, kullaniciID bson.ObjectID) error {
+func (r *MFACodeRepository) InvalidateUnused(ctx context.Context, userID bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	_, err := r.col.UpdateMany(ctx, bson.M{
-		"kullaniciId": kullaniciID,
+		"kullaniciId": userID,
 		"kullanildi":  false,
 	}, bson.M{"$set": bson.M{"kullanildi": true}})
 	if err != nil {
@@ -96,16 +96,16 @@ func (r *MFAKoduRepository) InvalidateUnused(ctx context.Context, kullaniciID bs
 }
 
 // GetActive kullanılmamış, süresi dolmamış ve deneme sınırı aşılmamış kodu döner.
-func (r *MFAKoduRepository) GetActive(ctx context.Context, kullaniciID bson.ObjectID, now time.Time) (*MFAKodu, error) {
+func (r *MFACodeRepository) GetActive(ctx context.Context, userID bson.ObjectID, now time.Time) (*MFACode, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	opts := options.FindOne().SetSort(bson.D{{Key: "olusturmaTarihi", Value: -1}})
-	var doc MFAKodu
+	var doc MFACode
 	err := r.col.FindOne(ctx, bson.M{
-		"kullaniciId":  kullaniciID,
+		"kullaniciId":  userID,
 		"kullanildi":   false,
 		"sonKullanma":  bson.M{"$gt": now},
 		"denemeSayisi": bson.M{"$lt": 5},
@@ -119,13 +119,13 @@ func (r *MFAKoduRepository) GetActive(ctx context.Context, kullaniciID bson.Obje
 	return &doc, nil
 }
 
-func (r *MFAKoduRepository) GetByID(ctx context.Context, id bson.ObjectID) (*MFAKodu, error) {
+func (r *MFACodeRepository) GetByID(ctx context.Context, id bson.ObjectID) (*MFACode, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc MFAKodu
+	var doc MFACode
 	err := r.col.FindOne(ctx, bson.M{"_id": id}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
@@ -136,7 +136,7 @@ func (r *MFAKoduRepository) GetByID(ctx context.Context, id bson.ObjectID) (*MFA
 	return &doc, nil
 }
 
-func (r *MFAKoduRepository) Update(ctx context.Context, doc *MFAKodu) error {
+func (r *MFACodeRepository) Update(ctx context.Context, doc *MFACode) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -156,7 +156,7 @@ func (r *MFAKoduRepository) Update(ctx context.Context, doc *MFAKodu) error {
 }
 
 // RegisterFailure deneme sayısını artırır; sınıra ulaşınca kodu geçersiz kılar.
-func (r *MFAKoduRepository) RegisterFailure(ctx context.Context, id bson.ObjectID) error {
+func (r *MFACodeRepository) RegisterFailure(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -181,7 +181,7 @@ func (r *MFAKoduRepository) RegisterFailure(ctx context.Context, id bson.ObjectI
 	return nil
 }
 
-func (r *MFAKoduRepository) MarkUsed(ctx context.Context, id bson.ObjectID) error {
+func (r *MFACodeRepository) MarkUsed(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -197,26 +197,26 @@ func (r *MFAKoduRepository) MarkUsed(ctx context.Context, id bson.ObjectID) erro
 	return nil
 }
 
-func (r *MFAKoduRepository) DeleteByUser(ctx context.Context, kullaniciID bson.ObjectID) error {
+func (r *MFACodeRepository) DeleteByUser(ctx context.Context, userID bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": kullaniciID})
+	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": userID})
 	if err != nil {
 		return ErrStore
 	}
 	return nil
 }
 
-func (r *MFAKoduRepository) CountByUser(ctx context.Context, kullaniciID bson.ObjectID) (int64, error) {
+func (r *MFACodeRepository) CountByUser(ctx context.Context, userID bson.ObjectID) (int64, error) {
 	if !r.ready() {
 		return 0, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": kullaniciID})
+	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": userID})
 	if err != nil {
 		return 0, ErrStore
 	}

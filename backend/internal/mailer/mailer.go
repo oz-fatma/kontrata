@@ -4,17 +4,17 @@ import "strings"
 
 // Mailer e-posta gönderir. Konu ve gövde dışında alıcı loglanmamalıdır.
 type Mailer interface {
-	Gonder(alici, konu, govde string) error
+	Send(to, subject, body string) error
 }
 
-// MaskEposta alıcıyı günlük için gizler. yerel@alan → l***@alan
-func MaskEposta(eposta string) string {
-	eposta = strings.TrimSpace(eposta)
-	at := strings.LastIndex(eposta, "@")
-	if at <= 0 || at == len(eposta)-1 {
+// MaskEmail alıcıyı günlük için gizler. yerel@alan → l***@alan
+func MaskEmail(email string) string {
+	email = strings.TrimSpace(email)
+	at := strings.LastIndex(email, "@")
+	if at <= 0 || at == len(email)-1 {
 		return "***"
 	}
-	local, domain := eposta[:at], eposta[at+1:]
+	local, domain := email[:at], email[at+1:]
 	r := []rune(local)
 	if len(r) == 0 {
 		return "***@" + domain

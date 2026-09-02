@@ -14,15 +14,15 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
-func TestCihazIdOlmayanOturumGecisIptal(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
-	user, err := env.users.GetByEposta(ctx, eposta)
+func TestSessionWithoutDeviceRevokedOnMigration(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
+	user, err := env.users.GetByEmail(ctx, eposta)
 	if err != nil {
 		t.Fatalf("kullanıcı okunamadı")
 	}
-	access, refresh := loginSession(t, env, eposta, testSifre)
+	access, refresh := loginSession(t, env, eposta, testPassword)
 
 	plain, hash, err := auth.NewToken()
 	if err != nil {
@@ -45,23 +45,23 @@ func TestCihazIdOlmayanOturumGecisIptal(t *testing.T) {
 	if !ok {
 		t.Fatal("eski oturum kimliği yok")
 	}
-	if err := env.sessions.Create(ctx, &repository.Oturum{
-		KullaniciID:       user.ID,
-		YenilemeTokenHash: "hash-olmadan-cihaz",
-		OlusturmaTarihi:   now,
-		SonKullanma:       now.Add(auth.RefreshTTL),
+	if err := env.sessions.Create(ctx, &repository.Session{
+		UserID:           user.ID,
+		RefreshTokenHash: "hash-olmadan-cihaz",
+		CreatedAt:        now,
+		ExpiresAt:        now.Add(auth.RefreshTTL),
 	}); !errors.Is(err, repository.ErrInvalidID) {
 		t.Fatalf("cihazId olmadan Create: %v", err)
 	}
-	if err := env.sessions.RevokeMissingCihaz(ctx); err != nil {
+	if err := env.sessions.RevokeMissingDevice(ctx); err != nil {
 		t.Fatalf("geçiş: %v", err)
 	}
 	eski, err := env.sessions.GetByID(ctx, oid)
 	if err != nil {
 		t.Fatal("eski oturum okunamadı")
 	}
-	if !eski.IptalEdildi || eski.IptalNedeni != repository.IptalCihazKaydiOncesi {
-		t.Fatalf("iptal=%v neden=%q", eski.IptalEdildi, eski.IptalNedeni)
+	if !eski.Revoked || eski.RevokeReason != repository.RevokePreDeviceRecord {
+		t.Fatalf("iptal=%v neden=%q", eski.Revoked, eski.RevokeReason)
 	}
 
 	c := env.withToken(access)
@@ -85,13 +85,13 @@ func TestCihazIdOlmayanOturumGecisIptal(t *testing.T) {
 	}`, &yenile, client.Var("r", refresh))
 }
 
-func TestTumOturumlariKapat(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
-	_, refresh1 := loginSession(t, env, eposta, testSifre)
-	_, refresh2 := loginSession(t, env, eposta, testSifre)
-	access3, refresh3 := loginSession(t, env, eposta, testSifre)
+func TestRevokeOtherSessions(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
+	_, refresh1 := loginSession(t, env, eposta, testPassword)
+	_, refresh2 := loginSession(t, env, eposta, testPassword)
+	access3, refresh3 := loginSession(t, env, eposta, testPassword)
 
 	err := env.c.Post(`mutation { tumOturumlariKapat }`, new(struct{ TumOturumlariKapat int32 }))
 	if err == nil || !strings.Contains(err.Error(), "kimlik doğrulaması gerekli") {
@@ -104,12 +104,12 @@ func TestTumOturumlariKapat(t *testing.T) {
 	if out.TumOturumlariKapat != 2 {
 		t.Fatalf("iptal = %d", out.TumOturumlariKapat)
 	}
-	kayit, err := env.audit.Latest(ctx, repository.OlayTumOturumlarKapatildi)
+	kayit, err := env.audit.Latest(ctx, repository.EventAllSessionsRevoked)
 	if err != nil {
 		t.Fatal("TUM_OTURUMLAR_KAPATILDI yok")
 	}
-	if kayit.Detay != "2" {
-		t.Fatalf("detay = %q", kayit.Detay)
+	if kayit.Detail != "2" {
+		t.Fatalf("detay = %q", kayit.Detail)
 	}
 
 	var list struct {

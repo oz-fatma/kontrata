@@ -77,4 +77,11 @@ Bağlam: Okuyucu agent'ı eğitmek için yüzlerce kontenjan sözleşmesi gereki
 Karar: `ml/generate.py` şemadan rastgele geçerli nesne üretir, metni LLM'siz şablonla yazar. MEGEP örneği (`ornek-argos.json`) eğitim/doğrulama jsonl dosyalarına karışmaz; tutulur ki model tek gerçek örneği ezberlemesin. Kasıtlı gürültü (eksik alan, tarih çelişkisi, fiyat–kontenjan uyuşmazlığı) JSON Schema'yı bozmaz.
 Sonuç: Üretim deterministiktir (`--seed`). Üretilen `ml/data/*.jsonl` sürüme girmez.
 
+## 12. Go tanımlayıcıları İngilizce
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Go iç kodu ile GraphQL/veritabanı katmanı farklı diller kullanıyordu, tutarsızdı.
+Karar: Go tanımlayıcıları İngilizce; GraphQL şeması, MongoDB alanları, yorumlar ve kullanıcıya dönen metinler Türkçe.
+Sonuç: Kod uluslararası okunabilir, domain dili sektör terimleriyle örtüşmeye devam ediyor.
+
 

@@ -13,38 +13,38 @@ import (
 	appmongo "github.com/oz-fatma/kontrata/backend/internal/mongo"
 )
 
-const cihazCollection = "cihazlar"
+const deviceCollection = "cihazlar"
 
-// Cihaz kayıtlı istemci belgesidir. Parmak izi yalnızca hash olarak tutulur.
-type Cihaz struct {
-	ID             bson.ObjectID `bson:"_id,omitempty"`
-	KullaniciID    bson.ObjectID `bson:"kullaniciId"`
-	CihazParmakIzi string        `bson:"cihazParmakIzi"`
-	Ad             string        `bson:"ad"`
-	Guvenilir      bool          `bson:"guvenilir"`
-	IlkGorulme     time.Time     `bson:"ilkGorulme"`
-	SonGorulme     time.Time     `bson:"sonGorulme"`
-	IPAdresi       string        `bson:"ipAdresi"`
-	KullaniciAjani string        `bson:"kullaniciAjani"`
+// Device kayıtlı istemci belgesidir. Parmak izi yalnızca hash olarak tutulur.
+type Device struct {
+	ID          bson.ObjectID `bson:"_id,omitempty"`
+	UserID      bson.ObjectID `bson:"kullaniciId"`
+	Fingerprint string        `bson:"cihazParmakIzi"`
+	Name        string        `bson:"ad"`
+	Trusted     bool          `bson:"guvenilir"`
+	FirstSeen   time.Time     `bson:"ilkGorulme"`
+	LastSeen    time.Time     `bson:"sonGorulme"`
+	IPAddress   string        `bson:"ipAdresi"`
+	UserAgent   string        `bson:"kullaniciAjani"`
 }
 
-// CihazRepository cihazlar koleksiyonuna erişir.
-type CihazRepository struct {
+// DeviceRepository cihazlar koleksiyonuna erişir.
+type DeviceRepository struct {
 	col *mongo.Collection
 }
 
-func NewCihazRepository(client *appmongo.Client) *CihazRepository {
+func NewDeviceRepository(client *appmongo.Client) *DeviceRepository {
 	if client == nil {
-		return &CihazRepository{}
+		return &DeviceRepository{}
 	}
-	return &CihazRepository{col: client.Collection(appmongo.DatabaseName(), cihazCollection)}
+	return &DeviceRepository{col: client.Collection(appmongo.DatabaseName(), deviceCollection)}
 }
 
-func (r *CihazRepository) ready() bool {
+func (r *DeviceRepository) ready() bool {
 	return r != nil && r.col != nil
 }
 
-func (r *CihazRepository) EnsureIndexes(ctx context.Context) error {
+func (r *DeviceRepository) EnsureIndexes(ctx context.Context) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -66,13 +66,13 @@ func (r *CihazRepository) EnsureIndexes(ctx context.Context) error {
 	return nil
 }
 
-func (r *CihazRepository) GetByID(ctx context.Context, id bson.ObjectID) (*Cihaz, error) {
+func (r *DeviceRepository) GetByID(ctx context.Context, id bson.ObjectID) (*Device, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc Cihaz
+	var doc Device
 	err := r.col.FindOne(ctx, bson.M{"_id": id}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
@@ -83,15 +83,15 @@ func (r *CihazRepository) GetByID(ctx context.Context, id bson.ObjectID) (*Cihaz
 	return &doc, nil
 }
 
-func (r *CihazRepository) GetByUserAndFingerprint(ctx context.Context, kullaniciID bson.ObjectID, hash string) (*Cihaz, error) {
+func (r *DeviceRepository) GetByUserAndFingerprint(ctx context.Context, userID bson.ObjectID, hash string) (*Device, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc Cihaz
+	var doc Device
 	err := r.col.FindOne(ctx, bson.M{
-		"kullaniciId":    kullaniciID,
+		"kullaniciId":    userID,
 		"cihazParmakIzi": hash,
 	}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
@@ -103,7 +103,7 @@ func (r *CihazRepository) GetByUserAndFingerprint(ctx context.Context, kullanici
 	return &doc, nil
 }
 
-func (r *CihazRepository) Create(ctx context.Context, doc *Cihaz) error {
+func (r *DeviceRepository) Create(ctx context.Context, doc *Device) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -125,7 +125,7 @@ func (r *CihazRepository) Create(ctx context.Context, doc *Cihaz) error {
 	return nil
 }
 
-func (r *CihazRepository) Touch(ctx context.Context, id bson.ObjectID, now time.Time, ip, ua string) error {
+func (r *DeviceRepository) Touch(ctx context.Context, id bson.ObjectID, now time.Time, ip, ua string) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -145,13 +145,13 @@ func (r *CihazRepository) Touch(ctx context.Context, id bson.ObjectID, now time.
 	return nil
 }
 
-func (r *CihazRepository) ListByUser(ctx context.Context, kullaniciID bson.ObjectID) ([]Cihaz, error) {
+func (r *DeviceRepository) ListByUser(ctx context.Context, userID bson.ObjectID) ([]Device, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	cur, err := r.col.Find(ctx, bson.M{"kullaniciId": kullaniciID},
+	cur, err := r.col.Find(ctx, bson.M{"kullaniciId": userID},
 		options.Find().SetSort(bson.D{{Key: "sonGorulme", Value: -1}}))
 	if err != nil {
 		return nil, ErrStore
@@ -161,23 +161,23 @@ func (r *CihazRepository) ListByUser(ctx context.Context, kullaniciID bson.Objec
 			log.Printf("imleç kapatılamadı: %v", err)
 		}
 	}()
-	var out []Cihaz
+	var out []Device
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, ErrStore
 	}
 	if out == nil {
-		out = []Cihaz{}
+		out = []Device{}
 	}
 	return out, nil
 }
 
-func (r *CihazRepository) Rename(ctx context.Context, id bson.ObjectID, ad string) error {
+func (r *DeviceRepository) Rename(ctx context.Context, id bson.ObjectID, name string) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{"ad": ad}})
+	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{"ad": name}})
 	if err != nil {
 		return ErrStore
 	}
@@ -187,7 +187,7 @@ func (r *CihazRepository) Rename(ctx context.Context, id bson.ObjectID, ad strin
 	return nil
 }
 
-func (r *CihazRepository) SetTrusted(ctx context.Context, id bson.ObjectID) error {
+func (r *DeviceRepository) SetTrusted(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -203,7 +203,7 @@ func (r *CihazRepository) SetTrusted(ctx context.Context, id bson.ObjectID) erro
 	return nil
 }
 
-func (r *CihazRepository) Delete(ctx context.Context, id bson.ObjectID) error {
+func (r *DeviceRepository) Delete(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -219,26 +219,26 @@ func (r *CihazRepository) Delete(ctx context.Context, id bson.ObjectID) error {
 	return nil
 }
 
-func (r *CihazRepository) DeleteByUser(ctx context.Context, kullaniciID bson.ObjectID) error {
+func (r *DeviceRepository) DeleteByUser(ctx context.Context, userID bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": kullaniciID})
+	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": userID})
 	if err != nil {
 		return ErrStore
 	}
 	return nil
 }
 
-func (r *CihazRepository) CountByUser(ctx context.Context, kullaniciID bson.ObjectID) (int64, error) {
+func (r *DeviceRepository) CountByUser(ctx context.Context, userID bson.ObjectID) (int64, error) {
 	if !r.ready() {
 		return 0, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": kullaniciID})
+	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": userID})
 	if err != nil {
 		return 0, ErrStore
 	}

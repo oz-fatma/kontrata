@@ -15,11 +15,11 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
-// TestAuthAkis Aşama 3 kimlik akışlarını tek oturumda uçtan uca doğrular.
-func TestAuthAkis(t *testing.T) {
+// TestAuthFlow Aşama 3 kimlik akışlarını tek oturumda uçtan uca doğrular.
+func TestAuthFlow(t *testing.T) {
 	dbName := fmt.Sprintf("%s_akis_%s", mongo.TestDatabasePrefix, bson.NewObjectID().Hex())
 	t.Setenv("MONGO_DATABASE", dbName)
-	ctx, env := setupKayitRequired(t)
+	ctx, env := setupRegisterRequired(t)
 	t.Cleanup(func() {
 		dropCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -29,29 +29,29 @@ func TestAuthAkis(t *testing.T) {
 	})
 	requireReplicaSet(t, env.db, ctx)
 
-	eposta := uniqueEposta()
+	eposta := uniqueEmail()
 	const cihazA, cihazB = "akis-cihaz-a", "akis-cihaz-b"
 
 	t.Log("1. kayitOl → doğrulama kodu → epostaDogrula")
-	kayit := postKayit(t, env.c, eposta, testSifre)
+	kayit := postRegister(t, env.c, eposta, testPassword)
 	if !kayit.KayitOl.Basarili {
 		t.Fatal("kayıt başarısız")
 	}
-	dogrulama := tokenFromGovde(env.mail.lastGovde())
+	dogrulama := tokenFromBody(env.mail.lastBody())
 	if dogrulama == "" {
 		t.Fatal("doğrulama kodu yok")
 	}
 	t.Logf("doğrulama kodu alındı uzunluk=%d", len(dogrulama))
-	if !postDogrula(t, env.c, dogrulama) {
+	if !postVerify(t, env.c, dogrulama) {
 		t.Fatal("e-posta doğrulanamadı")
 	}
-	user, err := env.users.GetByEposta(ctx, eposta)
-	if err != nil || !user.EpostaDogrulandi {
+	user, err := env.users.GetByEmail(ctx, eposta)
+	if err != nil || !user.EmailVerified {
 		t.Fatal("kullanıcı doğrulanmamış")
 	}
 
 	t.Log("2. girisYap → MFA kodu → mfaDogrula")
-	access, refresh := loginSessionDevice(t, env, eposta, testSifre, cihazA)
+	access, refresh := loginSessionDevice(t, env, eposta, testPassword, cihazA)
 	if access == "" || refresh == "" {
 		t.Fatal("oturum jetonları boş")
 	}
@@ -98,7 +98,7 @@ func TestAuthAkis(t *testing.T) {
 		t.Fatalf("cihaz sayısı = %d", len(cihazlar.Cihazlarim))
 	}
 	idA := cihazlar.Cihazlarim[0].ID
-	loginSessionDevice(t, env, eposta, testSifre, cihazA)
+	loginSessionDevice(t, env, eposta, testPassword, cihazA)
 	cA.MustPost(`query { cihazlarim { id ad } }`, &cihazlar)
 	if len(cihazlar.Cihazlarim) != 1 || cihazlar.Cihazlarim[0].ID != idA {
 		t.Fatal("ikinci girişte yeni cihaz oluştu")
@@ -106,7 +106,7 @@ func TestAuthAkis(t *testing.T) {
 	t.Logf("cihaz %s tek kaldı", idA)
 
 	t.Log("6. cihazKaldir oturumları iptal eder")
-	accessB, refreshB := loginSessionDevice(t, env, eposta, testSifre, cihazB)
+	accessB, refreshB := loginSessionDevice(t, env, eposta, testPassword, cihazB)
 	cB := env.withDevice(accessB, cihazB)
 	var silCihaz struct{ CihazKaldir bool }
 	cB.MustPost(`mutation ($id: ID!) { cihazKaldir(id: $id) }`, &silCihaz, client.Var("id", idA))
@@ -126,8 +126,8 @@ func TestAuthAkis(t *testing.T) {
 	t.Log("cihaz A oturumları iptal, cihaz B duruyor")
 
 	t.Log("7. tumOturumlariKapat mevcut oturum hariç kapatır")
-	_, extra1 := loginSessionDevice(t, env, eposta, testSifre, cihazB)
-	_, extra2 := loginSessionDevice(t, env, eposta, testSifre, cihazB)
+	_, extra1 := loginSessionDevice(t, env, eposta, testPassword, cihazB)
+	_, extra2 := loginSessionDevice(t, env, eposta, testPassword, cihazB)
 	cB = env.withDevice(accessB, cihazB)
 	var kapat struct{ TumOturumlariKapat int32 }
 	cB.MustPost(`mutation { tumOturumlariKapat }`, &kapat)
@@ -185,7 +185,7 @@ func TestAuthAkis(t *testing.T) {
 	if !iste.HesapSilmeIste {
 		t.Fatal("hesapSilmeIste false")
 	}
-	silmeKodu := tokenAfterLabel(env.mail.lastGovde(), "Hesap silme onay kodunuz:")
+	silmeKodu := tokenAfterLabel(env.mail.lastBody(), "Hesap silme onay kodunuz:")
 	if silmeKodu == "" {
 		t.Fatal("silme kodu yok")
 	}
@@ -195,7 +195,7 @@ func TestAuthAkis(t *testing.T) {
 	if !sil.HesapSil {
 		t.Fatal("hesapSil false")
 	}
-	if _, err := env.users.GetByEposta(ctx, eposta); err == nil {
+	if _, err := env.users.GetByEmail(ctx, eposta); err == nil {
 		t.Fatal("kullanıcı duruyor")
 	}
 	if n, _ := env.soz.CountByUser(ctx, user.ID); n != 0 {
@@ -216,15 +216,15 @@ func TestAuthAkis(t *testing.T) {
 	if n, _ := env.audit.CountByUser(ctx, user.ID); n != 0 {
 		t.Fatalf("denetim hâlâ kullanıcıya bağlı %d", n)
 	}
-	kayitDenetim, err := env.audit.Latest(ctx, repository.OlayHesapSilindi)
+	kayitDenetim, err := env.audit.Latest(ctx, repository.EventAccountDeleted)
 	if err != nil {
 		t.Fatal("HESAP_SILINDI yok")
 	}
-	silinmis, ok := kayitDenetim.KullaniciID.(string)
-	if !ok || silinmis != repository.KullaniciSilinmis {
-		t.Fatalf("kullaniciId = %#v", kayitDenetim.KullaniciID)
+	silinmis, ok := kayitDenetim.UserID.(string)
+	if !ok || silinmis != repository.UserDeleted {
+		t.Fatalf("kullaniciId = %#v", kayitDenetim.UserID)
 	}
-	if kayitDenetim.IPAdresi != "" || kayitDenetim.KullaniciAjani != "" {
+	if kayitDenetim.IPAddress != "" || kayitDenetim.UserAgent != "" {
 		t.Fatal("silme kaydında IP/UA duruyor")
 	}
 	t.Log("hesap silindi, denetim anonim")

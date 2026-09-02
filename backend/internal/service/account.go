@@ -15,14 +15,14 @@ import (
 )
 
 const (
-	hesapSilmeKonu = "Hesap silme onayı"
-	deleteStepUser = "kullanici"
+	accountDeleteSubject = "Hesap silme onayı"
+	deleteStepUser       = "kullanici"
 )
 
 var errDeleteProbe = errors.New("silme adımı başarısız")
 
 // HesapSilmeIste onay kodunu e-postaya gönderir.
-func (s *AuthService) HesapSilmeIste(ctx context.Context) (bool, error) {
+func (s *AuthService) RequestAccountDelete(ctx context.Context) (bool, error) {
 	id, ok := auth.IdentityFrom(ctx)
 	if !ok {
 		return false, auth.ErrUnauthorized
@@ -35,7 +35,7 @@ func (s *AuthService) HesapSilmeIste(ctx context.Context) (bool, error) {
 		log.Printf("hesap silme isteği başarısız: %v", err)
 		return false, err
 	}
-	if !s.silmeLimiter.allow(user.Eposta) {
+	if !s.deleteLimiter.allow(user.Email) {
 		return true, nil
 	}
 	if err := s.issueAccountDelete(ctx, user); err != nil {
@@ -44,33 +44,33 @@ func (s *AuthService) HesapSilmeIste(ctx context.Context) (bool, error) {
 	return true, nil
 }
 
-func (s *AuthService) issueAccountDelete(ctx context.Context, user *repository.Kullanici) error {
-	if err := s.tokens.InvalidateUnused(ctx, user.ID, repository.AmacHesapSilme); err != nil {
+func (s *AuthService) issueAccountDelete(ctx context.Context, user *repository.User) error {
+	if err := s.tokens.InvalidateUnused(ctx, user.ID, repository.PurposeAccountDelete); err != nil {
 		return err
 	}
 	plain, hash, err := auth.NewToken()
 	if err != nil {
 		return err
 	}
-	doc := repository.DogrulamaTokeni{
-		KullaniciID: user.ID,
-		Token:       hash,
-		Amac:        repository.AmacHesapSilme,
-		SonKullanma: time.Now().UTC().Add(auth.AccountDeleteTTL),
-		Kullanildi:  false,
+	doc := repository.VerificationToken{
+		UserID:    user.ID,
+		Token:     hash,
+		Purpose:   repository.PurposeAccountDelete,
+		ExpiresAt: time.Now().UTC().Add(auth.AccountDeleteTTL),
+		Used:      false,
 	}
 	if err := s.tokens.Create(ctx, &doc); err != nil {
 		return err
 	}
 	govde := fmt.Sprintf("Kontrata hesap silme\n\nHesap silme onay kodunuz:\n\n%s\n\nBu kod 1 saat geçerlidir.\n", plain)
-	if err := s.mailer.Gonder(user.Eposta, hesapSilmeKonu, govde); err != nil {
+	if err := s.mailer.Send(user.Email, accountDeleteSubject, govde); err != nil {
 		log.Printf("hesap silme iletisi gönderilemedi: %v", err)
 	}
 	return nil
 }
 
 // HesapSil onay kodu doğruysa kullanıcı verisini atomik siler.
-func (s *AuthService) HesapSil(ctx context.Context, token string) (bool, error) {
+func (s *AuthService) DeleteAccount(ctx context.Context, token string) (bool, error) {
 	if token == "" {
 		return false, nil
 	}
@@ -79,7 +79,7 @@ func (s *AuthService) HesapSil(ctx context.Context, token string) (bool, error) 
 	}
 	var found bool
 	err := s.db.WithTransaction(ctx, func(ctx context.Context) error {
-		doc, err := s.tokens.Consume(ctx, auth.HashToken(token), repository.AmacHesapSilme, time.Now().UTC())
+		doc, err := s.tokens.Consume(ctx, auth.HashToken(token), repository.PurposeAccountDelete, time.Now().UTC())
 		if err != nil {
 			if errors.Is(err, repository.ErrNotFound) {
 				return nil
@@ -87,7 +87,7 @@ func (s *AuthService) HesapSil(ctx context.Context, token string) (bool, error) 
 			return err
 		}
 		found = true
-		return s.purgeAccount(ctx, doc.KullaniciID)
+		return s.purgeAccount(ctx, doc.UserID)
 	})
 	if err != nil {
 		log.Printf("hesap silinemedi: %v", err)
@@ -101,18 +101,18 @@ func (s *AuthService) purgeAccount(ctx context.Context, kullaniciID bson.ObjectI
 	if err != nil {
 		return err
 	}
-	if baska, err := s.sahipBaskaUyeVar(ctx, user); err != nil {
+	if baska, err := s.ownerHasOtherMembers(ctx, user); err != nil {
 		return err
 	} else if baska {
-		return auth.ErrSahipDevret
+		return auth.ErrTransferOwnership
 	}
-	if !user.OrganizasyonID.IsZero() {
-		n, err := s.users.CountByOrg(ctx, user.OrganizasyonID)
+	if !user.OrganizationID.IsZero() {
+		n, err := s.users.CountByOrg(ctx, user.OrganizationID)
 		if err != nil {
 			return err
 		}
-		if user.Rol == repository.RolSahip || n <= 1 {
-			if err := s.silOrganizasyon(ctx, user.OrganizasyonID); err != nil {
+		if user.Role == repository.RoleOwner || n <= 1 {
+			if err := s.deleteOrganization(ctx, user.OrganizationID); err != nil {
 				return err
 			}
 		} else if err := s.users.DetachOrg(ctx, kullaniciID); err != nil {
@@ -142,17 +142,17 @@ func (s *AuthService) purgeAccount(ctx context.Context, kullaniciID bson.ObjectI
 	if err := s.users.Delete(ctx, kullaniciID); err != nil {
 		return err
 	}
-	return s.audit.Insert(ctx, &repository.DenetimKaydi{
-		KullaniciID:    repository.KullaniciSilinmis,
-		Olay:           repository.OlayHesapSilindi,
-		IPAdresi:       "",
-		KullaniciAjani: "",
-		Zaman:          time.Now().UTC(),
+	return s.audit.Insert(ctx, &repository.AuditRecord{
+		UserID:     repository.UserDeleted,
+		Event:      repository.EventAccountDeleted,
+		IPAddress:  "",
+		UserAgent:  "",
+		OccurredAt: time.Now().UTC(),
 	})
 }
 
 // VerilerimiIndir kullanıcının dışa aktarılabilir verisini JSON döner. Hash ve token yok.
-func (s *AuthService) VerilerimiIndir(ctx context.Context) (string, error) {
+func (s *AuthService) ExportData(ctx context.Context) (string, error) {
 	id, ok := auth.IdentityFrom(ctx)
 	if !ok {
 		return "", auth.ErrUnauthorized
@@ -173,8 +173,8 @@ func (s *AuthService) VerilerimiIndir(ctx context.Context) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	if !user.OrganizasyonID.IsZero() {
-		orgSoz, err := s.soz.ListByOrg(ctx, user.OrganizasyonID)
+	if !user.OrganizationID.IsZero() {
+		orgSoz, err := s.soz.ListByOrg(ctx, user.OrganizationID)
 		if err != nil {
 			return "", err
 		}
@@ -185,14 +185,14 @@ func (s *AuthService) VerilerimiIndir(ctx context.Context) (string, error) {
 		return "", err
 	}
 	payload := map[string]any{
-		"eposta":           user.Eposta,
-		"durum":            user.Durum,
-		"epostaDogrulandi": user.EpostaDogrulandi,
-		"olusturmaTarihi":  user.OlusturmaTarihi,
-		"cihazlar":         exportCihazlar(cihazlar),
-		"oturumlar":        exportOturumlar(oturumlar),
-		"sozlesmeler":      exportSozlesmeler(sozlesmeler),
-		"denetim":          exportDenetim(denetim),
+		"eposta":           user.Email,
+		"durum":            user.Status,
+		"epostaDogrulandi": user.EmailVerified,
+		"olusturmaTarihi":  user.CreatedAt,
+		"cihazlar":         exportDevices(cihazlar),
+		"oturumlar":        exportSessions(oturumlar),
+		"sozlesmeler":      exportContracts(sozlesmeler),
+		"denetim":          exportAudit(denetim),
 	}
 	raw, err := json.Marshal(payload)
 	if err != nil {
@@ -202,69 +202,69 @@ func (s *AuthService) VerilerimiIndir(ctx context.Context) (string, error) {
 	return string(raw), nil
 }
 
-func exportCihazlar(docs []repository.Cihaz) []map[string]any {
+func exportDevices(docs []repository.Device) []map[string]any {
 	out := make([]map[string]any, 0, len(docs))
 	for i := range docs {
 		d := docs[i]
 		out = append(out, map[string]any{
 			"id":             d.ID.Hex(),
-			"ad":             d.Ad,
-			"guvenilir":      d.Guvenilir,
-			"ilkGorulme":     d.IlkGorulme,
-			"sonGorulme":     d.SonGorulme,
-			"ipAdresi":       d.IPAdresi,
-			"kullaniciAjani": d.KullaniciAjani,
+			"ad":             d.Name,
+			"guvenilir":      d.Trusted,
+			"ilkGorulme":     d.FirstSeen,
+			"sonGorulme":     d.LastSeen,
+			"ipAdresi":       d.IPAddress,
+			"kullaniciAjani": d.UserAgent,
 		})
 	}
 	return out
 }
 
-func exportOturumlar(docs []repository.Oturum) []map[string]any {
+func exportSessions(docs []repository.Session) []map[string]any {
 	out := make([]map[string]any, 0, len(docs))
 	for i := range docs {
 		d := docs[i]
 		item := map[string]any{
 			"id":              d.ID.Hex(),
-			"olusturmaTarihi": d.OlusturmaTarihi,
-			"sonKullanma":     d.SonKullanma,
-			"iptalEdildi":     d.IptalEdildi,
-			"ipAdresi":        d.IPAdresi,
-			"kullaniciAjani":  d.KullaniciAjani,
+			"olusturmaTarihi": d.CreatedAt,
+			"sonKullanma":     d.ExpiresAt,
+			"iptalEdildi":     d.Revoked,
+			"ipAdresi":        d.IPAddress,
+			"kullaniciAjani":  d.UserAgent,
 		}
-		if !d.CihazID.IsZero() {
-			item["cihazId"] = d.CihazID.Hex()
+		if !d.DeviceID.IsZero() {
+			item["cihazId"] = d.DeviceID.Hex()
 		}
 		out = append(out, item)
 	}
 	return out
 }
 
-func exportSozlesmeler(docs []repository.Sozlesme) []map[string]any {
+func exportContracts(docs []repository.Contract) []map[string]any {
 	out := make([]map[string]any, 0, len(docs))
 	for i := range docs {
 		d := docs[i]
 		item := map[string]any{
 			"id":               d.ID.Hex(),
-			"olusturmaTarihi":  d.OlusturmaTarihi,
-			"guncellemeTarihi": d.GuncellemeTarihi,
-			"durum":            d.Durum,
+			"olusturmaTarihi":  d.CreatedAt,
+			"guncellemeTarihi": d.UpdatedAt,
+			"durum":            d.Status,
 		}
-		if d.DosyaAdi != nil {
-			item["dosyaAdi"] = *d.DosyaAdi
+		if d.FileName != nil {
+			item["dosyaAdi"] = *d.FileName
 		}
 		out = append(out, item)
 	}
 	return out
 }
 
-func exportDenetim(docs []repository.DenetimKaydi) []map[string]any {
+func exportAudit(docs []repository.AuditRecord) []map[string]any {
 	out := make([]map[string]any, 0, len(docs))
 	for i := range docs {
 		d := docs[i]
 		out = append(out, map[string]any{
-			"olay":  d.Olay,
-			"zaman": d.Zaman,
-			"detay": d.Detay,
+			"olay":  d.Event,
+			"zaman": d.OccurredAt,
+			"detay": d.Detail,
 		})
 	}
 	return out

@@ -17,10 +17,10 @@ test:
 	@$(load_dotenv); go test ./...
 
 test-akis:
-	@$(load_dotenv); go test ./graph -count=1 -v -timeout 2m -run '^TestAuthAkis$$'
+	@$(load_dotenv); go test ./graph -count=1 -v -timeout 2m -run '^TestAuthFlow$$'
 
 test-org:
-	@$(load_dotenv); go test ./graph -count=1 -v -timeout 2m -run '^TestOrganizasyonAkis$$'
+	@$(load_dotenv); go test ./graph -count=1 -v -timeout 2m -run '^TestOrganizationFlow$$'
 
 lint:
 	go vet ./...

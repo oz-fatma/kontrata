@@ -13,56 +13,56 @@ import (
 	appmongo "github.com/oz-fatma/kontrata/backend/internal/mongo"
 )
 
-const kullaniciCollection = "kullanicilar"
+const userCollection = "kullanicilar"
 
 const (
-	DurumAktif     = "AKTIF"
-	DurumBeklemede = "BEKLEMEDE"
-	DurumAskida    = "ASKIDA"
+	StatusActive    = "AKTIF"
+	StatusPending   = "BEKLEMEDE"
+	StatusSuspended = "ASKIDA"
 
-	HesapBireysel = "BIREYSEL"
-	HesapKurumsal = "KURUMSAL"
+	AccountIndividual = "BIREYSEL"
+	AccountCorporate  = "KURUMSAL"
 
-	RolSahip         = "SAHIP"
-	RolYonetici      = "YONETICI"
-	RolGoruntuleyici = "GORUNTULEYICI"
+	RoleOwner  = "SAHIP"
+	RoleAdmin  = "YONETICI"
+	RoleViewer = "GORUNTULEYICI"
 )
 
 // ErrDuplicate benzersiz indeks çakışmasıdır; GraphQL'e yansımaz.
 var ErrDuplicate = errors.New("kayıt zaten var")
 
-// Kullanici kullanicilar koleksiyonu belgesidir.
-type Kullanici struct {
-	ID               bson.ObjectID `bson:"_id,omitempty"`
-	Eposta           string        `bson:"eposta"`
-	SifreHash        string        `bson:"sifreHash"`
-	EpostaDogrulandi bool          `bson:"epostaDogrulandi"`
-	Durum            string        `bson:"durum"`
-	HesapTipi        string        `bson:"hesapTipi"`
-	OrganizasyonID   bson.ObjectID `bson:"organizasyonId,omitempty"`
-	Rol              string        `bson:"rol"`
-	OlusturmaTarihi  time.Time     `bson:"olusturmaTarihi"`
-	GuncellemeTarihi time.Time     `bson:"guncellemeTarihi"`
+// User kullanicilar koleksiyonu belgesidir.
+type User struct {
+	ID             bson.ObjectID `bson:"_id,omitempty"`
+	Email          string        `bson:"eposta"`
+	PasswordHash   string        `bson:"sifreHash"`
+	EmailVerified  bool          `bson:"epostaDogrulandi"`
+	Status         string        `bson:"durum"`
+	AccountType    string        `bson:"hesapTipi"`
+	OrganizationID bson.ObjectID `bson:"organizasyonId,omitempty"`
+	Role           string        `bson:"rol"`
+	CreatedAt      time.Time     `bson:"olusturmaTarihi"`
+	UpdatedAt      time.Time     `bson:"guncellemeTarihi"`
 }
 
-// KullaniciRepository kullanicilar koleksiyonuna erişir.
-type KullaniciRepository struct {
+// UserRepository kullanicilar koleksiyonuna erişir.
+type UserRepository struct {
 	col *mongo.Collection
 }
 
-func NewKullaniciRepository(client *appmongo.Client) *KullaniciRepository {
+func NewUserRepository(client *appmongo.Client) *UserRepository {
 	if client == nil {
-		return &KullaniciRepository{}
+		return &UserRepository{}
 	}
-	return &KullaniciRepository{col: client.Collection(appmongo.DatabaseName(), kullaniciCollection)}
+	return &UserRepository{col: client.Collection(appmongo.DatabaseName(), userCollection)}
 }
 
-func (r *KullaniciRepository) ready() bool {
+func (r *UserRepository) ready() bool {
 	return r != nil && r.col != nil
 }
 
 // EnsureIndexes eposta için benzersiz indeks oluşturur.
-func (r *KullaniciRepository) EnsureIndexes(ctx context.Context) error {
+func (r *UserRepository) EnsureIndexes(ctx context.Context) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -81,7 +81,7 @@ func (r *KullaniciRepository) EnsureIndexes(ctx context.Context) error {
 	return nil
 }
 
-func (r *KullaniciRepository) Create(ctx context.Context, doc *Kullanici) error {
+func (r *UserRepository) Create(ctx context.Context, doc *User) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -103,14 +103,14 @@ func (r *KullaniciRepository) Create(ctx context.Context, doc *Kullanici) error 
 	return nil
 }
 
-func (r *KullaniciRepository) GetByEposta(ctx context.Context, eposta string) (*Kullanici, error) {
+func (r *UserRepository) GetByEmail(ctx context.Context, email string) (*User, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc Kullanici
-	err := r.col.FindOne(ctx, bson.M{"eposta": strings.ToLower(strings.TrimSpace(eposta))}).Decode(&doc)
+	var doc User
+	err := r.col.FindOne(ctx, bson.M{"eposta": strings.ToLower(strings.TrimSpace(email))}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
 	}
@@ -120,13 +120,13 @@ func (r *KullaniciRepository) GetByEposta(ctx context.Context, eposta string) (*
 	return &doc, nil
 }
 
-func (r *KullaniciRepository) GetByID(ctx context.Context, id bson.ObjectID) (*Kullanici, error) {
+func (r *UserRepository) GetByID(ctx context.Context, id bson.ObjectID) (*User, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc Kullanici
+	var doc User
 	err := r.col.FindOne(ctx, bson.M{"_id": id}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
@@ -138,7 +138,7 @@ func (r *KullaniciRepository) GetByID(ctx context.Context, id bson.ObjectID) (*K
 }
 
 // MarkEmailVerified e-postayı doğrulanmış işaretler; BEKLEMEDE ise AKTIF yapar.
-func (r *KullaniciRepository) MarkEmailVerified(ctx context.Context, id bson.ObjectID) error {
+func (r *UserRepository) MarkEmailVerified(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -150,8 +150,8 @@ func (r *KullaniciRepository) MarkEmailVerified(ctx context.Context, id bson.Obj
 			"epostaDogrulandi": true,
 			"guncellemeTarihi": now,
 			"durum": bson.M{"$cond": bson.A{
-				bson.M{"$eq": bson.A{"$durum", DurumBeklemede}},
-				DurumAktif,
+				bson.M{"$eq": bson.A{"$durum", StatusPending}},
+				StatusActive,
 				"$durum",
 			}},
 		}},
@@ -166,7 +166,7 @@ func (r *KullaniciRepository) MarkEmailVerified(ctx context.Context, id bson.Obj
 }
 
 // UpdatePassword şifre özetini değiştirir. Düz şifre kabul etmez.
-func (r *KullaniciRepository) UpdatePassword(ctx context.Context, id bson.ObjectID, sifreHash string) error {
+func (r *UserRepository) UpdatePassword(ctx context.Context, id bson.ObjectID, passwordHash string) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -174,7 +174,7 @@ func (r *KullaniciRepository) UpdatePassword(ctx context.Context, id bson.Object
 	defer cancel()
 	res, err := r.col.UpdateByID(ctx, id, bson.M{
 		"$set": bson.M{
-			"sifreHash":        sifreHash,
+			"sifreHash":        passwordHash,
 			"guncellemeTarihi": time.Now().UTC(),
 		},
 	})
@@ -187,7 +187,7 @@ func (r *KullaniciRepository) UpdatePassword(ctx context.Context, id bson.Object
 	return nil
 }
 
-func (r *KullaniciRepository) Delete(ctx context.Context, id bson.ObjectID) error {
+func (r *UserRepository) Delete(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -203,8 +203,8 @@ func (r *KullaniciRepository) Delete(ctx context.Context, id bson.ObjectID) erro
 	return nil
 }
 
-// BackfillHesapAlanlari eski belgelere bireysel / sahip yazar.
-func (r *KullaniciRepository) BackfillHesapAlanlari(ctx context.Context) error {
+// BackfillAccountFields eski belgelere bireysel / sahip yazar.
+func (r *UserRepository) BackfillAccountFields(ctx context.Context) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -215,7 +215,7 @@ func (r *KullaniciRepository) BackfillHesapAlanlari(ctx context.Context) error {
 			bson.M{"hesapTipi": bson.M{"$exists": false}},
 			bson.M{"hesapTipi": ""},
 		},
-	}, bson.M{"$set": bson.M{"hesapTipi": HesapBireysel}})
+	}, bson.M{"$set": bson.M{"hesapTipi": AccountIndividual}})
 	if err != nil {
 		return ErrStore
 	}
@@ -224,14 +224,14 @@ func (r *KullaniciRepository) BackfillHesapAlanlari(ctx context.Context) error {
 			bson.M{"rol": bson.M{"$exists": false}},
 			bson.M{"rol": ""},
 		},
-	}, bson.M{"$set": bson.M{"rol": RolSahip}})
+	}, bson.M{"$set": bson.M{"rol": RoleOwner}})
 	if err != nil {
 		return ErrStore
 	}
 	return nil
 }
 
-func (r *KullaniciRepository) SetOrganizasyon(ctx context.Context, id, orgID bson.ObjectID, hesapTipi, rol string) error {
+func (r *UserRepository) SetOrganization(ctx context.Context, id, orgID bson.ObjectID, accountType, role string) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -239,8 +239,8 @@ func (r *KullaniciRepository) SetOrganizasyon(ctx context.Context, id, orgID bso
 	defer cancel()
 	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{
 		"organizasyonId":   orgID,
-		"hesapTipi":        hesapTipi,
-		"rol":              rol,
+		"hesapTipi":        accountType,
+		"rol":              role,
 		"guncellemeTarihi": time.Now().UTC(),
 	}})
 	if err != nil {
@@ -252,14 +252,14 @@ func (r *KullaniciRepository) SetOrganizasyon(ctx context.Context, id, orgID bso
 	return nil
 }
 
-func (r *KullaniciRepository) SetRol(ctx context.Context, id bson.ObjectID, rol string) error {
+func (r *UserRepository) SetRole(ctx context.Context, id bson.ObjectID, role string) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	res, err := r.col.UpdateByID(ctx, id, bson.M{"$set": bson.M{
-		"rol":              rol,
+		"rol":              role,
 		"guncellemeTarihi": time.Now().UTC(),
 	}})
 	if err != nil {
@@ -271,7 +271,7 @@ func (r *KullaniciRepository) SetRol(ctx context.Context, id bson.ObjectID, rol 
 	return nil
 }
 
-func (r *KullaniciRepository) ListByOrg(ctx context.Context, orgID bson.ObjectID) ([]Kullanici, error) {
+func (r *UserRepository) ListByOrg(ctx context.Context, orgID bson.ObjectID) ([]User, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
@@ -283,17 +283,17 @@ func (r *KullaniciRepository) ListByOrg(ctx context.Context, orgID bson.ObjectID
 		return nil, ErrStore
 	}
 	defer func() { _ = cur.Close(ctx) }()
-	var out []Kullanici
+	var out []User
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, ErrStore
 	}
 	if out == nil {
-		out = []Kullanici{}
+		out = []User{}
 	}
 	return out, nil
 }
 
-func (r *KullaniciRepository) CountByOrg(ctx context.Context, orgID bson.ObjectID) (int64, error) {
+func (r *UserRepository) CountByOrg(ctx context.Context, orgID bson.ObjectID) (int64, error) {
 	if !r.ready() {
 		return 0, ErrUnavailable
 	}
@@ -306,7 +306,7 @@ func (r *KullaniciRepository) CountByOrg(ctx context.Context, orgID bson.ObjectI
 	return n, nil
 }
 
-func (r *KullaniciRepository) ListKurumsal(ctx context.Context) ([]Kullanici, error) {
+func (r *UserRepository) ListCorporate(ctx context.Context) ([]User, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
@@ -319,18 +319,18 @@ func (r *KullaniciRepository) ListKurumsal(ctx context.Context) ([]Kullanici, er
 		return nil, ErrStore
 	}
 	defer func() { _ = cur.Close(ctx) }()
-	var out []Kullanici
+	var out []User
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, ErrStore
 	}
 	if out == nil {
-		out = []Kullanici{}
+		out = []User{}
 	}
 	return out, nil
 }
 
 // DetachOrg üyeyi bireysel sahip yapar (organizasyon bağı kesilir).
-func (r *KullaniciRepository) DetachOrg(ctx context.Context, id bson.ObjectID) error {
+func (r *UserRepository) DetachOrg(ctx context.Context, id bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -338,8 +338,8 @@ func (r *KullaniciRepository) DetachOrg(ctx context.Context, id bson.ObjectID) e
 	defer cancel()
 	res, err := r.col.UpdateByID(ctx, id, bson.M{
 		"$set": bson.M{
-			"hesapTipi":        HesapBireysel,
-			"rol":              RolSahip,
+			"hesapTipi":        AccountIndividual,
+			"rol":              RoleOwner,
 			"guncellemeTarihi": time.Now().UTC(),
 		},
 		"$unset": bson.M{"organizasyonId": ""},
@@ -353,7 +353,7 @@ func (r *KullaniciRepository) DetachOrg(ctx context.Context, id bson.ObjectID) e
 	return nil
 }
 
-func (r *KullaniciRepository) DetachOrgByOrg(ctx context.Context, orgID bson.ObjectID) error {
+func (r *UserRepository) DetachOrgByOrg(ctx context.Context, orgID bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -361,8 +361,8 @@ func (r *KullaniciRepository) DetachOrgByOrg(ctx context.Context, orgID bson.Obj
 	defer cancel()
 	_, err := r.col.UpdateMany(ctx, bson.M{"organizasyonId": orgID}, bson.M{
 		"$set": bson.M{
-			"hesapTipi":        HesapBireysel,
-			"rol":              RolSahip,
+			"hesapTipi":        AccountIndividual,
+			"rol":              RoleOwner,
 			"guncellemeTarihi": time.Now().UTC(),
 		},
 		"$unset": bson.M{"organizasyonId": ""},

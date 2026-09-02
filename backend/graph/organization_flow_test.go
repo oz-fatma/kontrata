@@ -14,11 +14,11 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
-// TestOrganizasyonAkis kurumsal kayıt, davet, yetki matrisi ve kiracı yalıtımını doğrular.
-func TestOrganizasyonAkis(t *testing.T) {
+// TestOrganizationFlow kurumsal kayıt, davet, yetki matrisi ve kiracı yalıtımını doğrular.
+func TestOrganizationFlow(t *testing.T) {
 	dbName := fmt.Sprintf("%s_org_%s", mongo.TestDatabasePrefix, bson.NewObjectID().Hex())
 	t.Setenv("MONGO_DATABASE", dbName)
-	ctx, env := setupKayitRequired(t)
+	ctx, env := setupRegisterRequired(t)
 	t.Cleanup(func() {
 		dropCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
 		defer cancel()
@@ -28,40 +28,40 @@ func TestOrganizasyonAkis(t *testing.T) {
 	})
 	requireReplicaSet(t, env.db, ctx)
 
-	sahipEposta := uniqueEposta()
-	yoneticiEposta := uniqueEposta()
-	izleyiciEposta := uniqueEposta()
-	digerSahipEposta := uniqueEposta()
+	sahipEposta := uniqueEmail()
+	yoneticiEposta := uniqueEmail()
+	izleyiciEposta := uniqueEmail()
+	digerSahipEposta := uniqueEmail()
 	const cihaz = "org-akis-cihaz"
 	const orgAd = "Akdeniz Otelcilik"
 
 	t.Log("1. kurumsal kayitOl → organizasyon ve SAHIP")
-	postKayitKurumsal(t, env.c, sahipEposta, testSifre, orgAd)
-	dogrulama := tokenFromGovde(env.mail.lastGovde())
+	postRegisterCorporate(t, env.c, sahipEposta, testPassword, orgAd)
+	dogrulama := tokenFromBody(env.mail.lastBody())
 	if dogrulama == "" {
 		t.Fatal("doğrulama kodu yok")
 	}
-	if !postDogrula(t, env.c, dogrulama) {
+	if !postVerify(t, env.c, dogrulama) {
 		t.Fatal("e-posta doğrulanamadı")
 	}
-	sahip, err := env.users.GetByEposta(ctx, sahipEposta)
+	sahip, err := env.users.GetByEmail(ctx, sahipEposta)
 	if err != nil {
 		t.Fatalf("sahip okunamadı: %v", err)
 	}
-	if sahip.HesapTipi != repository.HesapKurumsal || sahip.Rol != repository.RolSahip {
-		t.Fatalf("hesapTipi=%s rol=%s", sahip.HesapTipi, sahip.Rol)
+	if sahip.AccountType != repository.AccountCorporate || sahip.Role != repository.RoleOwner {
+		t.Fatalf("hesapTipi=%s rol=%s", sahip.AccountType, sahip.Role)
 	}
-	if sahip.OrganizasyonID.IsZero() {
+	if sahip.OrganizationID.IsZero() {
 		t.Fatal("organizasyon bağlanmadı")
 	}
-	org, err := env.orgs.GetByID(ctx, sahip.OrganizasyonID)
+	org, err := env.orgs.GetByID(ctx, sahip.OrganizationID)
 	if err != nil {
 		t.Fatalf("organizasyon okunamadı: %v", err)
 	}
-	if org.Ad != orgAd || org.SahipKullaniciID != sahip.ID || org.Durum != repository.OrgDurumAktif {
-		t.Fatalf("organizasyon ad=%s durum=%s", org.Ad, org.Durum)
+	if org.Name != orgAd || org.OwnerUserID != sahip.ID || org.Status != repository.OrgStatusActive {
+		t.Fatalf("organizasyon ad=%s durum=%s", org.Name, org.Status)
 	}
-	sahipAccess, _ := loginSessionDevice(t, env, sahipEposta, testSifre, cihaz)
+	sahipAccess, _ := loginSessionDevice(t, env, sahipEposta, testPassword, cihaz)
 	cSahip := env.withDevice(sahipAccess, cihaz)
 	var orgum struct {
 		Organizasyonum *struct{ ID, Ad, Durum string }
@@ -79,24 +79,24 @@ func TestOrganizasyonAkis(t *testing.T) {
 	if !davet.UyeDavetEt {
 		t.Fatal("uyeDavetEt false")
 	}
-	davetKodu := tokenAfterLabel(env.mail.lastGovde(), "Davet kodunuz:")
+	davetKodu := tokenAfterLabel(env.mail.lastBody(), "Davet kodunuz:")
 	if davetKodu == "" {
 		t.Fatal("davet kodu yok")
 	}
 	var kabul struct{ DavetiKabulEt bool }
 	env.c.MustPost(`mutation ($t: String!, $s: String!) { davetiKabulEt(token: $t, sifre: $s) }`,
-		&kabul, client.Var("t", davetKodu), client.Var("s", testSifre))
+		&kabul, client.Var("t", davetKodu), client.Var("s", testPassword))
 	if !kabul.DavetiKabulEt {
 		t.Fatal("davetiKabulEt false")
 	}
-	yonetici, err := env.users.GetByEposta(ctx, yoneticiEposta)
+	yonetici, err := env.users.GetByEmail(ctx, yoneticiEposta)
 	if err != nil {
 		t.Fatalf("yönetici okunamadı: %v", err)
 	}
-	if yonetici.Rol != repository.RolYonetici || yonetici.OrganizasyonID != org.ID {
-		t.Fatalf("yönetici rol=%s org=%s", yonetici.Rol, yonetici.OrganizasyonID.Hex())
+	if yonetici.Role != repository.RoleAdmin || yonetici.OrganizationID != org.ID {
+		t.Fatalf("yönetici rol=%s org=%s", yonetici.Role, yonetici.OrganizationID.Hex())
 	}
-	yoneticiAccess, _ := loginSessionDevice(t, env, yoneticiEposta, testSifre, cihaz)
+	yoneticiAccess, _ := loginSessionDevice(t, env, yoneticiEposta, testPassword, cihaz)
 	cYonetici := env.withDevice(yoneticiAccess, cihaz)
 	var uyeler struct {
 		Uyeler []struct{ ID, Rol string }
@@ -110,12 +110,12 @@ func TestOrganizasyonAkis(t *testing.T) {
 	t.Log("3. GORUNTULEYICI sozlesmeSil doğrudan reddedilir")
 	cSahip.MustPost(`mutation ($e: String!, $r: Rol!) { uyeDavetEt(eposta: $e, rol: $r) }`,
 		&davet, client.Var("e", izleyiciEposta), client.Var("r", "GORUNTULEYICI"))
-	izleyiciKodu := tokenAfterLabel(env.mail.lastGovde(), "Davet kodunuz:")
+	izleyiciKodu := tokenAfterLabel(env.mail.lastBody(), "Davet kodunuz:")
 	if izleyiciKodu == "" {
 		t.Fatal("izleyici davet kodu yok")
 	}
 	env.c.MustPost(`mutation ($t: String!, $s: String!) { davetiKabulEt(token: $t, sifre: $s) }`,
-		&kabul, client.Var("t", izleyiciKodu), client.Var("s", testSifre))
+		&kabul, client.Var("t", izleyiciKodu), client.Var("s", testPassword))
 	if !kabul.DavetiKabulEt {
 		t.Fatal("izleyici daveti kabul edilmedi")
 	}
@@ -128,7 +128,7 @@ func TestOrganizasyonAkis(t *testing.T) {
 	if sozID == "" {
 		t.Fatal("sözleşme oluşmadı")
 	}
-	izleyiciAccess, _ := loginSessionDevice(t, env, izleyiciEposta, testSifre, cihaz)
+	izleyiciAccess, _ := loginSessionDevice(t, env, izleyiciEposta, testPassword, cihaz)
 	cIzleyici := env.withDevice(izleyiciAccess, cihaz)
 	var liste struct {
 		Sozlesmeler []struct{ ID string }
@@ -145,12 +145,12 @@ func TestOrganizasyonAkis(t *testing.T) {
 	t.Log("GORUNTULEYICI sözleşmeyi gördü, silme reddedildi")
 
 	t.Log("4. başka organizasyonun sözleşmesi sorgulanamıyor")
-	postKayitKurumsal(t, env.c, digerSahipEposta, testSifre, "Ege Turizm")
-	digerDogrulama := tokenFromGovde(env.mail.lastGovde())
-	if !postDogrula(t, env.c, digerDogrulama) {
+	postRegisterCorporate(t, env.c, digerSahipEposta, testPassword, "Ege Turizm")
+	digerDogrulama := tokenFromBody(env.mail.lastBody())
+	if !postVerify(t, env.c, digerDogrulama) {
 		t.Fatal("diğer e-posta doğrulanamadı")
 	}
-	digerAccess, _ := loginSessionDevice(t, env, digerSahipEposta, testSifre, cihaz)
+	digerAccess, _ := loginSessionDevice(t, env, digerSahipEposta, testPassword, cihaz)
 	cDiger := env.withDevice(digerAccess, cihaz)
 	var digerSoz struct {
 		Sozlesme *struct{ ID string }
@@ -173,7 +173,7 @@ func TestOrganizasyonAkis(t *testing.T) {
 	if !iste.HesapSilmeIste {
 		t.Fatal("hesapSilmeIste false")
 	}
-	silmeKodu := tokenAfterLabel(env.mail.lastGovde(), "Hesap silme onay kodunuz:")
+	silmeKodu := tokenAfterLabel(env.mail.lastBody(), "Hesap silme onay kodunuz:")
 	if silmeKodu == "" {
 		t.Fatal("silme kodu yok")
 	}
@@ -182,15 +182,15 @@ func TestOrganizasyonAkis(t *testing.T) {
 	if silHata == nil || !strings.Contains(silHata.Error(), "önce sahipliği devredin veya organizasyonu silin") {
 		t.Fatalf("sahip silme: %v", silHata)
 	}
-	if _, err := env.users.GetByEposta(ctx, sahipEposta); err != nil {
+	if _, err := env.users.GetByEmail(ctx, sahipEposta); err != nil {
 		t.Fatal("sahip hesabı silinmiş")
 	}
 	t.Log("sahip silme başka üye varken reddedildi")
 }
 
-func postKayitKurumsal(t *testing.T, c *client.Client, eposta, sifre, orgAd string) {
+func postRegisterCorporate(t *testing.T, c *client.Client, eposta, sifre, orgAd string) {
 	t.Helper()
-	var out kayitYaniti
+	var out registerResult
 	c.MustPost(`mutation ($e: String!, $s: String!, $ad: String!) {
 		kayitOl(eposta: $e, sifre: $s, hesapTipi: KURUMSAL, organizasyonAdi: $ad) { basarili mesaj }
 	}`, &out, client.Var("e", eposta), client.Var("s", sifre), client.Var("ad", orgAd))

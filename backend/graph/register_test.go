@@ -22,13 +22,13 @@ import (
 
 type stubMailer struct {
 	mu   sync.Mutex
-	sent []struct{ alici, konu, govde string }
+	sent []struct{ to, subject, body string }
 }
 
-func (m *stubMailer) Gonder(alici, konu, govde string) error {
+func (m *stubMailer) Send(to, subject, body string) error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.sent = append(m.sent, struct{ alici, konu, govde string }{alici, konu, govde})
+	m.sent = append(m.sent, struct{ to, subject, body string }{to, subject, body})
 	return nil
 }
 
@@ -38,33 +38,33 @@ func (m *stubMailer) count() int {
 	return len(m.sent)
 }
 
-func (m *stubMailer) countKonu(konu string) int {
+func (m *stubMailer) countSubject(subject string) int {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	n := 0
 	for _, s := range m.sent {
-		if s.konu == konu {
+		if s.subject == subject {
 			n++
 		}
 	}
 	return n
 }
 
-func (m *stubMailer) lastGovde() string {
+func (m *stubMailer) lastBody() string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	if len(m.sent) == 0 {
 		return ""
 	}
-	return m.sent[len(m.sent)-1].govde
+	return m.sent[len(m.sent)-1].body
 }
 
-func tokenFromGovde(govde string) string {
-	return tokenAfterLabel(govde, "Doğrulama kodunuz:")
+func tokenFromBody(body string) string {
+	return tokenAfterLabel(body, "Doğrulama kodunuz:")
 }
 
-func tokenAfterLabel(govde, label string) string {
-	_, rest, ok := strings.Cut(govde, label)
+func tokenAfterLabel(body, label string) string {
+	_, rest, ok := strings.Cut(body, label)
 	if !ok {
 		return ""
 	}
@@ -74,24 +74,24 @@ func tokenAfterLabel(govde, label string) string {
 }
 
 const (
-	testSifre     = "oniki-karakter"
+	testPassword  = "oniki-karakter"
 	testJWTSecret = "test-jwt-secret-at-least-32-bytes!!"
 	testUserAgent = "kontrata-test"
 	testForwarded = "203.0.113.9, 10.0.0.1"
 )
 
-type kayitEnv struct {
+type registerEnv struct {
 	h        http.Handler
 	c        *client.Client
-	users    *repository.KullaniciRepository
-	tokens   *repository.DogrulamaTokenRepository
-	mfa      *repository.MFAKoduRepository
-	sessions *repository.OturumRepository
-	soz      *repository.SozlesmeRepository
-	audit    *repository.DenetimRepository
+	users    *repository.UserRepository
+	tokens   *repository.VerificationTokenRepository
+	mfa      *repository.MFACodeRepository
+	sessions *repository.SessionRepository
+	soz      *repository.ContractRepository
+	audit    *repository.AuditRepository
 	mail     *stubMailer
-	devices  *repository.CihazRepository
-	orgs     *repository.OrganizasyonRepository
+	devices  *repository.DeviceRepository
+	orgs     *repository.OrganizationRepository
 	db       *mongo.Client
 }
 
@@ -128,13 +128,13 @@ func requireReplicaSet(t *testing.T, db *mongo.Client, ctx context.Context) {
 	}
 }
 
-func setupKayitRequired(t *testing.T) (context.Context, kayitEnv) {
+func setupRegisterRequired(t *testing.T) (context.Context, registerEnv) {
 	t.Helper()
 	requireMongoURI(t)
-	return setupKayit(t)
+	return setupRegister(t)
 }
 
-func setupKayit(t *testing.T) (context.Context, kayitEnv) {
+func setupRegister(t *testing.T) (context.Context, registerEnv) {
 	t.Helper()
 	uri := strings.TrimSpace(os.Getenv("MONGO_URI"))
 	if uri == "" {
@@ -153,19 +153,19 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 		}
 	})
 
-	users := repository.NewKullaniciRepository(db)
-	tokens := repository.NewDogrulamaTokenRepository(db)
-	mfa := repository.NewMFAKoduRepository(db)
-	sessions := repository.NewOturumRepository(db)
-	devices := repository.NewCihazRepository(db)
-	denetim := repository.NewDenetimRepository(db)
-	sozRepo := repository.NewSozlesmeRepository(db)
-	orgs := repository.NewOrganizasyonRepository(db)
-	davets := repository.NewDavetRepository(db)
+	users := repository.NewUserRepository(db)
+	tokens := repository.NewVerificationTokenRepository(db)
+	mfa := repository.NewMFACodeRepository(db)
+	sessions := repository.NewSessionRepository(db)
+	devices := repository.NewDeviceRepository(db)
+	denetim := repository.NewAuditRepository(db)
+	sozRepo := repository.NewContractRepository(db)
+	orgs := repository.NewOrganizationRepository(db)
+	davets := repository.NewInviteRepository(db)
 	for _, ensure := range []func(context.Context) error{
 		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
 		sessions.EnsureIndexes, devices.EnsureIndexes, denetim.EnsureIndexes, sozRepo.EnsureIndexes,
-		orgs.EnsureIndexes, davets.EnsureIndexes, users.BackfillHesapAlanlari,
+		orgs.EnsureIndexes, davets.EnsureIndexes, users.BackfillAccountFields,
 	} {
 		if err := ensure(ctx); err != nil {
 			t.Fatalf("indeks oluşturulamadı")
@@ -177,78 +177,78 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 		t.Fatalf("jwt: %v", err)
 	}
 	authSvc := service.NewAuthService(users, tokens, mfa, sessions, devices, sozRepo, orgs, davets, denetim, mail, testParams(), signer, db)
-	sozSvc := service.NewSozlesmeService(sozRepo, users)
+	sozSvc := service.NewContractService(sozRepo, users)
 	srv := handler.New(NewExecutableSchema(Config{
 		Resolvers:  &Resolver{Service: sozSvc, Auth: authSvc},
 		Directives: DirectiveRoot{Auth: AuthDirective},
 	}))
 	srv.AddTransport(transport.POST{})
 	h := auth.RequestMiddleware(authSvc.BearerMiddleware(srv))
-	return ctx, kayitEnv{
+	return ctx, registerEnv{
 		h: h, c: graphqlClient(h, "", ""), users: users, tokens: tokens,
 		mfa: mfa, sessions: sessions, soz: sozRepo, audit: denetim, mail: mail,
 		devices: devices, orgs: orgs, db: db,
 	}
 }
 
-func (e kayitEnv) withToken(access string) *client.Client {
+func (e registerEnv) withToken(access string) *client.Client {
 	return graphqlClient(e.h, access, "")
 }
 
-func (e kayitEnv) withDevice(access, deviceID string) *client.Client {
+func (e registerEnv) withDevice(access, deviceID string) *client.Client {
 	return graphqlClient(e.h, access, deviceID)
 }
 
-func uniqueEposta() string {
+func uniqueEmail() string {
 	return "kayit-" + bson.NewObjectID().Hex() + "@ornek.test"
 }
 
-type kayitYaniti struct {
+type registerResult struct {
 	KayitOl struct {
 		Basarili bool
 		Mesaj    string
 	}
 }
 
-func postKayit(t *testing.T, c *client.Client, eposta, sifre string) kayitYaniti {
+func postRegister(t *testing.T, c *client.Client, eposta, sifre string) registerResult {
 	t.Helper()
-	var out kayitYaniti
+	var out registerResult
 	c.MustPost(`mutation ($e: String!, $s: String!) {
 		kayitOl(eposta: $e, sifre: $s) { basarili mesaj }
 	}`, &out, client.Var("e", eposta), client.Var("s", sifre))
 	return out
 }
 
-func postDogrula(t *testing.T, c *client.Client, token string) bool {
+func postVerify(t *testing.T, c *client.Client, token string) bool {
 	t.Helper()
 	var out struct{ EpostaDogrula bool }
 	c.MustPost(`mutation ($t: String!) { epostaDogrula(token: $t) }`, &out, client.Var("t", token))
 	return out.EpostaDogrula
 }
 
-func registerVerified(t *testing.T, env kayitEnv, eposta, sifre string) {
+func registerVerified(t *testing.T, env registerEnv, eposta, sifre string) {
 	t.Helper()
-	postKayit(t, env.c, eposta, sifre)
-	plain := tokenFromGovde(env.mail.lastGovde())
+	postRegister(t, env.c, eposta, sifre)
+	plain := tokenFromBody(env.mail.lastBody())
 	if plain == "" {
 		t.Fatal("doğrulama kodu yok")
 	}
-	if !postDogrula(t, env.c, plain) {
+	if !postVerify(t, env.c, plain) {
 		t.Fatal("e-posta doğrulanamadı")
 	}
 }
 
-func loginSession(t *testing.T, env kayitEnv, eposta, sifre string) (access, refresh string) {
+func loginSession(t *testing.T, env registerEnv, eposta, sifre string) (access, refresh string) {
 	t.Helper()
 	return loginOn(t, env, env.c, eposta, sifre)
 }
 
-func loginSessionDevice(t *testing.T, env kayitEnv, eposta, sifre, deviceID string) (access, refresh string) {
+func loginSessionDevice(t *testing.T, env registerEnv, eposta, sifre, deviceID string) (access, refresh string) {
 	t.Helper()
 	return loginOn(t, env, env.withDevice("", deviceID), eposta, sifre)
 }
 
-func loginOn(t *testing.T, env kayitEnv, c *client.Client, eposta, sifre string) (access, refresh string) {
+func loginOn(t *testing.T, env registerEnv, c *client.Client, eposta, sifre string) (access, refresh string) {
 	t.Helper()
 	var giris struct {
 		GirisYap struct {
@@ -262,7 +262,7 @@ func loginOn(t *testing.T, env kayitEnv, c *client.Client, eposta, sifre string)
 	if !giris.GirisYap.MfaGerekli || giris.GirisYap.GeciciToken == "" {
 		t.Fatal("MFA bekleniyordu")
 	}
-	kod := tokenAfterLabel(env.mail.lastGovde(), "Giriş kodunuz:")
+	kod := tokenAfterLabel(env.mail.lastBody(), "Giriş kodunuz:")
 	if kod == "" {
 		t.Fatal("MFA kodu yok")
 	}
@@ -283,14 +283,14 @@ func loginOn(t *testing.T, env kayitEnv, c *client.Client, eposta, sifre string)
 	return oturum.MfaDogrula.ErisimJetonu, oturum.MfaDogrula.YenilemeJetonu
 }
 
-func TestKayitOlVeEpostaDogrula(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	first := postKayit(t, env.c, eposta, testSifre)
+func TestRegisterAndVerifyEmail(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	first := postRegister(t, env.c, eposta, testPassword)
 	if !first.KayitOl.Basarili || first.KayitOl.Mesaj == "" {
 		t.Fatal("kayıt yanıtı beklenen değil")
 	}
-	plain := tokenFromGovde(env.mail.lastGovde())
+	plain := tokenFromBody(env.mail.lastBody())
 	if plain == "" {
 		t.Fatal("doğrulama kodu e-postada yok")
 	}
@@ -302,46 +302,46 @@ func TestKayitOlVeEpostaDogrula(t *testing.T) {
 	if stored.Token == plain {
 		t.Fatal("düz metin token yazılmış")
 	}
-	if stored.Kullanildi {
+	if stored.Used {
 		t.Fatal("yeni token kullanılmış görünüyor")
 	}
-	kayitDenetim, err := env.audit.Latest(ctx, repository.OlayKayit)
+	kayitDenetim, err := env.audit.Latest(ctx, repository.EventRegister)
 	if err != nil {
 		t.Fatalf("denetim okunamadı")
 	}
-	if kayitDenetim.IPAdresi != "203.0.113.9" {
-		t.Fatalf("ipAdresi = %q", kayitDenetim.IPAdresi)
+	if kayitDenetim.IPAddress != "203.0.113.9" {
+		t.Fatalf("ipAdresi = %q", kayitDenetim.IPAddress)
 	}
-	if kayitDenetim.KullaniciAjani != testUserAgent {
-		t.Fatalf("kullaniciAjani = %q", kayitDenetim.KullaniciAjani)
+	if kayitDenetim.UserAgent != testUserAgent {
+		t.Fatalf("kullaniciAjani = %q", kayitDenetim.UserAgent)
 	}
 
-	if !postDogrula(t, env.c, plain) {
+	if !postVerify(t, env.c, plain) {
 		t.Fatal("geçerli kod reddedildi")
 	}
-	user, err := env.users.GetByEposta(ctx, eposta)
+	user, err := env.users.GetByEmail(ctx, eposta)
 	if err != nil {
 		t.Fatalf("kullanıcı okunamadı")
 	}
-	if !user.EpostaDogrulandi || user.Durum != repository.DurumAktif {
-		t.Fatalf("doğrulama sonrası durum = %s dogrulandi=%v", user.Durum, user.EpostaDogrulandi)
+	if !user.EmailVerified || user.Status != repository.StatusActive {
+		t.Fatalf("doğrulama sonrası durum = %s dogrulandi=%v", user.Status, user.EmailVerified)
 	}
-	if user.HesapTipi != repository.HesapBireysel || user.Rol != repository.RolSahip {
-		t.Fatalf("hesapTipi=%s rol=%s", user.HesapTipi, user.Rol)
+	if user.AccountType != repository.AccountIndividual || user.Role != repository.RoleOwner {
+		t.Fatalf("hesapTipi=%s rol=%s", user.AccountType, user.Role)
 	}
-	if !user.OrganizasyonID.IsZero() {
+	if !user.OrganizationID.IsZero() {
 		t.Fatal("bireysel hesapta organizasyonId dolu")
 	}
-	if postDogrula(t, env.c, plain) {
+	if postVerify(t, env.c, plain) {
 		t.Fatal("kullanılmış kod ikinci kez kabul edildi")
 	}
 }
 
-func TestSuresiGecmisTokenReddedilir(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	postKayit(t, env.c, eposta, testSifre)
-	plain := tokenFromGovde(env.mail.lastGovde())
+func TestExpiredTokenRejected(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	postRegister(t, env.c, eposta, testPassword)
+	plain := tokenFromBody(env.mail.lastBody())
 	if plain == "" {
 		t.Fatal("doğrulama kodu yok")
 	}
@@ -349,52 +349,52 @@ func TestSuresiGecmisTokenReddedilir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("token okunamadı")
 	}
-	doc.SonKullanma = time.Now().UTC().Add(-time.Minute)
+	doc.ExpiresAt = time.Now().UTC().Add(-time.Minute)
 	if err := env.tokens.Update(ctx, doc); err != nil {
 		t.Fatalf("token güncellenemedi")
 	}
-	if postDogrula(t, env.c, plain) {
+	if postVerify(t, env.c, plain) {
 		t.Fatal("süresi geçmiş kod kabul edildi")
 	}
-	user, err := env.users.GetByEposta(ctx, eposta)
+	user, err := env.users.GetByEmail(ctx, eposta)
 	if err != nil {
 		t.Fatalf("kullanıcı okunamadı")
 	}
-	if user.EpostaDogrulandi {
+	if user.EmailVerified {
 		t.Fatal("süresi geçmiş kod hesabı doğruladı")
 	}
 }
 
-func TestAyniEpostaIkinciKayitIlkiniBozmaz(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	first := postKayit(t, env.c, eposta, testSifre)
-	plain := tokenFromGovde(env.mail.lastGovde())
-	user, err := env.users.GetByEposta(ctx, eposta)
+func TestDuplicateEmailLeavesOriginal(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	first := postRegister(t, env.c, eposta, testPassword)
+	plain := tokenFromBody(env.mail.lastBody())
+	user, err := env.users.GetByEmail(ctx, eposta)
 	if err != nil {
 		t.Fatalf("kullanıcı okunamadı")
 	}
-	hash := user.SifreHash
+	hash := user.PasswordHash
 	mails := env.mail.count()
 
-	second := postKayit(t, env.c, eposta, "baska-sifre-12")
+	second := postRegister(t, env.c, eposta, "baska-sifre-12")
 	if second.KayitOl.Basarili != first.KayitOl.Basarili || second.KayitOl.Mesaj != first.KayitOl.Mesaj {
 		t.Fatal("ikinci kayıt farklı yanıt verdi")
 	}
 	if env.mail.count() != mails {
 		t.Fatal("ikinci kayıt yeni e-posta gönderdi")
 	}
-	again, err := env.users.GetByEposta(ctx, eposta)
+	again, err := env.users.GetByEmail(ctx, eposta)
 	if err != nil {
 		t.Fatalf("kullanıcı okunamadı")
 	}
-	if again.SifreHash != hash {
+	if again.PasswordHash != hash {
 		t.Fatal("ikinci kayıt şifre özetini değiştirdi")
 	}
-	if again.Durum != repository.DurumBeklemede {
-		t.Fatalf("durum = %s", again.Durum)
+	if again.Status != repository.StatusPending {
+		t.Fatalf("durum = %s", again.Status)
 	}
-	if !postDogrula(t, env.c, plain) {
+	if !postVerify(t, env.c, plain) {
 		t.Fatal("ilk kod ikinci kayıttan sonra geçersiz")
 	}
 }

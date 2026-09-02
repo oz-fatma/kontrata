@@ -10,11 +10,11 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
 )
 
-func TestGirisVeMFAOturumAcar(t *testing.T) {
-	_, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
-	access, refresh := loginSession(t, env, eposta, testSifre)
+func TestLoginAndMFAOpensSession(t *testing.T) {
+	_, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
+	access, refresh := loginSession(t, env, eposta, testPassword)
 	if access == "" || refresh == "" {
 		t.Fatal("jetonlar boş")
 	}
@@ -31,17 +31,17 @@ func TestGirisVeMFAOturumAcar(t *testing.T) {
 	}
 }
 
-func TestMFABesYanlisKodGecersizlesir(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
+func TestMFAFiveWrongCodesInvalidate(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
 	var giris struct {
 		GirisYap struct{ GeciciToken string }
 	}
 	env.c.MustPost(`mutation ($e: String!, $s: String!) {
 		girisYap(eposta: $e, sifre: $s) { geciciToken }
-	}`, &giris, client.Var("e", eposta), client.Var("s", testSifre))
-	kod := tokenAfterLabel(env.mail.lastGovde(), "Giriş kodunuz:")
+	}`, &giris, client.Var("e", eposta), client.Var("s", testPassword))
+	kod := tokenAfterLabel(env.mail.lastBody(), "Giriş kodunuz:")
 	gecici := giris.GirisYap.GeciciToken
 	wrong := "000000"
 	if kod == wrong {
@@ -56,7 +56,7 @@ func TestMFABesYanlisKodGecersizlesir(t *testing.T) {
 			t.Fatal("yanlış kod kabul edildi")
 		}
 	}
-	user, err := env.users.GetByEposta(ctx, eposta)
+	user, err := env.users.GetByEmail(ctx, eposta)
 	if err != nil {
 		t.Fatalf("kullanıcı okunamadı")
 	}
@@ -73,18 +73,18 @@ func TestMFABesYanlisKodGecersizlesir(t *testing.T) {
 	}
 }
 
-func TestMFASuresiGecmisKodReddedilir(t *testing.T) {
-	ctx, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
+func TestMFAExpiredCodeRejected(t *testing.T) {
+	ctx, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
 	var giris struct {
 		GirisYap struct{ GeciciToken string }
 	}
 	env.c.MustPost(`mutation ($e: String!, $s: String!) {
 		girisYap(eposta: $e, sifre: $s) { geciciToken }
-	}`, &giris, client.Var("e", eposta), client.Var("s", testSifre))
-	kod := tokenAfterLabel(env.mail.lastGovde(), "Giriş kodunuz:")
-	user, err := env.users.GetByEposta(ctx, eposta)
+	}`, &giris, client.Var("e", eposta), client.Var("s", testPassword))
+	kod := tokenAfterLabel(env.mail.lastBody(), "Giriş kodunuz:")
+	user, err := env.users.GetByEmail(ctx, eposta)
 	if err != nil {
 		t.Fatalf("kullanıcı okunamadı")
 	}
@@ -92,7 +92,7 @@ func TestMFASuresiGecmisKodReddedilir(t *testing.T) {
 	if err != nil {
 		t.Fatalf("MFA okunamadı")
 	}
-	doc.SonKullanma = time.Now().UTC().Add(-time.Second)
+	doc.ExpiresAt = time.Now().UTC().Add(-time.Second)
 	if err := env.mfa.Update(ctx, doc); err != nil {
 		t.Fatalf("MFA güncellenemedi")
 	}
@@ -105,11 +105,11 @@ func TestMFASuresiGecmisKodReddedilir(t *testing.T) {
 	}
 }
 
-func TestYenilemeJetonuRotasyonu(t *testing.T) {
-	_, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
-	_, refresh := loginSession(t, env, eposta, testSifre)
+func TestRefreshTokenRotation(t *testing.T) {
+	_, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
+	_, refresh := loginSession(t, env, eposta, testPassword)
 	var yenile struct {
 		JetonYenile struct {
 			ErisimJetonu   string
@@ -134,7 +134,7 @@ func TestYenilemeJetonuRotasyonu(t *testing.T) {
 	}`, &yenile, client.Var("r", yenile.JetonYenile.YenilemeJetonu))
 }
 
-func postJetonYenile(t *testing.T, c *client.Client, refresh string) (access, yeniRefresh string) {
+func postRefreshToken(t *testing.T, c *client.Client, refresh string) (access, yeniRefresh string) {
 	t.Helper()
 	var out struct {
 		JetonYenile struct {
@@ -187,15 +187,15 @@ func expiredAccess(t *testing.T, access string) string {
 	return expired
 }
 
-func TestJetonYenileErisimJetonuGerekmez(t *testing.T) {
-	_, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
-	access, refresh := loginSession(t, env, eposta, testSifre)
+func TestRefreshDoesNotNeedAccessToken(t *testing.T) {
+	_, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
+	access, refresh := loginSession(t, env, eposta, testPassword)
 
-	_, refresh = postJetonYenile(t, env.c, refresh)
+	_, refresh = postRefreshToken(t, env.c, refresh)
 
-	access, _ = postJetonYenile(t, env.withToken(expiredAccess(t, access)), refresh)
+	access, _ = postRefreshToken(t, env.withToken(expiredAccess(t, access)), refresh)
 
 	c := env.withToken(access)
 	var out struct {
@@ -210,8 +210,8 @@ func TestJetonYenileErisimJetonuGerekmez(t *testing.T) {
 	}
 }
 
-func TestJetonYenileGecersizAyniMesaj(t *testing.T) {
-	_, env := setupKayit(t)
+func TestRefreshInvalidSameMessage(t *testing.T) {
+	_, env := setupRegister(t)
 	var out struct {
 		JetonYenile struct{ ErisimJetonu string }
 	}
@@ -223,16 +223,16 @@ func TestJetonYenileGecersizAyniMesaj(t *testing.T) {
 	assertYenilemeReddi(t, errYok)
 }
 
-func TestSifreSifirlamaEskiOturumuDuser(t *testing.T) {
-	_, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
-	access, refresh := loginSession(t, env, eposta, testSifre)
-	if !postSifirlamaIste(t, env.c, eposta) {
+func TestPasswordResetDropsOldSessions(t *testing.T) {
+	_, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
+	access, refresh := loginSession(t, env, eposta, testPassword)
+	if !postResetRequest(t, env.c, eposta) {
 		t.Fatal("sıfırlama isteği false")
 	}
-	plain := tokenAfterLabel(env.mail.lastGovde(), "Sıfırlama kodunuz:")
-	ok, err := postSifirla(t, env.c, plain, "yeni-oniki-kr")
+	plain := tokenAfterLabel(env.mail.lastBody(), "Sıfırlama kodunuz:")
+	ok, err := postResetPassword(t, env.c, plain, "yeni-oniki-kr")
 	if err != nil || !ok {
 		t.Fatalf("sıfırlama: ok=%v err=%v", ok, err)
 	}
@@ -254,10 +254,10 @@ func TestSifreSifirlamaEskiOturumuDuser(t *testing.T) {
 	}
 }
 
-func TestGirisYanlisHesapAyniYanit(t *testing.T) {
-	_, env := setupKayit(t)
-	eposta := uniqueEposta()
-	registerVerified(t, env, eposta, testSifre)
+func TestLoginWrongAccountSameResponse(t *testing.T) {
+	_, env := setupRegister(t)
+	eposta := uniqueEmail()
+	registerVerified(t, env, eposta, testPassword)
 	mails := env.mail.count()
 	post := func(e, s string) (mfa bool, token string) {
 		t.Helper()
@@ -273,7 +273,7 @@ func TestGirisYanlisHesapAyniYanit(t *testing.T) {
 		return out.GirisYap.MfaGerekli, out.GirisYap.GeciciToken
 	}
 	mfaYanlis, tokYanlis := post(eposta, "yanlis-sifre-12")
-	mfaYok, tokYok := post(uniqueEposta(), testSifre)
+	mfaYok, tokYok := post(uniqueEmail(), testPassword)
 	if !mfaYanlis || tokYanlis == "" || !mfaYok || tokYok == "" {
 		t.Fatal("yanlış şifre veya olmayan hesap farklı yanıt verdi")
 	}

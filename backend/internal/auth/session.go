@@ -21,9 +21,9 @@ const (
 var (
 	// ErrUnauthorized GraphQL'e dönen kimlik hatasıdır; jeton ayrıntısı yok.
 	ErrUnauthorized = errors.New("kimlik doğrulaması gerekli")
-	// ErrGecersizYenilemeJetonu yenileme jetonu kabul edilmediğinde döner.
+	// ErrInvalidRefreshToken yenileme jetonu kabul edilmediğinde döner.
 	// Süre, iptal ve yokluk ayırt edilmez.
-	ErrGecersizYenilemeJetonu = errors.New("oturum sonlandı, tekrar giriş yapın")
+	ErrInvalidRefreshToken = errors.New("oturum sonlandı, tekrar giriş yapın")
 	// ErrMFAFailed MFA adımı için genel hatadır.
 	ErrMFAFailed = errors.New("doğrulama başarısız")
 	// ErrInvalidName kullanıcıdan gelen ad boş veya geçersizdir.
@@ -32,8 +32,8 @@ var (
 	ErrForbidden = errors.New("bu işlem için yetkiniz yok")
 	// ErrOrgNameRequired kurumsal kayıtta organizasyon adı eksiktir.
 	ErrOrgNameRequired = errors.New("organizasyon adı gerekli")
-	// ErrSahipDevret sahip hesabı, başka üye varken silinemez.
-	ErrSahipDevret = errors.New("önce sahipliği devredin veya organizasyonu silin")
+	// ErrTransferOwnership sahip hesabı, başka üye varken silinemez.
+	ErrTransferOwnership = errors.New("önce sahipliği devredin veya organizasyonu silin")
 )
 
 var errJWT = errors.New("jeton geçersiz")
@@ -52,30 +52,30 @@ func NewJWT(secret []byte) (*JWT, error) {
 }
 
 type accessClaims struct {
-	KullaniciID string `json:"kullaniciId"`
-	OturumID    string `json:"oturumId"`
-	SonKullanma int64  `json:"sonKullanma"`
-	Amac        string `json:"amac"`
+	UserID    string `json:"kullaniciId"`
+	SessionID string `json:"oturumId"`
+	Expires   int64  `json:"sonKullanma"`
+	Purpose   string `json:"amac"`
 	jwt.RegisteredClaims
 }
 
 type pendingClaims struct {
-	KullaniciID string `json:"kullaniciId"`
-	Amac        string `json:"amac"`
+	UserID  string `json:"kullaniciId"`
+	Purpose string `json:"amac"`
 	jwt.RegisteredClaims
 }
 
 // SignAccess kullaniciId ve oturumId içerir; e-posta koyulmaz.
-func (j *JWT) SignAccess(kullaniciID, oturumID string, now time.Time) (string, error) {
+func (j *JWT) SignAccess(userID, sessionID string, now time.Time) (string, error) {
 	if j == nil {
 		return "", errJWT
 	}
 	exp := now.Add(AccessTTL)
 	claims := accessClaims{
-		KullaniciID: kullaniciID,
-		OturumID:    oturumID,
-		SonKullanma: exp.Unix(),
-		Amac:        purposeAccess,
+		UserID:    userID,
+		SessionID: sessionID,
+		Expires:   exp.Unix(),
+		Purpose:   purposeAccess,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(exp),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -90,25 +90,25 @@ func (j *JWT) SignAccess(kullaniciID, oturumID string, now time.Time) (string, e
 }
 
 // ParseAccess erişim jetonunu çözer. Hata ayrıntısı sızmaz.
-func (j *JWT) ParseAccess(token string) (kullaniciID, oturumID string, err error) {
+func (j *JWT) ParseAccess(token string) (userID, sessionID string, err error) {
 	var claims accessClaims
 	if err := j.parse(token, &claims); err != nil {
 		return "", "", ErrUnauthorized
 	}
-	if claims.Amac != purposeAccess || claims.KullaniciID == "" || claims.OturumID == "" {
+	if claims.Purpose != purposeAccess || claims.UserID == "" || claims.SessionID == "" {
 		return "", "", ErrUnauthorized
 	}
-	return claims.KullaniciID, claims.OturumID, nil
+	return claims.UserID, claims.SessionID, nil
 }
 
 // SignPending MFA adımını bağlayan kısa ömürlü jetondur.
-func (j *JWT) SignPending(kullaniciID string, now time.Time) (string, error) {
+func (j *JWT) SignPending(userID string, now time.Time) (string, error) {
 	if j == nil {
 		return "", errJWT
 	}
 	claims := pendingClaims{
-		KullaniciID: kullaniciID,
-		Amac:        purposeMFA,
+		UserID:  userID,
+		Purpose: purposeMFA,
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(now.Add(MFAPendingTTL)),
 			IssuedAt:  jwt.NewNumericDate(now),
@@ -123,15 +123,15 @@ func (j *JWT) SignPending(kullaniciID string, now time.Time) (string, error) {
 }
 
 // ParsePending geçici MFA jetonunu çözer.
-func (j *JWT) ParsePending(token string) (kullaniciID string, err error) {
+func (j *JWT) ParsePending(token string) (userID string, err error) {
 	var claims pendingClaims
 	if err := j.parse(token, &claims); err != nil {
 		return "", ErrMFAFailed
 	}
-	if claims.Amac != purposeMFA || claims.KullaniciID == "" {
+	if claims.Purpose != purposeMFA || claims.UserID == "" {
 		return "", ErrMFAFailed
 	}
-	return claims.KullaniciID, nil
+	return claims.UserID, nil
 }
 
 func (j *JWT) parse(token string, claims jwt.Claims) error {

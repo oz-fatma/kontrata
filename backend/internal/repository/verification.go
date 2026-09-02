@@ -12,42 +12,42 @@ import (
 	appmongo "github.com/oz-fatma/kontrata/backend/internal/mongo"
 )
 
-const dogrulamaTokenCollection = "dogrulama_tokenlari"
+const verificationTokenCollection = "dogrulama_tokenlari"
 
 const (
-	AmacEpostaDogrulama = "EPOSTA_DOGRULAMA"
-	AmacSifreSifirlama  = "SIFRE_SIFIRLAMA"
-	AmacHesapSilme      = "HESAP_SILME"
+	PurposeEmailVerification = "EPOSTA_DOGRULAMA"
+	PurposePasswordReset     = "SIFRE_SIFIRLAMA"
+	PurposeAccountDelete     = "HESAP_SILME"
 )
 
-// DogrulamaTokeni hash'lenmiş doğrulama kodu belgesidir. Düz metin yazılmaz.
-type DogrulamaTokeni struct {
-	ID          bson.ObjectID `bson:"_id,omitempty"`
-	KullaniciID bson.ObjectID `bson:"kullaniciId"`
-	Token       string        `bson:"token"`
-	Amac        string        `bson:"amac"`
-	SonKullanma time.Time     `bson:"sonKullanma"`
-	Kullanildi  bool          `bson:"kullanildi"`
+// VerificationToken hash'lenmiş doğrulama kodu belgesidir. Düz metin yazılmaz.
+type VerificationToken struct {
+	ID        bson.ObjectID `bson:"_id,omitempty"`
+	UserID    bson.ObjectID `bson:"kullaniciId"`
+	Token     string        `bson:"token"`
+	Purpose   string        `bson:"amac"`
+	ExpiresAt time.Time     `bson:"sonKullanma"`
+	Used      bool          `bson:"kullanildi"`
 }
 
-// DogrulamaTokenRepository dogrulama_tokenlari koleksiyonuna erişir.
-type DogrulamaTokenRepository struct {
+// VerificationTokenRepository dogrulama_tokenlari koleksiyonuna erişir.
+type VerificationTokenRepository struct {
 	col *mongo.Collection
 }
 
-func NewDogrulamaTokenRepository(client *appmongo.Client) *DogrulamaTokenRepository {
+func NewVerificationTokenRepository(client *appmongo.Client) *VerificationTokenRepository {
 	if client == nil {
-		return &DogrulamaTokenRepository{}
+		return &VerificationTokenRepository{}
 	}
-	return &DogrulamaTokenRepository{col: client.Collection(appmongo.DatabaseName(), dogrulamaTokenCollection)}
+	return &VerificationTokenRepository{col: client.Collection(appmongo.DatabaseName(), verificationTokenCollection)}
 }
 
-func (r *DogrulamaTokenRepository) ready() bool {
+func (r *VerificationTokenRepository) ready() bool {
 	return r != nil && r.col != nil
 }
 
 // EnsureIndexes token hash benzersizliği ve sonKullanma TTL indekslerini oluşturur.
-func (r *DogrulamaTokenRepository) EnsureIndexes(ctx context.Context) error {
+func (r *VerificationTokenRepository) EnsureIndexes(ctx context.Context) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -72,7 +72,7 @@ func (r *DogrulamaTokenRepository) EnsureIndexes(ctx context.Context) error {
 	return nil
 }
 
-func (r *DogrulamaTokenRepository) Create(ctx context.Context, doc *DogrulamaTokeni) error {
+func (r *VerificationTokenRepository) Create(ctx context.Context, doc *VerificationToken) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -91,13 +91,13 @@ func (r *DogrulamaTokenRepository) Create(ctx context.Context, doc *DogrulamaTok
 	return nil
 }
 
-func (r *DogrulamaTokenRepository) GetByHash(ctx context.Context, hash string) (*DogrulamaTokeni, error) {
+func (r *VerificationTokenRepository) GetByHash(ctx context.Context, hash string) (*VerificationToken, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	var doc DogrulamaTokeni
+	var doc VerificationToken
 	err := r.col.FindOne(ctx, bson.M{"token": hash}).Decode(&doc)
 	if errors.Is(err, mongo.ErrNoDocuments) {
 		return nil, ErrNotFound
@@ -108,7 +108,7 @@ func (r *DogrulamaTokenRepository) GetByHash(ctx context.Context, hash string) (
 	return &doc, nil
 }
 
-func (r *DogrulamaTokenRepository) Update(ctx context.Context, doc *DogrulamaTokeni) error {
+func (r *VerificationTokenRepository) Update(ctx context.Context, doc *VerificationToken) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
@@ -128,15 +128,15 @@ func (r *DogrulamaTokenRepository) Update(ctx context.Context, doc *DogrulamaTok
 }
 
 // InvalidateUnused aynı kullanıcı ve amaçtaki kullanılmamış kodları geçersiz kılar.
-func (r *DogrulamaTokenRepository) InvalidateUnused(ctx context.Context, kullaniciID bson.ObjectID, amac string) error {
+func (r *VerificationTokenRepository) InvalidateUnused(ctx context.Context, userID bson.ObjectID, purpose string) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	_, err := r.col.UpdateMany(ctx, bson.M{
-		"kullaniciId": kullaniciID,
-		"amac":        amac,
+		"kullaniciId": userID,
+		"amac":        purpose,
 		"kullanildi":  false,
 	}, bson.M{"$set": bson.M{"kullanildi": true}})
 	if err != nil {
@@ -146,17 +146,17 @@ func (r *DogrulamaTokenRepository) InvalidateUnused(ctx context.Context, kullani
 }
 
 // Consume geçerli ve kullanılmamış kodu atomik olarak kullanılmış işaretler.
-func (r *DogrulamaTokenRepository) Consume(ctx context.Context, hash, amac string, now time.Time) (*DogrulamaTokeni, error) {
+func (r *VerificationTokenRepository) Consume(ctx context.Context, hash, purpose string, now time.Time) (*VerificationToken, error) {
 	if !r.ready() {
 		return nil, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
 	opts := options.FindOneAndUpdate().SetReturnDocument(options.Before)
-	var doc DogrulamaTokeni
+	var doc VerificationToken
 	err := r.col.FindOneAndUpdate(ctx, bson.M{
 		"token":      hash,
-		"amac":       amac,
+		"amac":       purpose,
 		"kullanildi": false,
 		"sonKullanma": bson.M{
 			"$gt": now,
@@ -171,26 +171,26 @@ func (r *DogrulamaTokenRepository) Consume(ctx context.Context, hash, amac strin
 	return &doc, nil
 }
 
-func (r *DogrulamaTokenRepository) DeleteByUser(ctx context.Context, kullaniciID bson.ObjectID) error {
+func (r *VerificationTokenRepository) DeleteByUser(ctx context.Context, userID bson.ObjectID) error {
 	if !r.ready() {
 		return ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": kullaniciID})
+	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": userID})
 	if err != nil {
 		return ErrStore
 	}
 	return nil
 }
 
-func (r *DogrulamaTokenRepository) CountByUser(ctx context.Context, kullaniciID bson.ObjectID) (int64, error) {
+func (r *VerificationTokenRepository) CountByUser(ctx context.Context, userID bson.ObjectID) (int64, error) {
 	if !r.ready() {
 		return 0, ErrUnavailable
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
-	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": kullaniciID})
+	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": userID})
 	if err != nil {
 		return 0, ErrStore
 	}
