@@ -1,0 +1,265 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://github.com/oz-fatma/kontrata/ml/schema/kontrat.json",
+  "title": "Kontenjan Sözleşmesi",
+  "description": "Otel ile tur operatörü/acente arasındaki kontenjan sözleşmesinden çıkarılan yapılandırılmış veri. Şema, MEB MEGEP 'Paket Tur Üretimi' modülündeki örnek kontenjan sözleşmesi ve Turizm İşletmeleri Yönetmeliği'ndeki sözleşme tanımları temel alınarak türetilmiş, güncel operatör terminolojisiyle (release, stop-sale) genişletilmiştir.",
+  "type": "object",
+  "required": ["donem", "oda_kontenjanlari", "fiyatlar", "release", "stop_sale"],
+  "additionalProperties": false,
+
+  "properties": {
+
+    "meta": {
+      "description": "Sözleşme künyesi. Çekirdek alan değil, ancak çıkarılabildiğinde doldurulur.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+        "otel_adi": { "type": "string" },
+        "acente_adi": { "type": "string" },
+        "sozlesme_tipi": {
+          "description": "MEGEP modülündeki kontenjan kontratı çeşitleri.",
+          "type": "string",
+          "enum": [
+            "tamamen_garantili",
+            "kismen_garantili",
+            "garantisiz",
+            "istege_bagli",
+            "serbest_satis",
+            "blok_rezervasyon",
+            "blok_satin_alma",
+            "belirtilmemis"
+          ]
+        },
+        "sezon": {
+          "type": "string",
+          "enum": ["yaz", "kis", "yillik", "belirtilmemis"]
+        },
+        "para_birimi": {
+          "description": "ISO 4217 kodu.",
+          "type": "string",
+          "examples": ["EUR", "GBP", "USD", "TRY"]
+        },
+        "kur_esasi": {
+          "description": "Faturalamada hangi tarihin kuru esas alınır.",
+          "type": "string",
+          "enum": ["giris_gunu_tcmb", "cikis_gunu_tcmb", "sabit_kur", "belirtilmemis"]
+        },
+        "yetkili_mahkeme": { "type": "string" },
+        "imza_tarihi": { "type": ["string", "null"], "format": "date" }
+      }
+    },
+
+    "donem": {
+      "description": "ÇEKİRDEK ALAN 1 — Sözleşmenin geçerlilik dönemi ve varsa alt fiyat dönemleri.",
+      "type": "object",
+      "required": ["baslangic", "bitis"],
+      "additionalProperties": false,
+      "properties": {
+        "baslangic": { "type": ["string", "null"], "format": "date" },
+        "bitis": { "type": ["string", "null"], "format": "date" },
+        "alt_donemler": {
+          "description": "Sezon içi fiyat dönemleri. Fiyat kayıtları alt_donem_ad ile buraya bağlanır.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "required": ["ad", "baslangic", "bitis"],
+            "additionalProperties": false,
+            "properties": {
+              "ad": {
+                "type": "string",
+                "examples": ["Erken sezon", "Yüksek sezon", "Geç sezon"]
+              },
+              "baslangic": { "type": "string", "format": "date" },
+              "bitis": { "type": "string", "format": "date" }
+            }
+          }
+        }
+      }
+    },
+
+    "oda_kontenjanlari": {
+      "description": "ÇEKİRDEK ALAN 2 — Otelin acenteye tahsis ettiği oda tipi ve adetleri.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["oda_tipi", "adet"],
+        "additionalProperties": false,
+        "properties": {
+          "oda_tipi": {
+            "description": "Sözleşmede geçtiği haliyle normalize edilmiş oda tipi.",
+            "type": "string",
+            "examples": ["standart", "suit", "balayi", "engelli", "aile", "deluxe"]
+          },
+          "adet": { "type": "integer", "minimum": 0 },
+          "aciklama": { "type": "string" }
+        }
+      }
+    },
+
+    "fiyatlar": {
+      "description": "ÇEKİRDEK ALAN 3 — Oda tipi ve pansiyon bazında fiyatlar.",
+      "type": "array",
+      "minItems": 1,
+      "items": {
+        "type": "object",
+        "required": ["oda_tipi", "tutar", "birim"],
+        "additionalProperties": false,
+        "properties": {
+          "oda_tipi": { "type": "string" },
+          "pansiyon": {
+            "description": "MEGEP modülündeki standart kısaltmalar.",
+            "type": "string",
+            "enum": ["RO", "BB", "HB", "FB", "AI", "belirtilmemis"]
+          },
+          "tutar": { "type": "number", "minimum": 0 },
+          "birim": {
+            "type": "string",
+            "enum": ["oda_gecelik", "kisi_gecelik"]
+          },
+          "alt_donem_ad": {
+            "description": "donem.alt_donemler içindeki bir ada karşılık gelir.",
+            "type": "string"
+          }
+        }
+      }
+    },
+
+    "release": {
+      "description": "ÇEKİRDEK ALAN 4 — Satılmayan kontenjanın iadesi veya isim listesi bildirim süresi.",
+      "type": "object",
+      "required": ["gun"],
+      "additionalProperties": false,
+      "properties": {
+        "gun": {
+          "description": "Girişten kaç gün önce.",
+          "type": "integer",
+          "minimum": 0
+        },
+        "kapsam": {
+          "type": "string",
+          "enum": ["isim_listesi", "kontenjan_iadesi", "her_ikisi", "belirtilmemis"]
+        },
+        "kaynak_ifade": {
+          "description": "Sözleşmede geçen ham cümle. Denetim ve güven skoru için saklanır.",
+          "type": "string"
+        }
+      }
+    },
+
+    "stop_sale": {
+      "description": "ÇEKİRDEK ALAN 5 — Satışın durdurulduğu tarih aralıkları. Boş dizi geçerlidir: sözleşmede stop-sale maddesi bulunmayabilir.",
+      "type": "array",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "baslangic": { "type": "string", "format": "date" },
+          "bitis": { "type": "string", "format": "date" },
+          "kapsam": {
+            "description": "Hangi oda tipleri veya tüm tesis.",
+            "type": "string"
+          },
+          "bildirim_yontemi": {
+            "type": "string",
+            "enum": ["yazili", "faks", "eposta", "sistem", "belirtilmemis"]
+          },
+          "kaynak_ifade": { "type": "string" }
+        }
+      }
+    },
+
+    "opsiyonel": {
+      "description": "Şemada yeri vardır ancak Aşama 7 kapsamı DIŞINDADIR. Okuyucu agent bu alanları çıkarmaya çalışmaz; kapsam kilidi gereği boş bırakılır.",
+      "type": "object",
+      "additionalProperties": false,
+      "properties": {
+
+        "cocuk_politikasi": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "yas_min": { "type": "number", "minimum": 0 },
+              "yas_max": { "type": "number", "minimum": 0 },
+              "indirim_yuzde": { "type": "number", "minimum": 0, "maximum": 100 },
+              "ucretsiz": { "type": "boolean" },
+              "kosul": { "type": "string" }
+            }
+          }
+        },
+
+        "iptal_kosullari": {
+          "description": "TÜRSAB yönetmeliği md.35 ve sözleşmeye özel kademeler.",
+          "type": "array",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "properties": {
+              "kapsam": {
+                "type": "string",
+                "examples": ["bireysel", "grup_tam", "grup_yarim_ustu", "grup_yarim_alti"]
+              },
+              "gun": { "type": "integer", "minimum": 0 },
+              "tazminat_aciklama": { "type": "string" }
+            }
+          }
+        },
+
+        "no_show": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sorumlu_taraf": {
+              "type": "string",
+              "enum": ["otel", "acente", "belirtilmemis"]
+            },
+            "tazminat_aciklama": { "type": "string" }
+          }
+        },
+
+        "overbooking": {
+          "description": "Otelin kapasite üstü rezervasyon alması ve short'a düşmesi halinde sorumluluk. MEGEP örnek sözleşmesi madde 5.",
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "sorumlu_taraf": {
+              "type": "string",
+              "enum": ["otel", "acente", "belirtilmemis"]
+            },
+            "aciklama": { "type": "string" }
+          }
+        },
+
+        "odeme": {
+          "type": "object",
+          "additionalProperties": false,
+          "properties": {
+            "fatura_sonrasi_gun": {
+              "description": "MEGEP: genelde 15 veya 30, bazen 45 gün.",
+              "type": "integer",
+              "minimum": 0
+            },
+            "avans_var": { "type": "boolean" },
+            "avans_aciklama": { "type": "string" }
+          }
+        }
+      }
+    },
+
+    "cikarim_meta": {
+      "description": "Alan bazında güven skoru ve kaynak sayfa. Aşama 7'de Okuyucu agent doldurur. Anahtar, ilgili alanın nokta gösterimli yoludur (örn. 'release.gun').",
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "additionalProperties": false,
+        "properties": {
+          "guven": { "type": "number", "minimum": 0, "maximum": 1 },
+          "kaynak_sayfa": { "type": "integer", "minimum": 1 },
+          "kaynak_madde": { "type": "string" }
+        }
+      }
+    }
+  }
+}

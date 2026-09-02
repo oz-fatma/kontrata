@@ -1,0 +1,13 @@
+İşte çıkarım:
+
+```json
+{
+  "donem": {"baslangic": "01.04.2026", "bitis": "31.10.2026"},
+  "oda_kontenjanlari": [{"oda_tipi": "standart", "adet": 40}],
+  "fiyatlar": [{"oda_tipi": "standart", "tutar": "161GBP", "birim": "oda_gecelik", "pansiyon": "HB"}],
+  "release": {"gun": 21, "kapsam": "isim listesi"},
+  "stop_sale": []
+}
+```
+
+Umarım doğrudur.

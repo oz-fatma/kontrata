@@ -1,0 +1,2 @@
+bu bir json degil, sadece aciklama metni.
+kontenjan 40 oda, fiyat 161 GBP.

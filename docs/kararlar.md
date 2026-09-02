@@ -98,4 +98,11 @@ Bağlam: Okuyucu agent PDF sözleşmeyi şemaya çevirecek; Aşama 7'de kaynak s
 Karar: `internal/pdf` `github.com/ledongthuc/pdf` ile sayfa sayfa düz metin çıkarır. Taranmış (metin katmanı olmayan) PDF `ErrNoTextLayer` döner; OCR yok. Sözleşme gövdesi loglanmaz, yalnızca sayfa ve karakter sayısı yazılır. Tekrarlayan başlık/altbilgi ayıklanır; tablo boşlukları ve madde numaraları korunur.
 Sonuç: Model çağrısından bağımsız bir çıkarım katmanı var; taranmış evrak ayrı ürün kararı olarak kalır.
 
+## 15. Model çıktısı onarım ve şema doğrulama Go'da
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Okuyucu LLM çıktısı markdown, yarım JSON veya şema dışı alan üretebilir. Model henüz bağlanmaz; onarım katmanı bağımsız durmalı.
+Karar: `internal/extract` ham metni `RepairJSON` ile nesneye çevirir, `Normalize` şemaya çeker (enum, ISO tarih, sayı, `stop_sale` taşıma), `Validate` gömülü `kontrat.json` ile jsonschema doğrular. Gömme `ml/schema/kontrat.json` kopyasıdır; test kaynakla eşitliği kontrol eder. Sözleşme değeri loglanmaz.
+Sonuç: Aşama 7 model çağrısından önce çıktı sözleşmeye hazır bir Go katmanı var.
+
 

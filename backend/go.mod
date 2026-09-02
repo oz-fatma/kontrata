@@ -8,6 +8,7 @@ require (
 	github.com/golang-jwt/jwt/v5 v5.3.1
 	github.com/joho/godotenv v1.5.1
 	github.com/ledongthuc/pdf v0.0.0-20250511090121-5959a4027728
+	github.com/santhosh-tekuri/jsonschema/v6 v6.0.3
 	github.com/vektah/gqlparser/v2 v2.5.37
 	go.mongodb.org/mongo-driver/v2 v2.8.2
 	golang.org/x/crypto v0.33.0

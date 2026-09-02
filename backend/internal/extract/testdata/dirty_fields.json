@@ -1,0 +1,19 @@
+{
+  "donem": {
+    "baslangic": "1 Nisan 2026",
+    "bitis": "31.10.2026",
+    "stop_sale": [
+      {"baslangic": "01.08.2026", "bitis": "15.08.2026", "kapsam": "tum tesis"}
+    ]
+  },
+  "oda_kontenjanlari": [{"oda_tipi": "standart", "adet": "1.500"}],
+  "fiyatlar": [{"oda_tipi": "standart", "tutar": "1,500", "birim": "oda/gece", "pansiyon": "bb"}],
+  "release": {"gun": "10", "kapsam": "unknown_scope"},
+  "stop_sale": [],
+  "uydurma_alan": "bu şemada yok",
+  "meta": {
+    "sezon": "Yaz",
+    "sozlesme_tipi": "garanti_yok",
+    "gizli_not": "atılmalı"
+  }
+}
