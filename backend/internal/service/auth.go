@@ -15,6 +15,7 @@ import (
 	"github.com/oz-fatma/kontrata/backend/graph/model"
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
 	"github.com/oz-fatma/kontrata/backend/internal/mailer"
+	appmongo "github.com/oz-fatma/kontrata/backend/internal/mongo"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
@@ -31,14 +32,19 @@ type AuthService struct {
 	tokens       *repository.DogrulamaTokenRepository
 	mfa          *repository.MFAKoduRepository
 	sessions     *repository.OturumRepository
+	devices      *repository.CihazRepository
+	soz          *repository.SozlesmeRepository
 	audit        *repository.DenetimRepository
+	db           *appmongo.Client
 	mailer       mailer.Mailer
 	params       auth.Params
 	jwt          *auth.JWT
 	dummyHash    string
 	limiter      *resendLimiter
 	resetLimiter *resendLimiter
+	silmeLimiter *resendLimiter
 	loginGuard   *loginGuard
+	deleteFailAt string
 }
 
 func NewAuthService(
@@ -46,10 +52,13 @@ func NewAuthService(
 	tokens *repository.DogrulamaTokenRepository,
 	mfa *repository.MFAKoduRepository,
 	sessions *repository.OturumRepository,
+	devices *repository.CihazRepository,
+	soz *repository.SozlesmeRepository,
 	audit *repository.DenetimRepository,
 	m mailer.Mailer,
 	params auth.Params,
 	jwtSigner *auth.JWT,
+	db *appmongo.Client,
 ) *AuthService {
 	if params.Time == 0 {
 		params = auth.DefaultParams()
@@ -63,13 +72,17 @@ func NewAuthService(
 		tokens:       tokens,
 		mfa:          mfa,
 		sessions:     sessions,
+		devices:      devices,
+		soz:          soz,
 		audit:        audit,
+		db:           db,
 		mailer:       m,
 		params:       params,
 		jwt:          jwtSigner,
 		dummyHash:    dummy,
 		limiter:      newResendLimiter(defaultResendEvery),
 		resetLimiter: newResendLimiter(defaultResendEvery),
+		silmeLimiter: newResendLimiter(defaultResendEvery),
 		loginGuard:   newLoginGuard(),
 	}
 }
@@ -107,11 +120,11 @@ func (s *AuthService) KayitOl(ctx context.Context, eposta, sifre string) (*model
 			}
 			return sonuc, nil
 		}
-		log.Printf("kullanıcı kaydı başarısız")
+		log.Printf("kullanıcı kaydı başarısız: %v", err)
 		return nil, err
 	}
 	if err := s.issueVerification(ctx, &user); err != nil {
-		log.Printf("doğrulama kodu hazırlanamadı")
+		log.Printf("doğrulama kodu hazırlanamadı: %v", err)
 	}
 	s.writeAudit(ctx, &user.ID, repository.OlayKayit, "")
 	return sonuc, nil
@@ -127,14 +140,14 @@ func (s *AuthService) EpostaDogrula(ctx context.Context, token string) (bool, er
 		if errors.Is(err, repository.ErrNotFound) {
 			return false, nil
 		}
-		log.Printf("doğrulama kodu okunamadı")
+		log.Printf("doğrulama kodu okunamadı: %v", err)
 		return false, err
 	}
 	if err := s.users.MarkEmailVerified(ctx, doc.KullaniciID); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return false, nil
 		}
-		log.Printf("e-posta doğrulama işlenemedi")
+		log.Printf("e-posta doğrulama işlenemedi: %v", err)
 		return false, err
 	}
 	s.writeAudit(ctx, &doc.KullaniciID, repository.OlayEpostaDogrulandi, "")
@@ -149,7 +162,7 @@ func (s *AuthService) DogrulamaTekrarGonder(ctx context.Context, eposta string) 
 	}
 	user, err := s.users.GetByEposta(ctx, norm)
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
-		log.Printf("doğrulama tekrarı başarısız")
+		log.Printf("doğrulama tekrarı başarısız: %v", err)
 		return false, err
 	}
 	if !s.limiter.allow(norm) {
@@ -169,7 +182,7 @@ func (s *AuthService) DogrulamaTekrarGonder(ctx context.Context, eposta string) 
 		return true, nil
 	}
 	if err := s.issueVerification(ctx, user); err != nil {
-		log.Printf("doğrulama kodu hazırlanamadı")
+		log.Printf("doğrulama kodu hazırlanamadı: %v", err)
 	}
 	s.writeAudit(ctx, &user.ID, repository.OlayDogrulamaTekrarGonderildi, "")
 	return true, nil
@@ -183,7 +196,7 @@ func (s *AuthService) SifreSifirlamaIste(ctx context.Context, eposta string) (bo
 	}
 	user, err := s.users.GetByEposta(ctx, norm)
 	if err != nil && !errors.Is(err, repository.ErrNotFound) {
-		log.Printf("şifre sıfırlama isteği başarısız")
+		log.Printf("şifre sıfırlama isteği başarısız: %v", err)
 		return false, err
 	}
 	if !s.resetLimiter.allow(norm) {
@@ -199,7 +212,7 @@ func (s *AuthService) SifreSifirlamaIste(ctx context.Context, eposta string) (bo
 		return true, nil
 	}
 	if err := s.issuePasswordReset(ctx, user); err != nil {
-		log.Printf("şifre sıfırlama kodu hazırlanamadı")
+		log.Printf("şifre sıfırlama kodu hazırlanamadı: %v", err)
 	}
 	s.writeAudit(ctx, &user.ID, repository.OlaySifreSifirlamaIstendi, "")
 	return true, nil
@@ -219,14 +232,14 @@ func (s *AuthService) SifreSifirla(ctx context.Context, token, yeniSifre string)
 		if errors.Is(err, repository.ErrNotFound) {
 			return false, nil
 		}
-		log.Printf("şifre sıfırlama kodu okunamadı")
+		log.Printf("şifre sıfırlama kodu okunamadı: %v", err)
 		return false, err
 	}
 	if err := s.users.UpdatePassword(ctx, doc.KullaniciID, hash); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return false, nil
 		}
-		log.Printf("şifre güncellenemedi")
+		log.Printf("şifre güncellenemedi: %v", err)
 		return false, err
 	}
 	s.revokeSessions(ctx, doc.KullaniciID)
@@ -253,7 +266,7 @@ func (s *AuthService) issuePasswordReset(ctx context.Context, user *repository.K
 		return err
 	}
 	if err := s.mailer.Gonder(user.Eposta, sifreSifirlamaKonu, sifreSifirlamaGovde(plain)); err != nil {
-		log.Printf("şifre sıfırlama iletisi gönderilemedi")
+		log.Printf("şifre sıfırlama iletisi gönderilemedi: %v", err)
 	}
 	return nil
 }
@@ -264,7 +277,7 @@ func sifreSifirlamaGovde(token string) string {
 
 func (s *AuthService) revokeSessions(ctx context.Context, kullaniciID bson.ObjectID) {
 	if err := s.sessions.RevokeAllForUser(ctx, kullaniciID, repository.IptalSifreSifirlama); err != nil {
-		log.Printf("oturumlar iptal edilemedi")
+		log.Printf("oturumlar iptal edilemedi: %v", err)
 	}
 }
 
@@ -287,7 +300,7 @@ func (s *AuthService) issueVerification(ctx context.Context, user *repository.Ku
 		return err
 	}
 	if err := s.mailer.Gonder(user.Eposta, dogrulamaKonu, dogrulamaGovde(plain)); err != nil {
-		log.Printf("doğrulama iletisi gönderilemedi")
+		log.Printf("doğrulama iletisi gönderilemedi: %v", err)
 	}
 	return nil
 }
@@ -299,15 +312,17 @@ func dogrulamaGovde(token string) string {
 func (s *AuthService) writeAudit(ctx context.Context, kullaniciID *bson.ObjectID, olay, detay string) {
 	meta := auth.MetaFrom(ctx)
 	rec := repository.DenetimKaydi{
-		KullaniciID:    kullaniciID,
 		Olay:           olay,
 		IPAdresi:       meta.IP,
 		KullaniciAjani: meta.UserAgent,
 		Zaman:          time.Now().UTC(),
 		Detay:          detay,
 	}
+	if kullaniciID != nil {
+		rec.KullaniciID = *kullaniciID
+	}
 	if err := s.audit.Insert(ctx, &rec); err != nil {
-		log.Printf("denetim kaydı yazılamadı")
+		log.Printf("denetim kaydı yazılamadı: %v", err)
 	}
 }
 

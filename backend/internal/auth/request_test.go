@@ -40,3 +40,18 @@ func TestRequestMiddlewareWritesContext(t *testing.T) {
 		t.Fatalf("UserAgent = %q", got.UserAgent)
 	}
 }
+
+func TestRequestMiddlewareDeviceHeaders(t *testing.T) {
+	var got RequestMeta
+	inner := http.HandlerFunc(func(_ http.ResponseWriter, r *http.Request) {
+		got = MetaFrom(r.Context())
+	})
+	req := httptest.NewRequest(http.MethodPost, "/graphql", nil)
+	req.Header.Set("User-Agent", "Electron")
+	req.Header.Set("Accept-Language", "tr-TR")
+	req.Header.Set("X-Device-Id", "cihaz-1")
+	RequestMiddleware(inner).ServeHTTP(httptest.NewRecorder(), req)
+	if got.DeviceID != "cihaz-1" || got.AcceptLanguage != "tr-TR" {
+		t.Fatalf("meta = %+v", got)
+	}
+}

@@ -1,22 +1,64 @@
 # KVKK
 
-Kontrata sözleşme verisini tesiste tutar; kişisel veri uygulama günlüklerine yazılmaz.
-Aşağıdaki kayıtlar kimlik işlemlerinin güvenliği için tutulur.
+Kontrata sözleşme verisini tesiste tutar; kişisel veri uygulama günlüklerine
+yazılmaz. Model çağrılarına giden metin maskeleme katmanından geçer.
 
-## Denetim kaydındaki IP adresi ve kullanıcı ajanı
+## Toplanan kişisel veri
 
-`denetim_kayitlari` belgelerinde `ipAdresi` ve `kullaniciAjani` saklanır.
+| Veri | Kaynak | Amaç |
+| --- | --- | --- |
+| E-posta adresi | Kayıt formu | Hesap kimliği, doğrulama ve güvenlik iletileri |
+| Şifre özeti (argon2id) | Kayıt / sıfırlama | Kimlik doğrulama. Düz şifre saklanmaz |
+| IP adresi | `X-Forwarded-For` veya `RemoteAddr` | Denetim izi, kaba kuvvet ve yetkisiz erişim ayrımı |
+| Kullanıcı ajanı | `User-Agent` | İstemci yazılımını ayırt etmek, cihaz adı |
+| Cihaz parmak izi özeti | `X-Device-Id`, `User-Agent`, `Accept-Language` | Kayıtlı cihaz; ham parmak izi saklanmaz |
+| Oturum yenileme jetonu özeti | Rastgele 32 bayt | Oturum yenileme; düz jeton saklanmaz |
+| MFA kodu özeti | Giriş | İki adımlı doğrulama; düz kod saklanmaz |
 
-**Neden toplanır:** Kayıt, e-posta doğrulama ve şifre sıfırlama gibi kimlik işlemlerinde
-yetkisiz erişim, hesap ele geçirme ve kaba kuvvet denemelerini ayırt etmek için.
-IP, isteği gönderen ağı; kullanıcı ajanı istemci yazılımını gösterir. Pazarlama
-veya profilleme için kullanılmaz. Uygulama loguna (stdout) yazılmaz.
+Pazarlama veya profilleme için kullanılmaz.
 
-**Hukuki dayanak:** 6698 sayılı Kanun md. 5/2-f (veri sorumlusunun meşru menfaati:
-hesap güvenliği ve denetim izi).
+**Hukuki dayanak:** 6698 sayılı Kanun md. 5/2-c (sözleşmenin kurulması) ve
+md. 5/2-f (veri sorumlusunun meşru menfaati: hesap güvenliği).
 
-**Saklama süresi:** 2 yıl. Süre dolunca kayıt silinir. IP kişisel veridir; süre
-dolmadan silme talebi, güvenlik izinin bütünlüğünü zedelemediği ölçüde değerlendirilir.
+## Saklama süreleri
 
-**Kaynak:** HTTP `RemoteAddr`; istekte `X-Forwarded-For` varsa listedeki ilk adres
-kullanılır. Kullanıcı ajanı `User-Agent` başlığından alınır.
+- Hesap ve cihaz kayıtları: hesap durduğu sürece.
+- Yenileme jetonu / oturum: 7 gün (TTL).
+- MFA kodu: 120 saniye (TTL).
+- E-posta doğrulama kodu: 24 saat; şifre sıfırlama ve hesap silme onayı: 1 saat (TTL).
+- Denetim kayıtları: 2 yıl. Süre dolunca kayıt silinir.
+
+## Silme talebinde ne olur
+
+`hesapSilmeIste` e-posta ile 1 saatlik onay kodu gönderir. `hesapSil` kodu
+doğrulayınca aşağıdaki kayıtlar tek MongoDB işleminde (transaction) kaldırılır;
+bir adım başarısız olursa hiçbiri silinmez. Bu işlem replica set gerektirir;
+yerel Docker ortamı tek düğümlü `rs0` olarak çalışır.
+
+1. Kullanıcının sözleşmeleri (`dosyaAdi` dahil; ayrı dosya deposu yok)
+2. Doğrulama, sıfırlama ve silme token'ları
+3. MFA kodları
+4. Oturumlar
+5. Cihazlar
+6. Kullanıcı belgesi
+
+Denetim kayıtları silinmez. `kullaniciId` alanı `silinmis` olur; `ipAdresi` ve
+`kullaniciAjani` boşaltılır. Ardından `HESAP_SILINDI` olayı yazılır.
+
+## Denetim kayıtları neden saklanır
+
+KVKK md. 12 veri sorumlusuna teknik ve idari tedbirler ile işleme faaliyetlerini
+kayıt altında tutma yükümlülüğü getirir. Silme talebinin kendisi de sonradan
+kanıtlanabilir olmalıdır. Bu nedenle denetim belgesi durur; içindeki kişisel
+veri anonimleştirilir. Ayrıntı `docs/kararlar.md` karar 8'de.
+
+## Erişim hakkı
+
+`verilerimiIndir` hesabın dışa aktarılabilir kopyasını JSON olarak döner.
+Şifre özeti, MFA/oturum/doğrulama token'ları ve cihaz parmak izi özeti dahil
+edilmez.
+
+## Loglama
+
+Uygulama günlüğüne (stdout) e-posta, şifre, jeton, MFA kodu, IP veya sözleşme
+gövdesi yazılmaz.

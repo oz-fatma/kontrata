@@ -173,3 +173,19 @@ func (r *KullaniciRepository) UpdatePassword(ctx context.Context, id bson.Object
 	}
 	return nil
 }
+
+func (r *KullaniciRepository) Delete(ctx context.Context, id bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	res, err := r.col.DeleteOne(ctx, bson.M{"_id": id})
+	if err != nil {
+		return ErrStore
+	}
+	if res.DeletedCount == 0 {
+		return ErrNotFound
+	}
+	return nil
+}

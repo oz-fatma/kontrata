@@ -11,8 +11,10 @@ type metaKey struct{}
 
 // RequestMeta denetim kaydı için istek kökenidir. E-posta veya gövde içermez.
 type RequestMeta struct {
-	IP        string
-	UserAgent string
+	IP             string
+	UserAgent      string
+	AcceptLanguage string
+	DeviceID       string
 }
 
 // WithRequestMeta meta bilgilerini bağlama yazar.
@@ -30,8 +32,10 @@ func MetaFrom(ctx context.Context) RequestMeta {
 func RequestMiddleware(next http.Handler) http.Handler {
 	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
 		meta := RequestMeta{
-			IP:        ClientIP(r),
-			UserAgent: r.UserAgent(),
+			IP:             ClientIP(r),
+			UserAgent:      r.UserAgent(),
+			AcceptLanguage: strings.TrimSpace(r.Header.Get("Accept-Language")),
+			DeviceID:       strings.TrimSpace(r.Header.Get("X-Device-Id")),
 		}
 		next.ServeHTTP(w, r.WithContext(WithRequestMeta(r.Context(), meta)))
 	})

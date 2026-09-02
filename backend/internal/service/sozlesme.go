@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/oz-fatma/kontrata/backend/graph/model"
+	"github.com/oz-fatma/kontrata/backend/internal/auth"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
@@ -32,8 +33,11 @@ func (s *SozlesmeService) Create(ctx context.Context, girdi model.SozlesmeGirdi)
 	if doc.Durum == "" {
 		doc.Durum = string(model.SozlesmeDurumuYuklendi)
 	}
+	if id, ok := auth.IdentityFrom(ctx); ok {
+		doc.KullaniciID = id.UserID
+	}
 	if err := s.repo.Create(ctx, &doc); err != nil {
-		log.Printf("sozlesme oluşturma başarısız")
+		log.Printf("sozlesme oluşturma başarısız: %v", err)
 		return nil, err
 	}
 	return toModel(&doc), nil
@@ -48,7 +52,7 @@ func (s *SozlesmeService) Get(ctx context.Context, id string) (*model.Sozlesme, 
 		if errors.Is(err, repository.ErrInvalidID) {
 			return nil, err
 		}
-		log.Printf("sozlesme okuma başarısız")
+		log.Printf("sozlesme okuma başarısız: %v", err)
 		return nil, err
 	}
 	return toModel(doc), nil
@@ -73,7 +77,7 @@ func (s *SozlesmeService) List(ctx context.Context, limit, offset *int32) ([]*mo
 	}
 	docs, err := s.repo.List(ctx, int64(l), int64(o))
 	if err != nil {
-		log.Printf("sozlesme listeleme başarısız")
+		log.Printf("sozlesme listeleme başarısız: %v", err)
 		return nil, err
 	}
 	out := make([]*model.Sozlesme, 0, len(docs))
@@ -89,18 +93,19 @@ func (s *SozlesmeService) Update(ctx context.Context, id string, girdi model.Soz
 		if errors.Is(err, repository.ErrNotFound) || errors.Is(err, repository.ErrInvalidID) {
 			return nil, err
 		}
-		log.Printf("sozlesme güncelleme (okuma) başarısız")
+		log.Printf("sozlesme güncelleme (okuma) başarısız: %v", err)
 		return nil, err
 	}
 	doc := fromGirdi(girdi)
 	doc.ID = existing.ID
+	doc.KullaniciID = existing.KullaniciID
 	doc.OlusturmaTarihi = existing.OlusturmaTarihi
 	doc.GuncellemeTarihi = time.Now().UTC()
 	if doc.Durum == "" {
 		doc.Durum = existing.Durum
 	}
 	if err := s.repo.Update(ctx, &doc); err != nil {
-		log.Printf("sozlesme güncelleme başarısız")
+		log.Printf("sozlesme güncelleme başarısız: %v", err)
 		return nil, err
 	}
 	return toModel(&doc), nil
@@ -111,7 +116,7 @@ func (s *SozlesmeService) Delete(ctx context.Context, id string) (bool, error) {
 		if errors.Is(err, repository.ErrNotFound) || errors.Is(err, repository.ErrInvalidID) {
 			return false, err
 		}
-		log.Printf("sozlesme silme başarısız")
+		log.Printf("sozlesme silme başarısız: %v", err)
 		return false, err
 	}
 	log.Printf("denetim: sozlesme silindi")

@@ -28,6 +28,7 @@ var (
 // Sozlesme MongoDB belgesidir.
 type Sozlesme struct {
 	ID               bson.ObjectID     `bson:"_id,omitempty"`
+	KullaniciID      bson.ObjectID     `bson:"kullaniciId,omitempty"`
 	OlusturmaTarihi  time.Time         `bson:"olusturmaTarihi"`
 	GuncellemeTarihi time.Time         `bson:"guncellemeTarihi"`
 	Durum            string            `bson:"durum"`
@@ -167,6 +168,7 @@ func (r *SozlesmeRepository) EnsureIndexes(ctx context.Context) error {
 	_, err := r.col.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{Keys: bson.D{{Key: "olusturmaTarihi", Value: -1}}},
 		{Keys: bson.D{{Key: "durum", Value: 1}}},
+		{Keys: bson.D{{Key: "kullaniciId", Value: 1}}},
 	})
 	if err != nil {
 		return ErrStore
@@ -230,7 +232,7 @@ func (r *SozlesmeRepository) List(ctx context.Context, limit, offset int64) ([]S
 	}
 	defer func() {
 		if err := cur.Close(ctx); err != nil {
-			log.Printf("imleç kapatılamadı")
+			log.Printf("imleç kapatılamadı: %v", err)
 		}
 	}()
 	var out []Sozlesme
@@ -280,4 +282,56 @@ func (r *SozlesmeRepository) Delete(ctx context.Context, id string) error {
 		return ErrNotFound
 	}
 	return nil
+}
+
+func (r *SozlesmeRepository) DeleteByUser(ctx context.Context, kullaniciID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+func (r *SozlesmeRepository) ListByUser(ctx context.Context, kullaniciID bson.ObjectID) ([]Sozlesme, error) {
+	if !r.ready() {
+		return nil, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	cur, err := r.col.Find(ctx, bson.M{"kullaniciId": kullaniciID},
+		options.Find().SetSort(bson.D{{Key: "olusturmaTarihi", Value: -1}}))
+	if err != nil {
+		return nil, ErrStore
+	}
+	defer func() {
+		if err := cur.Close(ctx); err != nil {
+			log.Printf("imleç kapatılamadı: %v", err)
+		}
+	}()
+	var out []Sozlesme
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, ErrStore
+	}
+	if out == nil {
+		out = []Sozlesme{}
+	}
+	return out, nil
+}
+
+func (r *SozlesmeRepository) CountByUser(ctx context.Context, kullaniciID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
 }

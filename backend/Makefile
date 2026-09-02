@@ -1,4 +1,4 @@
-.PHONY: run build test lint tidy generate verify
+.PHONY: run build test test-akis lint tidy generate verify
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
@@ -10,6 +10,9 @@ build:
 
 test:
 	go test ./...
+
+test-akis:
+	go test ./graph -count=1 -v -timeout 2m -run '^TestAuthAkis$$'
 
 lint:
 	go vet ./...

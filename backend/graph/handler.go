@@ -28,7 +28,7 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
 	srv.SetRecoverFunc(func(_ context.Context, rec any) error {
-		log.Printf("graphql panic kurtarıldı")
+		log.Printf("graphql panic kurtarıldı: %v", rec)
 		return errors.New("iç sunucu hatası")
 	})
 	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
@@ -36,7 +36,8 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service
 		switch {
 		case errors.Is(e, repository.ErrNotFound), errors.Is(e, repository.ErrInvalidID), errors.Is(e, repository.ErrUnavailable),
 			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail),
-			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrGecersizYenilemeJetonu), errors.Is(e, auth.ErrMFAFailed):
+			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrGecersizYenilemeJetonu), errors.Is(e, auth.ErrMFAFailed),
+			errors.Is(e, auth.ErrInvalidName):
 			err.Message = e.Error()
 		default:
 			err.Message = "işlem tamamlanamadı"

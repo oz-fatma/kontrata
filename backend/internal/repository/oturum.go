@@ -16,9 +16,12 @@ import (
 const oturumCollection = "oturumlar"
 
 const (
-	IptalCikis          = "cikis"
-	IptalYenileme       = "yenileme"
-	IptalSifreSifirlama = "sifre_sifirlama"
+	IptalCikis            = "cikis"
+	IptalYenileme         = "yenileme"
+	IptalSifreSifirlama   = "sifre_sifirlama"
+	IptalCihazKaldir      = "cihaz_kaldirildi"
+	IptalCihazKaydiOncesi = "cihaz_kaydi_oncesi"
+	IptalTopluKapat       = "tum_oturumlar_kapatildi"
 )
 
 // Oturum yenileme jetonu hash'i ile saklanan oturum belgesidir.
@@ -32,6 +35,7 @@ type Oturum struct {
 	IptalNedeni       string        `bson:"iptalNedeni,omitempty"`
 	IPAdresi          string        `bson:"ipAdresi"`
 	KullaniciAjani    string        `bson:"kullaniciAjani"`
+	CihazID           bson.ObjectID `bson:"cihazId"`
 }
 
 // OturumRepository oturumlar koleksiyonuna erişir.
@@ -66,6 +70,7 @@ func (r *OturumRepository) EnsureIndexes(ctx context.Context) error {
 			Options: options.Index().SetExpireAfterSeconds(0),
 		},
 		{Keys: bson.D{{Key: "kullaniciId", Value: 1}}},
+		{Keys: bson.D{{Key: "cihazId", Value: 1}}},
 	})
 	if err != nil {
 		return ErrStore
@@ -76,6 +81,9 @@ func (r *OturumRepository) EnsureIndexes(ctx context.Context) error {
 func (r *OturumRepository) Create(ctx context.Context, doc *Oturum) error {
 	if !r.ready() {
 		return ErrUnavailable
+	}
+	if doc == nil || doc.CihazID.IsZero() {
+		return ErrInvalidID
 	}
 	ctx, cancel := withTimeout(ctx)
 	defer cancel()
@@ -146,7 +154,7 @@ func (r *OturumRepository) ListActiveByUser(ctx context.Context, kullaniciID bso
 	}
 	defer func() {
 		if err := cur.Close(ctx); err != nil {
-			log.Printf("imleç kapatılamadı")
+			log.Printf("imleç kapatılamadı: %v", err)
 		}
 	}()
 	var out []Oturum
@@ -191,4 +199,114 @@ func (r *OturumRepository) RevokeAllForUser(ctx context.Context, kullaniciID bso
 		return ErrStore
 	}
 	return nil
+}
+
+func (r *OturumRepository) RevokeByCihaz(ctx context.Context, cihazID bson.ObjectID, neden string) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.UpdateMany(ctx, bson.M{
+		"cihazId":     cihazID,
+		"iptalEdildi": false,
+	}, bson.M{"$set": bson.M{"iptalEdildi": true, "iptalNedeni": neden}})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+// RevokeMissingCihaz cihaz kaydı öncesi açılmış oturumları bir kerelik iptal eder.
+func (r *OturumRepository) RevokeMissingCihaz(ctx context.Context) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.UpdateMany(ctx, bson.M{
+		"iptalEdildi": false,
+		"$or": bson.A{
+			bson.M{"cihazId": bson.M{"$exists": false}},
+			bson.M{"cihazId": nil},
+			bson.M{"cihazId": bson.NilObjectID},
+		},
+	}, bson.M{"$set": bson.M{
+		"iptalEdildi": true,
+		"iptalNedeni": IptalCihazKaydiOncesi,
+	}})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+// RevokeAllExcept kullanıcının mevcut oturumu dışındaki aktif oturumları iptal eder.
+func (r *OturumRepository) RevokeAllExcept(ctx context.Context, kullaniciID, except bson.ObjectID, neden string) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	res, err := r.col.UpdateMany(ctx, bson.M{
+		"kullaniciId": kullaniciID,
+		"iptalEdildi": false,
+		"_id":         bson.M{"$ne": except},
+	}, bson.M{"$set": bson.M{"iptalEdildi": true, "iptalNedeni": neden}})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return res.ModifiedCount, nil
+}
+
+func (r *OturumRepository) ListByUser(ctx context.Context, kullaniciID bson.ObjectID) ([]Oturum, error) {
+	if !r.ready() {
+		return nil, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	cur, err := r.col.Find(ctx, bson.M{"kullaniciId": kullaniciID},
+		options.Find().SetSort(bson.D{{Key: "olusturmaTarihi", Value: -1}}))
+	if err != nil {
+		return nil, ErrStore
+	}
+	defer func() {
+		if err := cur.Close(ctx); err != nil {
+			log.Printf("imleç kapatılamadı: %v", err)
+		}
+	}()
+	var out []Oturum
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, ErrStore
+	}
+	if out == nil {
+		out = []Oturum{}
+	}
+	return out, nil
+}
+
+func (r *OturumRepository) DeleteByUser(ctx context.Context, kullaniciID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+func (r *OturumRepository) CountByUser(ctx context.Context, kullaniciID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
 }

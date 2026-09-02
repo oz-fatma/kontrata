@@ -27,7 +27,7 @@ func Run(m *testing.M) int {
 	}
 	defer func() {
 		if err := c.Disconnect(context.Background()); err != nil {
-			log.Printf("test veritabanı bağlantısı kapatılamadı")
+			log.Printf("test veritabanı bağlantısı kapatılamadı: %v", err)
 		}
 	}()
 	if err := appmongo.ResetTestDatabase(ctx, c); err != nil {

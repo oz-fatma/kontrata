@@ -45,6 +45,16 @@ type ComplexityRoot struct {
 		Bitis     func(childComplexity int) int
 	}
 
+	Cihaz struct {
+		Ad             func(childComplexity int) int
+		Guvenilir      func(childComplexity int) int
+		ID             func(childComplexity int) int
+		IPAdresi       func(childComplexity int) int
+		IlkGorulme     func(childComplexity int) int
+		KullaniciAjani func(childComplexity int) int
+		SonGorulme     func(childComplexity int) int
+	}
+
 	CikarimMeta struct {
 		AlanYolu    func(childComplexity int) int
 		Guven       func(childComplexity int) int
@@ -91,10 +101,15 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		CihazAdlandir         func(childComplexity int, id string, ad string) int
+		CihazGuvenilirYap     func(childComplexity int, id string) int
+		CihazKaldir           func(childComplexity int, id string) int
 		CikisYap              func(childComplexity int) int
 		DogrulamaTekrarGonder func(childComplexity int, eposta string) int
 		EpostaDogrula         func(childComplexity int, token string) int
 		GirisYap              func(childComplexity int, eposta string, sifre string) int
+		HesapSil              func(childComplexity int, token string) int
+		HesapSilmeIste        func(childComplexity int) int
 		JetonYenile           func(childComplexity int, yenilemeJetonu string) int
 		KayitOl               func(childComplexity int, eposta string, sifre string) int
 		MfaDogrula            func(childComplexity int, geciciToken string, kod string) int
@@ -103,6 +118,7 @@ type ComplexityRoot struct {
 		SozlesmeGuncelle      func(childComplexity int, id string, girdi model.SozlesmeGirdi) int
 		SozlesmeOlustur       func(childComplexity int, girdi model.SozlesmeGirdi) int
 		SozlesmeSil           func(childComplexity int, id string) int
+		TumOturumlariKapat    func(childComplexity int) int
 	}
 
 	NoShow struct {
@@ -142,9 +158,11 @@ type ComplexityRoot struct {
 	}
 
 	Query struct {
-		Oturumlarim func(childComplexity int) int
-		Sozlesme    func(childComplexity int, id string) int
-		Sozlesmeler func(childComplexity int, limit *int32, offset *int32) int
+		Cihazlarim      func(childComplexity int) int
+		Oturumlarim     func(childComplexity int) int
+		Sozlesme        func(childComplexity int, id string) int
+		Sozlesmeler     func(childComplexity int, limit *int32, offset *int32) int
+		VerilerimiIndir func(childComplexity int) int
 	}
 
 	ReleaseKurali struct {
@@ -210,11 +228,19 @@ type MutationResolver interface {
 	MfaDogrula(ctx context.Context, geciciToken string, kod string) (*model.OturumSonucu, error)
 	JetonYenile(ctx context.Context, yenilemeJetonu string) (*model.OturumSonucu, error)
 	CikisYap(ctx context.Context) (bool, error)
+	TumOturumlariKapat(ctx context.Context) (int32, error)
+	CihazAdlandir(ctx context.Context, id string, ad string) (*model.Cihaz, error)
+	CihazKaldir(ctx context.Context, id string) (bool, error)
+	CihazGuvenilirYap(ctx context.Context, id string) (*model.Cihaz, error)
+	HesapSilmeIste(ctx context.Context) (bool, error)
+	HesapSil(ctx context.Context, token string) (bool, error)
 }
 type QueryResolver interface {
 	Sozlesmeler(ctx context.Context, limit *int32, offset *int32) ([]*model.Sozlesme, error)
 	Sozlesme(ctx context.Context, id string) (*model.Sozlesme, error)
 	Oturumlarim(ctx context.Context) ([]*model.OturumBilgisi, error)
+	Cihazlarim(ctx context.Context) ([]*model.Cihaz, error)
+	VerilerimiIndir(ctx context.Context) (string, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -253,6 +279,49 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.AltDonem.Bitis(childComplexity), true
+
+	case "Cihaz.ad":
+		if e.ComplexityRoot.Cihaz.Ad == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Cihaz.Ad(childComplexity), true
+	case "Cihaz.guvenilir":
+		if e.ComplexityRoot.Cihaz.Guvenilir == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Cihaz.Guvenilir(childComplexity), true
+	case "Cihaz.id":
+		if e.ComplexityRoot.Cihaz.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Cihaz.ID(childComplexity), true
+	case "Cihaz.ipAdresi":
+		if e.ComplexityRoot.Cihaz.IPAdresi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Cihaz.IPAdresi(childComplexity), true
+	case "Cihaz.ilkGorulme":
+		if e.ComplexityRoot.Cihaz.IlkGorulme == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Cihaz.IlkGorulme(childComplexity), true
+	case "Cihaz.kullaniciAjani":
+		if e.ComplexityRoot.Cihaz.KullaniciAjani == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Cihaz.KullaniciAjani(childComplexity), true
+	case "Cihaz.sonGorulme":
+		if e.ComplexityRoot.Cihaz.SonGorulme == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Cihaz.SonGorulme(childComplexity), true
 
 	case "CikarimMeta.alanYolu":
 		if e.ComplexityRoot.CikarimMeta.AlanYolu == nil {
@@ -405,6 +474,39 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.KayitSonucu.Mesaj(childComplexity), true
 
+	case "Mutation.cihazAdlandir":
+		if e.ComplexityRoot.Mutation.CihazAdlandir == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_cihazAdlandir_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CihazAdlandir(childComplexity, args["id"].(string), args["ad"].(string)), true
+	case "Mutation.cihazGuvenilirYap":
+		if e.ComplexityRoot.Mutation.CihazGuvenilirYap == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_cihazGuvenilirYap_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CihazGuvenilirYap(childComplexity, args["id"].(string)), true
+	case "Mutation.cihazKaldir":
+		if e.ComplexityRoot.Mutation.CihazKaldir == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_cihazKaldir_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.CihazKaldir(childComplexity, args["id"].(string)), true
 	case "Mutation.cikisYap":
 		if e.ComplexityRoot.Mutation.CikisYap == nil {
 			break
@@ -444,6 +546,23 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.GirisYap(childComplexity, args["eposta"].(string), args["sifre"].(string)), true
+	case "Mutation.hesapSil":
+		if e.ComplexityRoot.Mutation.HesapSil == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_hesapSil_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.HesapSil(childComplexity, args["token"].(string)), true
+	case "Mutation.hesapSilmeIste":
+		if e.ComplexityRoot.Mutation.HesapSilmeIste == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Mutation.HesapSilmeIste(childComplexity), true
 	case "Mutation.jetonYenile":
 		if e.ComplexityRoot.Mutation.JetonYenile == nil {
 			break
@@ -532,6 +651,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SozlesmeSil(childComplexity, args["id"].(string)), true
+	case "Mutation.tumOturumlariKapat":
+		if e.ComplexityRoot.Mutation.TumOturumlariKapat == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Mutation.TumOturumlariKapat(childComplexity), true
 
 	case "NoShow.sorumluTaraf":
 		if e.ComplexityRoot.NoShow.SorumluTaraf == nil {
@@ -647,6 +772,13 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Overbooking.SorumluTaraf(childComplexity), true
 
+	case "Query.cihazlarim":
+		if e.ComplexityRoot.Query.Cihazlarim == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.Cihazlarim(childComplexity), true
+
 	case "Query.oturumlarim":
 		if e.ComplexityRoot.Query.Oturumlarim == nil {
 			break
@@ -675,6 +807,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Sozlesmeler(childComplexity, args["limit"].(*int32), args["offset"].(*int32)), true
+	case "Query.verilerimiIndir":
+		if e.ComplexityRoot.Query.VerilerimiIndir == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.VerilerimiIndir(childComplexity), true
 
 	case "ReleaseKurali.gun":
 		if e.ComplexityRoot.ReleaseKurali.Gun == nil {
@@ -1004,6 +1142,26 @@ func (ec *executionContext) childFields_AltDonem(ctx context.Context, field grap
 		return ec.fieldContext_AltDonem_bitis(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type AltDonem", field.Name)
+}
+
+func (ec *executionContext) childFields_Cihaz(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_Cihaz_id(ctx, field)
+	case "ad":
+		return ec.fieldContext_Cihaz_ad(ctx, field)
+	case "guvenilir":
+		return ec.fieldContext_Cihaz_guvenilir(ctx, field)
+	case "ilkGorulme":
+		return ec.fieldContext_Cihaz_ilkGorulme(ctx, field)
+	case "sonGorulme":
+		return ec.fieldContext_Cihaz_sonGorulme(ctx, field)
+	case "ipAdresi":
+		return ec.fieldContext_Cihaz_ipAdresi(ctx, field)
+	case "kullaniciAjani":
+		return ec.fieldContext_Cihaz_kullaniciAjani(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Cihaz", field.Name)
 }
 
 func (ec *executionContext) childFields_CikarimMeta(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -1374,6 +1532,56 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 
 // region    ***************************** args.gotpl *****************************
 
+func (ec *executionContext) field_Mutation_cihazAdlandir_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "ad",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["ad"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_cihazGuvenilirYap_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_cihazKaldir_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Mutation_dogrulamaTekrarGonder_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -1421,6 +1629,20 @@ func (ec *executionContext) field_Mutation_girisYap_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["sifre"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_hesapSil_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "token",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["token"] = arg0
 	return args, nil
 }
 
@@ -1745,6 +1967,167 @@ func (ec *executionContext) _AltDonem_bitis(ctx context.Context, field graphql.C
 }
 func (ec *executionContext) fieldContext_AltDonem_bitis(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("AltDonem", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Cihaz_id(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Cihaz_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Cihaz_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Cihaz", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _Cihaz_ad(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Cihaz_ad(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Ad, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Cihaz_ad(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Cihaz", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Cihaz_guvenilir(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Cihaz_guvenilir(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Guvenilir, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Cihaz_guvenilir(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Cihaz", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _Cihaz_ilkGorulme(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Cihaz_ilkGorulme(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IlkGorulme, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Cihaz_ilkGorulme(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Cihaz", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _Cihaz_sonGorulme(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Cihaz_sonGorulme(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SonGorulme, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Cihaz_sonGorulme(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Cihaz", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _Cihaz_ipAdresi(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Cihaz_ipAdresi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IPAdresi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Cihaz_ipAdresi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Cihaz", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Cihaz_kullaniciAjani(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Cihaz_kullaniciAjani(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.KullaniciAjani, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Cihaz_kullaniciAjani(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Cihaz", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _CikarimMeta_alanYolu(ctx context.Context, field graphql.CollectedField, obj *model.CikarimMeta) (ret graphql.Marshaler) {
@@ -2867,6 +3250,293 @@ func (ec *executionContext) fieldContext_Mutation_cikisYap(_ context.Context, fi
 	return graphql.NewScalarFieldContext("Mutation", field, true, true, errors.New("field of type Boolean does not have child fields"))
 }
 
+func (ec *executionContext) _Mutation_tumOturumlariKapat(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_tumOturumlariKapat(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Mutation().TumOturumlariKapat(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal int32
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_tumOturumlariKapat(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Mutation", field, true, true, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _Mutation_cihazAdlandir(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_cihazAdlandir(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CihazAdlandir(ctx, fc.Args["id"].(string), fc.Args["ad"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.Cihaz
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Cihaz) graphql.Marshaler {
+			return ec.marshalNCihaz2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihaz(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_cihazAdlandir(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Cihaz(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_cihazAdlandir_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_cihazKaldir(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_cihazKaldir(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CihazKaldir(ctx, fc.Args["id"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal bool
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_cihazKaldir(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_cihazKaldir_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_cihazGuvenilirYap(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_cihazGuvenilirYap(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().CihazGuvenilirYap(ctx, fc.Args["id"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.Cihaz
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Cihaz) graphql.Marshaler {
+			return ec.marshalNCihaz2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihaz(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_cihazGuvenilirYap(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Cihaz(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_cihazGuvenilirYap_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_hesapSilmeIste(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_hesapSilmeIste(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Mutation().HesapSilmeIste(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal bool
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_hesapSilmeIste(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Mutation", field, true, true, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _Mutation_hesapSil(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_hesapSil(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().HesapSil(ctx, fc.Args["token"].(string))
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_hesapSil(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return nil, errors.New("field of type Boolean does not have child fields")
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_hesapSil_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _NoShow_sorumluTaraf(ctx context.Context, field graphql.CollectedField, obj *model.NoShow) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -3438,6 +4108,87 @@ func (ec *executionContext) fieldContext_Query_oturumlarim(_ context.Context, fi
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _Query_cihazlarim(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_cihazlarim(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().Cihazlarim(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal []*model.Cihaz
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.Cihaz) graphql.Marshaler {
+			return ec.marshalNCihaz2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihazᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_cihazlarim(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Cihaz(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_verilerimiIndir(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_verilerimiIndir(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().VerilerimiIndir(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal string
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_verilerimiIndir(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Query", field, true, true, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Query___type(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6261,6 +7012,74 @@ func (ec *executionContext) _AltDonem(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var cihazImplementors = []string{"Cihaz"}
+
+func (ec *executionContext) _Cihaz(ctx context.Context, sel ast.SelectionSet, obj *model.Cihaz) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, cihazImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Cihaz")
+		case "id":
+			out.Values[i] = ec._Cihaz_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ad":
+			out.Values[i] = ec._Cihaz_ad(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "guvenilir":
+			out.Values[i] = ec._Cihaz_guvenilir(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ilkGorulme":
+			out.Values[i] = ec._Cihaz_ilkGorulme(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sonGorulme":
+			out.Values[i] = ec._Cihaz_sonGorulme(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ipAdresi":
+			out.Values[i] = ec._Cihaz_ipAdresi(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "kullaniciAjani":
+			out.Values[i] = ec._Cihaz_kullaniciAjani(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var cikarimMetaImplementors = []string{"CikarimMeta"}
 
 func (ec *executionContext) _CikarimMeta(ctx context.Context, sel ast.SelectionSet, obj *model.CikarimMeta) graphql.Marshaler {
@@ -6716,6 +7535,48 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "tumOturumlariKapat":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_tumOturumlariKapat(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cihazAdlandir":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_cihazAdlandir(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cihazKaldir":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_cihazKaldir(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cihazGuvenilirYap":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_cihazGuvenilirYap(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hesapSilmeIste":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_hesapSilmeIste(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hesapSil":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_hesapSil(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -7099,6 +7960,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_oturumlarim(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "cihazlarim":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_cihazlarim(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "verilerimiIndir":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_verilerimiIndir(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -7864,6 +8769,36 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 		}
 	}
 	return res
+}
+
+func (ec *executionContext) marshalNCihaz2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihaz(ctx context.Context, sel ast.SelectionSet, v model.Cihaz) graphql.Marshaler {
+	return ec._Cihaz(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNCihaz2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihazᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Cihaz) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNCihaz2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihaz(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNCihaz2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihaz(ctx context.Context, sel ast.SelectionSet, v *model.Cihaz) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Cihaz(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNCikarimMeta2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCikarimMeta(ctx context.Context, sel ast.SelectionSet, v *model.CikarimMeta) graphql.Marshaler {

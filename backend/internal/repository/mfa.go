@@ -196,3 +196,29 @@ func (r *MFAKoduRepository) MarkUsed(ctx context.Context, id bson.ObjectID) erro
 	}
 	return nil
 }
+
+func (r *MFAKoduRepository) DeleteByUser(ctx context.Context, kullaniciID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+func (r *MFAKoduRepository) CountByUser(ctx context.Context, kullaniciID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
+}

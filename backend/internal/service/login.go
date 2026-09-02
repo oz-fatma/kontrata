@@ -4,7 +4,9 @@ import (
 	"context"
 	"errors"
 	"log"
+	"math"
 	"net/http"
+	"strconv"
 	"strings"
 	"sync"
 	"time"
@@ -47,7 +49,7 @@ func (s *AuthService) GirisYap(ctx context.Context, eposta, sifre string) (*mode
 	if nerr == nil {
 		u, gerr := s.users.GetByEposta(ctx, norm)
 		if gerr != nil && !errors.Is(gerr, repository.ErrNotFound) {
-			log.Printf("giriş okuma başarısız")
+			log.Printf("giriş okuma başarısız: %v", gerr)
 			return nil, gerr
 		}
 		user = u
@@ -72,12 +74,12 @@ func (s *AuthService) GirisYap(ctx context.Context, eposta, sifre string) (*mode
 
 	s.loginGuard.clear(key)
 	if err := s.issueMFA(ctx, user); err != nil {
-		log.Printf("MFA kodu hazırlanamadı")
+		log.Printf("MFA kodu hazırlanamadı: %v", err)
 		return sonuc, nil
 	}
 	pending, err := s.jwt.SignPending(user.ID.Hex(), now)
 	if err != nil {
-		log.Printf("geçici jeton üretilemedi")
+		log.Printf("geçici jeton üretilemedi: %v", err)
 		return sonuc, nil
 	}
 	s.writeAudit(ctx, &user.ID, repository.OlayGirisBasarili, "")
@@ -104,16 +106,26 @@ func (s *AuthService) MFADogrula(ctx context.Context, geciciToken, kod string) (
 	}
 	if !auth.MFACodeMatch(kod, doc.KodHash) {
 		if err := s.mfa.RegisterFailure(ctx, doc.ID); err != nil {
-			log.Printf("MFA deneme güncellenemedi")
+			log.Printf("MFA deneme güncellenemedi: %v", err)
 		}
 		s.writeAudit(ctx, &oid, repository.OlayMFABasarisiz, "")
 		return nil, auth.ErrMFAFailed
 	}
 	if err := s.mfa.MarkUsed(ctx, doc.ID); err != nil {
-		log.Printf("MFA kodu kapatılamadı")
+		log.Printf("MFA kodu kapatılamadı: %v", err)
 		return nil, auth.ErrMFAFailed
 	}
-	out, err := s.openSession(ctx, oid)
+	user, uerr := s.users.GetByID(ctx, oid)
+	if uerr != nil {
+		s.writeAudit(ctx, &oid, repository.OlayMFABasarisiz, "")
+		return nil, auth.ErrMFAFailed
+	}
+	cihazID, err := s.rememberDevice(ctx, oid, user)
+	if err != nil {
+		log.Printf("cihaz kaydı yazılamadı: %v", err)
+		return nil, err
+	}
+	out, err := s.openSession(ctx, oid, cihazID)
 	if err != nil {
 		return nil, err
 	}
@@ -132,17 +144,23 @@ func (s *AuthService) JetonYenile(ctx context.Context, yenileme string) (*model.
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, auth.ErrGecersizYenilemeJetonu
 		}
-		log.Printf("yenileme oturumu okunamadı")
+		log.Printf("yenileme oturumu okunamadı: %v", err)
 		return nil, err
+	}
+	if old.CihazID.IsZero() {
+		if err := s.sessions.Revoke(ctx, old.ID, repository.IptalCihazKaydiOncesi); err != nil {
+			log.Printf("eski oturum iptal edilemedi: %v", err)
+		}
+		return nil, auth.ErrGecersizYenilemeJetonu
 	}
 	if err := s.sessions.Revoke(ctx, old.ID, repository.IptalYenileme); err != nil {
 		if errors.Is(err, repository.ErrNotFound) {
 			return nil, auth.ErrGecersizYenilemeJetonu
 		}
-		log.Printf("eski oturum iptal edilemedi")
+		log.Printf("eski oturum iptal edilemedi: %v", err)
 		return nil, err
 	}
-	out, err := s.openSession(ctx, old.KullaniciID)
+	out, err := s.openSession(ctx, old.KullaniciID, old.CihazID)
 	if err != nil {
 		return nil, err
 	}
@@ -160,11 +178,29 @@ func (s *AuthService) CikisYap(ctx context.Context) (bool, error) {
 		if errors.Is(err, repository.ErrNotFound) {
 			return false, auth.ErrUnauthorized
 		}
-		log.Printf("çıkış başarısız")
+		log.Printf("çıkış başarısız: %v", err)
 		return false, err
 	}
 	s.writeAudit(ctx, &id.UserID, repository.OlayCikis, "")
 	return true, nil
+}
+
+// TumOturumlariKapat mevcut oturum dışındakileri iptal eder; iptal edilen sayıyı döner.
+func (s *AuthService) TumOturumlariKapat(ctx context.Context) (int32, error) {
+	id, ok := auth.IdentityFrom(ctx)
+	if !ok {
+		return 0, auth.ErrUnauthorized
+	}
+	n, err := s.sessions.RevokeAllExcept(ctx, id.UserID, id.SessionID, repository.IptalTopluKapat)
+	if err != nil {
+		log.Printf("oturumlar kapatılamadı: %v", err)
+		return 0, err
+	}
+	s.writeAudit(ctx, &id.UserID, repository.OlayTumOturumlarKapatildi, strconv.FormatInt(n, 10))
+	if n > math.MaxInt32 {
+		n = math.MaxInt32
+	}
+	return int32(n), nil
 }
 
 // Oturumlarim kullanıcının aktif oturumlarını listeler.
@@ -176,7 +212,7 @@ func (s *AuthService) Oturumlarim(ctx context.Context) ([]*model.OturumBilgisi, 
 	now := time.Now().UTC()
 	docs, err := s.sessions.ListActiveByUser(ctx, id.UserID, now)
 	if err != nil {
-		log.Printf("oturum listesi alınamadı")
+		log.Printf("oturum listesi alınamadı: %v", err)
 		return nil, err
 	}
 	out := make([]*model.OturumBilgisi, 0, len(docs))
@@ -200,10 +236,14 @@ func (s *AuthService) Oturumlarim(ctx context.Context) ([]*model.OturumBilgisi, 
 	return out, nil
 }
 
-func (s *AuthService) openSession(ctx context.Context, kullaniciID bson.ObjectID) (*model.OturumSonucu, error) {
+func (s *AuthService) openSession(ctx context.Context, kullaniciID, cihazID bson.ObjectID) (*model.OturumSonucu, error) {
+	if cihazID.IsZero() {
+		log.Printf("oturum yazılamadı: %v", repository.ErrInvalidID)
+		return nil, repository.ErrInvalidID
+	}
 	plain, hash, err := auth.NewToken()
 	if err != nil {
-		log.Printf("yenileme jetonu üretilemedi")
+		log.Printf("yenileme jetonu üretilemedi: %v", err)
 		return nil, repository.ErrStore
 	}
 	now := time.Now().UTC()
@@ -216,14 +256,15 @@ func (s *AuthService) openSession(ctx context.Context, kullaniciID bson.ObjectID
 		IptalEdildi:       false,
 		IPAdresi:          meta.IP,
 		KullaniciAjani:    meta.UserAgent,
+		CihazID:           cihazID,
 	}
 	if err := s.sessions.Create(ctx, &doc); err != nil {
-		log.Printf("oturum yazılamadı")
+		log.Printf("oturum yazılamadı: %v", err)
 		return nil, err
 	}
 	access, err := s.jwt.SignAccess(kullaniciID.Hex(), doc.ID.Hex(), now)
 	if err != nil {
-		log.Printf("erişim jetonu üretilemedi")
+		log.Printf("erişim jetonu üretilemedi: %v", err)
 		return nil, repository.ErrStore
 	}
 	return &model.OturumSonucu{ErisimJetonu: access, YenilemeJetonu: plain}, nil
@@ -251,7 +292,7 @@ func (s *AuthService) issueMFA(ctx context.Context, user *repository.Kullanici) 
 	}
 	govde := "Kontrata giriş doğrulama\n\nGiriş kodunuz:\n\n" + plain + "\n\nBu kod 2 dakika geçerlidir.\n"
 	if err := s.mailer.Gonder(user.Eposta, mfaKonu, govde); err != nil {
-		log.Printf("MFA iletisi gönderilemedi")
+		log.Printf("MFA iletisi gönderilemedi: %v", err)
 	}
 	return nil
 }
@@ -259,7 +300,7 @@ func (s *AuthService) issueMFA(ctx context.Context, user *repository.Kullanici) 
 func (s *AuthService) dummyPending(now time.Time) (string, error) {
 	tok, err := s.jwt.SignPending(bson.NewObjectID().Hex(), now)
 	if err != nil {
-		log.Printf("geçici jeton üretilemedi")
+		log.Printf("geçici jeton üretilemedi: %v", err)
 		return "", repository.ErrStore
 	}
 	return tok, nil
@@ -289,7 +330,7 @@ func (s *AuthService) BearerMiddleware(next http.Handler) http.Handler {
 			return
 		}
 		ses, err := s.sessions.GetByID(r.Context(), sid)
-		if err != nil || ses.IptalEdildi || ses.KullaniciID != uid || !ses.SonKullanma.After(time.Now().UTC()) {
+		if err != nil || ses.IptalEdildi || ses.KullaniciID != uid || ses.CihazID.IsZero() || !ses.SonKullanma.After(time.Now().UTC()) {
 			next.ServeHTTP(w, r)
 			return
 		}

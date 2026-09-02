@@ -40,7 +40,7 @@ func New(kind string, cfg SMTPConfig) Mailer {
 	return NewConsole()
 }
 
-// Gonder SMTP üzerinden düz metin ileti yollar. Hata ayrıntısı (alıcı içerebilir) loglanmaz.
+// Gonder SMTP üzerinden düz metin ileti yollar. Alıcı ve gövde loglanmaz.
 func (m *SMTPMailer) Gonder(alici, konu, govde string) error {
 	from := strings.TrimSpace(m.cfg.From)
 	if from == "" || alici == "" {
@@ -60,7 +60,7 @@ func (m *SMTPMailer) Gonder(alici, konu, govde string) error {
 		auth = smtp.PlainAuth("", m.cfg.User, m.cfg.Password, m.cfg.Host)
 	}
 	if err := smtp.SendMail(addr, auth, from, []string{alici}, msg); err != nil {
-		log.Printf("smtp gönderimi başarısız")
+		log.Printf("smtp gönderimi başarısız: %v", err)
 		return errSend
 	}
 	return nil

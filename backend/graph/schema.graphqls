@@ -278,9 +278,11 @@ input SozlesmeGirdi {
 directive @auth on FIELD_DEFINITION
 
 type Query {
-  sozlesmeler(limit: Int, offset: Int): [Sozlesme!]! @auth
+	sozlesmeler(limit: Int, offset: Int): [Sozlesme!]! @auth
   sozlesme(id: ID!): Sozlesme @auth
   oturumlarim: [OturumBilgisi!]! @auth
+  cihazlarim: [Cihaz!]! @auth
+  verilerimiIndir: String! @auth
 }
 
 type KayitSonucu {
@@ -307,6 +309,16 @@ type OturumBilgisi {
   mevcutMu: Boolean!
 }
 
+type Cihaz {
+  id: ID!
+  ad: String!
+  guvenilir: Boolean!
+  ilkGorulme: Time!
+  sonGorulme: Time!
+  ipAdresi: String
+  kullaniciAjani: String
+}
+
 type Mutation {
   sozlesmeOlustur(girdi: SozlesmeGirdi!): Sozlesme! @auth
   sozlesmeGuncelle(id: ID!, girdi: SozlesmeGirdi!): Sozlesme! @auth
@@ -320,4 +332,10 @@ type Mutation {
   mfaDogrula(geciciToken: String!, kod: String!): OturumSonucu!
   jetonYenile(yenilemeJetonu: String!): OturumSonucu!
   cikisYap: Boolean! @auth
+  tumOturumlariKapat: Int! @auth
+  cihazAdlandir(id: ID!, ad: String!): Cihaz! @auth
+  cihazKaldir(id: ID!): Boolean! @auth
+  cihazGuvenilirYap(id: ID!): Cihaz! @auth
+  hesapSilmeIste: Boolean! @auth
+  hesapSil(token: String!): Boolean!
 }

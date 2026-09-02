@@ -49,4 +49,18 @@ Bağlam: Masaüstü istemcinin API'ye kimlik doğrulaması gerekir; şifre tek b
 Karar: Girişte 6 haneli MFA (120 sn, 5 deneme). Erişim jetonu JWT HS256 15 dk; yenileme jetonu 32 bayt rastgele, 7 gün, rotasyonlu. JWT'de e-posta yok. Sözleşme alanları, `cikisYap` ve `oturumlarim` `@auth` ister. `jetonYenile` erişim jetonu istemez; kimlik yenileme jetonunun kendisiyle doğrulanır. `girisYap`, `mfaDogrula`, `kayitOl` ve şifre sıfırlama alanları da `@auth` dışındadır.
 Sonuç: `JWT_SECRET` zorunlu; şifre sıfırlama tüm oturumları iptal eder. Süresi dolmuş erişim jetonu yenilemeyi engellemez.
 
+## 8. Hesap silmede denetim kaydı
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: KVKK md. 7 silme hakkını tanır; md. 12 veri sorumlusuna işleme faaliyetlerini kayıt altında tutma yükümlülüğü getirir. Silme talebinin kendisi de kanıtlanabilir olmalıdır.
+Karar: Hesap silinince sözleşmeler, token'lar, MFA kodları, oturumlar, cihazlar ve kullanıcı belgesi tek MongoDB işleminde (transaction) kaldırılır; bu yüzden sunucu replica set (veya mongos) olmalıdır. Yerel Docker ve CI bu yüzden tek düğümlü replica set (`rs0`) olarak çalışır. `denetim_kayitlari` silinmez; `kullaniciId` değeri `silinmis` olur, `ipAdresi` ve `kullaniciAjani` boşaltılır. İşlem `HESAP_SILINDI` olayıyla kapanır.
+Sonuç: Kısmi silme olmaz. Denetim izi kişisel veriden arındırılmış biçimde kalır. Replica setsiz MongoDB'de silme işlemi reddedilir.
+
+## 9. CI MongoDB replica set
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Hesap silme transaction replica set ister. GitHub Actions `services` bloğu konteynere `mongod --replSet` argümanı geçirmez; `mongo:8` servisi tek düğüm kalır. `mongodb/mongodb-atlas-local` replica set hazır gelir ve servis olarak kullanılabilir, ancak Atlas Search süreci taşır ve yerel `docker-compose` imajından (`mongo:8`) sapar.
+Karar: CI, yerel ortamla aynı `mongo:8 --replSet rs0` sürecini iş adımında `docker run` ile başlatır. Testler `rs.status()` ve birincil olana kadar beklemeden başlamaz.
+Sonuç: Yerel ve CI aynı motoru ve replica set adını (`rs0`) kullanır. GHA `services` bloğunda Mongo yoktur.
+
 

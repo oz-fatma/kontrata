@@ -47,6 +47,7 @@ func main() {
 	tokenlar := repository.NewDogrulamaTokenRepository(db)
 	mfaKodlari := repository.NewMFAKoduRepository(db)
 	oturumlar := repository.NewOturumRepository(db)
+	cihazlar := repository.NewCihazRepository(db)
 	denetim := repository.NewDenetimRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
@@ -55,6 +56,7 @@ func main() {
 		tokenlar = repository.NewDogrulamaTokenRepository(nil)
 		mfaKodlari = repository.NewMFAKoduRepository(nil)
 		oturumlar = repository.NewOturumRepository(nil)
+		cihazlar = repository.NewCihazRepository(nil)
 		denetim = repository.NewDenetimRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
@@ -65,11 +67,15 @@ func main() {
 			tokenlar.EnsureIndexes,
 			mfaKodlari.EnsureIndexes,
 			oturumlar.EnsureIndexes,
+			cihazlar.EnsureIndexes,
 			denetim.EnsureIndexes,
 		} {
 			if err := ensure(idxCtx); err != nil {
-				log.Printf("indeksler oluşturulamadı")
+				log.Printf("indeksler oluşturulamadı: %v", err)
 			}
+		}
+		if err := oturumlar.RevokeMissingCihaz(idxCtx); err != nil {
+			log.Printf("eski oturum geçişi başarısız: %v", err)
 		}
 		idxCancel()
 	}
@@ -78,7 +84,7 @@ func main() {
 		log.Fatalf("yapılandırma yüklenemedi: %v", err)
 	}
 	sozlesmeler := service.NewSozlesmeService(repo)
-	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer)
+	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
 
 	srv := newServer(cfg, db, sozlesmeler, authSvc)
 
@@ -103,7 +109,7 @@ func main() {
 	discCtx, discCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer discCancel()
 	if err := db.Disconnect(discCtx); err != nil {
-		log.Printf("veritabanı bağlantısı kapatılamadı")
+		log.Printf("veritabanı bağlantısı kapatılamadı: %v", err)
 	}
 	log.Printf("sunucu durdu")
 }

@@ -26,6 +26,8 @@ var (
 	ErrGecersizYenilemeJetonu = errors.New("oturum sonlandı, tekrar giriş yapın")
 	// ErrMFAFailed MFA adımı için genel hatadır.
 	ErrMFAFailed = errors.New("doğrulama başarısız")
+	// ErrInvalidName kullanıcıdan gelen ad boş veya geçersizdir.
+	ErrInvalidName = errors.New("ad geçersiz")
 )
 
 var errJWT = errors.New("jeton geçersiz")

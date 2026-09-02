@@ -17,6 +17,7 @@ const dogrulamaTokenCollection = "dogrulama_tokenlari"
 const (
 	AmacEpostaDogrulama = "EPOSTA_DOGRULAMA"
 	AmacSifreSifirlama  = "SIFRE_SIFIRLAMA"
+	AmacHesapSilme      = "HESAP_SILME"
 )
 
 // DogrulamaTokeni hash'lenmiş doğrulama kodu belgesidir. Düz metin yazılmaz.
@@ -168,4 +169,30 @@ func (r *DogrulamaTokenRepository) Consume(ctx context.Context, hash, amac strin
 		return nil, ErrStore
 	}
 	return &doc, nil
+}
+
+func (r *DogrulamaTokenRepository) DeleteByUser(ctx context.Context, kullaniciID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.DeleteMany(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
+
+func (r *DogrulamaTokenRepository) CountByUser(ctx context.Context, kullaniciID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"kullaniciId": kullaniciID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
 }

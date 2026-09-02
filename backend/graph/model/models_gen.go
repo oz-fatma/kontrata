@@ -18,6 +18,16 @@ type AltDonemGirdi struct {
 	Bitis     string `json:"bitis"`
 }
 
+type Cihaz struct {
+	ID             string    `json:"id"`
+	Ad             string    `json:"ad"`
+	Guvenilir      bool      `json:"guvenilir"`
+	IlkGorulme     time.Time `json:"ilkGorulme"`
+	SonGorulme     time.Time `json:"sonGorulme"`
+	IPAdresi       *string   `json:"ipAdresi,omitempty"`
+	KullaniciAjani *string   `json:"kullaniciAjani,omitempty"`
+}
+
 type CikarimMeta struct {
 	AlanYolu    string   `json:"alanYolu"`
 	Guven       *float64 `json:"guven,omitempty"`

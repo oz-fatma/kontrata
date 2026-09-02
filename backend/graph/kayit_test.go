@@ -38,6 +38,18 @@ func (m *stubMailer) count() int {
 	return len(m.sent)
 }
 
+func (m *stubMailer) countKonu(konu string) int {
+	m.mu.Lock()
+	defer m.mu.Unlock()
+	n := 0
+	for _, s := range m.sent {
+		if s.konu == konu {
+			n++
+		}
+	}
+	return n
+}
+
 func (m *stubMailer) lastGovde() string {
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -78,19 +90,25 @@ type kayitEnv struct {
 	soz      *repository.SozlesmeRepository
 	audit    *repository.DenetimRepository
 	mail     *stubMailer
+	devices  *repository.CihazRepository
+	db       *mongo.Client
 }
 
 func testParams() auth.Params {
 	return auth.Params{Time: 1, Memory: 8 * 1024, Threads: 1, KeyLen: 32, SaltLen: 16}
 }
 
-func graphqlClient(h http.Handler, access string) *client.Client {
+func graphqlClient(h http.Handler, access, deviceID string) *client.Client {
 	opts := []client.Option{
 		client.AddHeader("User-Agent", testUserAgent),
 		client.AddHeader("X-Forwarded-For", testForwarded),
+		client.AddHeader("Accept-Language", "tr-TR"),
 	}
 	if access != "" {
 		opts = append(opts, client.AddHeader("Authorization", "Bearer "+access))
+	}
+	if deviceID != "" {
+		opts = append(opts, client.AddHeader("X-Device-Id", deviceID))
 	}
 	return client.New(h, opts...)
 }
@@ -118,11 +136,12 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	tokens := repository.NewDogrulamaTokenRepository(db)
 	mfa := repository.NewMFAKoduRepository(db)
 	sessions := repository.NewOturumRepository(db)
+	devices := repository.NewCihazRepository(db)
 	denetim := repository.NewDenetimRepository(db)
 	sozRepo := repository.NewSozlesmeRepository(db)
 	for _, ensure := range []func(context.Context) error{
 		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
-		sessions.EnsureIndexes, denetim.EnsureIndexes, sozRepo.EnsureIndexes,
+		sessions.EnsureIndexes, devices.EnsureIndexes, denetim.EnsureIndexes, sozRepo.EnsureIndexes,
 	} {
 		if err := ensure(ctx); err != nil {
 			t.Fatalf("indeks oluşturulamadı")
@@ -133,7 +152,7 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	if err != nil {
 		t.Fatalf("jwt: %v", err)
 	}
-	authSvc := service.NewAuthService(users, tokens, mfa, sessions, denetim, mail, testParams(), signer)
+	authSvc := service.NewAuthService(users, tokens, mfa, sessions, devices, sozRepo, denetim, mail, testParams(), signer, db)
 	sozSvc := service.NewSozlesmeService(sozRepo)
 	srv := handler.New(NewExecutableSchema(Config{
 		Resolvers:  &Resolver{Service: sozSvc, Auth: authSvc},
@@ -142,13 +161,18 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	srv.AddTransport(transport.POST{})
 	h := auth.RequestMiddleware(authSvc.BearerMiddleware(srv))
 	return ctx, kayitEnv{
-		h: h, c: graphqlClient(h, ""), users: users, tokens: tokens,
+		h: h, c: graphqlClient(h, "", ""), users: users, tokens: tokens,
 		mfa: mfa, sessions: sessions, soz: sozRepo, audit: denetim, mail: mail,
+		devices: devices, db: db,
 	}
 }
 
 func (e kayitEnv) withToken(access string) *client.Client {
-	return graphqlClient(e.h, access)
+	return graphqlClient(e.h, access, "")
+}
+
+func (e kayitEnv) withDevice(access, deviceID string) *client.Client {
+	return graphqlClient(e.h, access, deviceID)
 }
 
 func uniqueEposta() string {
@@ -192,6 +216,16 @@ func registerVerified(t *testing.T, env kayitEnv, eposta, sifre string) {
 
 func loginSession(t *testing.T, env kayitEnv, eposta, sifre string) (access, refresh string) {
 	t.Helper()
+	return loginOn(t, env, env.c, eposta, sifre)
+}
+
+func loginSessionDevice(t *testing.T, env kayitEnv, eposta, sifre, deviceID string) (access, refresh string) {
+	t.Helper()
+	return loginOn(t, env, env.withDevice("", deviceID), eposta, sifre)
+}
+
+func loginOn(t *testing.T, env kayitEnv, c *client.Client, eposta, sifre string) (access, refresh string) {
+	t.Helper()
 	var giris struct {
 		GirisYap struct {
 			MfaGerekli  bool
@@ -214,7 +248,7 @@ func loginSession(t *testing.T, env kayitEnv, eposta, sifre string) (access, ref
 			YenilemeJetonu string
 		}
 	}
-	if err := env.c.Post(`mutation ($g: String!, $k: String!) {
+	if err := c.Post(`mutation ($g: String!, $k: String!) {
 		mfaDogrula(geciciToken: $g, kod: $k) { erisimJetonu yenilemeJetonu }
 	}`, &oturum, client.Var("g", giris.GirisYap.GeciciToken), client.Var("k", kod)); err != nil {
 		t.Fatalf("mfaDogrula: %v", err)

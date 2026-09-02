@@ -16,6 +16,8 @@ const (
 	TokenTTL = 24 * time.Hour
 	// PasswordResetTTL şifre sıfırlama kodunun geçerlilik süresidir (doğrulamadan kısa).
 	PasswordResetTTL = 1 * time.Hour
+	// AccountDeleteTTL hesap silme onay kodunun geçerlilik süresidir.
+	AccountDeleteTTL = 1 * time.Hour
 )
 
 var errTokenFailed = errors.New("doğrulama kodu üretilemedi")

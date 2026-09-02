@@ -26,6 +26,8 @@ docker compose up -d
 
 Veritabanı `localhost:27017` üzerinde, `kontrata` adlı veritabanı ile ayağa kalkar. Kimlik doğrulama bu ortamda kapalıdır.
 
+Hesap silme gibi çok belgelik işlemler MongoDB transaction kullanır; bu yüzden konteyner tek düğümlü replica set (`rs0`) olarak çalışır. Sağlık kontrolü `rs.initiate()` sonrası birincil olana kadar bekler. Daha önce replica setsiz ayağa kalkmış bir volume varsa konteyneri `--replSet rs0` ile yeniden oluşturun (`docker compose up -d --force-recreate`). Veri dosyası uyumsuzsa volume'u silip baştan açın (`docker compose down -v`).
+
 ## Geliştirme
 
 ```sh

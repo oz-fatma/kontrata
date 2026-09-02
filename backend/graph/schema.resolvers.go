@@ -71,6 +71,36 @@ func (r *mutationResolver) CikisYap(ctx context.Context) (bool, error) {
 	return r.Auth.CikisYap(ctx)
 }
 
+// TumOturumlariKapat is the resolver for the tumOturumlariKapat field.
+func (r *mutationResolver) TumOturumlariKapat(ctx context.Context) (int32, error) {
+	return r.Auth.TumOturumlariKapat(ctx)
+}
+
+// CihazAdlandir is the resolver for the cihazAdlandir field.
+func (r *mutationResolver) CihazAdlandir(ctx context.Context, id string, ad string) (*model.Cihaz, error) {
+	return r.Auth.CihazAdlandir(ctx, id, ad)
+}
+
+// CihazKaldir is the resolver for the cihazKaldir field.
+func (r *mutationResolver) CihazKaldir(ctx context.Context, id string) (bool, error) {
+	return r.Auth.CihazKaldir(ctx, id)
+}
+
+// CihazGuvenilirYap is the resolver for the cihazGuvenilirYap field.
+func (r *mutationResolver) CihazGuvenilirYap(ctx context.Context, id string) (*model.Cihaz, error) {
+	return r.Auth.CihazGuvenilirYap(ctx, id)
+}
+
+// HesapSilmeIste is the resolver for the hesapSilmeIste field.
+func (r *mutationResolver) HesapSilmeIste(ctx context.Context) (bool, error) {
+	return r.Auth.HesapSilmeIste(ctx)
+}
+
+// HesapSil is the resolver for the hesapSil field.
+func (r *mutationResolver) HesapSil(ctx context.Context, token string) (bool, error) {
+	return r.Auth.HesapSil(ctx, token)
+}
+
 // Sozlesmeler is the resolver for the sozlesmeler field.
 func (r *queryResolver) Sozlesmeler(ctx context.Context, limit *int32, offset *int32) ([]*model.Sozlesme, error) {
 	return r.Service.List(ctx, limit, offset)
@@ -88,6 +118,16 @@ func (r *queryResolver) Sozlesme(ctx context.Context, id string) (*model.Sozlesm
 // Oturumlarim is the resolver for the oturumlarim field.
 func (r *queryResolver) Oturumlarim(ctx context.Context) ([]*model.OturumBilgisi, error) {
 	return r.Auth.Oturumlarim(ctx)
+}
+
+// Cihazlarim is the resolver for the cihazlarim field.
+func (r *queryResolver) Cihazlarim(ctx context.Context) ([]*model.Cihaz, error) {
+	return r.Auth.Cihazlarim(ctx)
+}
+
+// VerilerimiIndir is the resolver for the verilerimiIndir field.
+func (r *queryResolver) VerilerimiIndir(ctx context.Context) (string, error) {
+	return r.Auth.VerilerimiIndir(ctx)
 }
 
 // Mutation returns MutationResolver implementation.
