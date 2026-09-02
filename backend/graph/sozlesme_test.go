@@ -28,7 +28,11 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 	if err != nil {
 		t.Fatalf("mongo bağlanamadı")
 	}
-	defer db.Disconnect(context.Background())
+	defer func() {
+		if err := db.Disconnect(context.Background()); err != nil {
+			t.Errorf("veritabanı bağlantısı kapatılamadı: %v", err)
+		}
+	}()
 
 	repo := repository.NewSozlesmeRepository(db)
 	if err := repo.EnsureIndexes(ctx); err != nil {

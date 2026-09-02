@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
@@ -228,7 +229,11 @@ func (r *SozlesmeRepository) List(ctx context.Context, limit, offset int64) ([]S
 	if err != nil {
 		return nil, ErrStore
 	}
-	defer cur.Close(ctx)
+	defer func() {
+		if err := cur.Close(ctx); err != nil {
+			log.Printf("imleç kapatılamadı")
+		}
+	}()
 	var out []Sozlesme
 	if err := cur.All(ctx, &out); err != nil {
 		return nil, ErrStore
