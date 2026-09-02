@@ -1,0 +1,64 @@
+{
+  "meta": {
+    "otel_adi": "Argos Otel",
+    "acente_adi": "Side Turizm",
+    "sozlesme_tipi": "belirtilmemis",
+    "sezon": "belirtilmemis",
+    "para_birimi": "GBP",
+    "kur_esasi": "giris_gunu_tcmb",
+    "yetkili_mahkeme": "Antalya",
+    "imza_tarihi": null
+  },
+
+  "donem": {
+    "baslangic": null,
+    "bitis": null
+  },
+
+  "oda_kontenjanlari": [
+    { "oda_tipi": "standart", "adet": 170, "aciklama": "Sözleşmede 'normal oda' olarak geçer" },
+    { "oda_tipi": "suit", "adet": 20 },
+    { "oda_tipi": "balayi", "adet": 5 },
+    { "oda_tipi": "engelli", "adet": 1, "aciklama": "Sözleşmede 'özürlü odası' olarak geçer" }
+  ],
+
+  "fiyatlar": [
+    { "oda_tipi": "tek_kisilik", "tutar": 50, "birim": "oda_gecelik", "pansiyon": "belirtilmemis" },
+    { "oda_tipi": "iki_kisilik", "tutar": 80, "birim": "oda_gecelik", "pansiyon": "belirtilmemis" },
+    { "oda_tipi": "uc_kisilik", "tutar": 95, "birim": "oda_gecelik", "pansiyon": "belirtilmemis" },
+    { "oda_tipi": "suit", "tutar": 110, "birim": "oda_gecelik", "pansiyon": "belirtilmemis" },
+    { "oda_tipi": "balayi", "tutar": 130, "birim": "oda_gecelik", "pansiyon": "belirtilmemis" },
+    { "oda_tipi": "engelli", "tutar": 80, "birim": "oda_gecelik", "pansiyon": "belirtilmemis" }
+  ],
+
+  "release": {
+    "gun": 10,
+    "kapsam": "isim_listesi",
+    "kaynak_ifade": "Acente, oda kontenjanı ile ilgili son durumu müşterilerin otele girişini 10 gün önce belirler ve isim listesi ile birlikte otele bildirir."
+  },
+
+  "stop_sale": [],
+
+  "opsiyonel": {
+    "no_show": {
+      "sorumlu_taraf": "acente",
+      "tazminat_aciklama": "Acente, sözleşme süresi içerisinde doğabilecek iptallerden dolayı otelin no show talebini karşılar."
+    },
+    "overbooking": {
+      "sorumlu_taraf": "otel",
+      "aciklama": "Otelin short'a düşmesi ve bu durumda acente müşterisinin zarar görmesi halinde doğabilecek zararlardan otel sorumludur."
+    }
+  },
+
+  "cikarim_meta": {
+    "release.gun": { "guven": 1.0, "kaynak_madde": "3" },
+    "meta.para_birimi": { "guven": 1.0, "kaynak_madde": "6" },
+    "meta.kur_esasi": { "guven": 1.0, "kaynak_madde": "6" },
+    "meta.yetkili_mahkeme": { "guven": 1.0, "kaynak_madde": "7" },
+    "oda_kontenjanlari": { "guven": 1.0, "kaynak_madde": "2" },
+    "fiyatlar": { "guven": 1.0, "kaynak_madde": "8" },
+    "opsiyonel.no_show": { "guven": 1.0, "kaynak_madde": "4" },
+    "opsiyonel.overbooking": { "guven": 1.0, "kaynak_madde": "5" },
+    "donem": { "guven": 0.0, "kaynak_madde": "1" }
+  }
+}
