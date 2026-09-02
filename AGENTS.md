@@ -29,7 +29,33 @@ docs/      mimari kararlar ve KVKK notları
 - GraphQL şeması elle yazılmaz, gqlgen ile üretilir
 - Hata mesajlarında kullanıcıya dönen metin ile loga yazılan ayrıntı ayrılır
 - Dosya ve dizin adları ASCII: Türkçe karakter kullanma
-- Yorumlar ve dokümantasyon Türkçe, kod ve değişken adları İngilizce
+
+## Dil kuralları
+
+Go kodu:
+- Fonksiyon, metot, tip, alan, değişken, sabit adları: İngilizce
+- Dosya adları: İngilizce (contract.go, session.go, device.go)
+- Test fonksiyonları ve dosyaları: İngilizce (TestAuthFlow,
+  auth_flow_test.go)
+- Hata değişkenleri: İngilizce (ErrInvalidRefreshToken)
+
+Python kodu (ml/):
+- Fonksiyon, sınıf, değişken adları: İngilizce
+- Dosya adları: İngilizce
+
+TypeScript kodu (web/, desktop/):
+- Bileşen, fonksiyon, tip, değişken adları: İngilizce
+- Dosya adları: İngilizce
+
+Türkçe kalanlar:
+- GraphQL şeması ve alan adları (domain dili)
+- MongoDB koleksiyon adları ve bson etiketleri
+- Kod içi yorumlar
+- Log mesajları
+- Kullanıcıya dönen hata metinleri ve arayüz metinleri
+- docs/ altındaki tüm belgeler
+
+Kural: makine tarafı İngilizce, insan tarafı Türkçe.
 
 ## Güvenlik ve uyum kuralları
 - Sözleşme verisi ve kişisel veri hiçbir zaman loglara yazılmaz

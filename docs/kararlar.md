@@ -84,4 +84,18 @@ Bağlam: Go iç kodu ile GraphQL/veritabanı katmanı farklı diller kullanıyor
 Karar: Go tanımlayıcıları İngilizce; GraphQL şeması, MongoDB alanları, yorumlar ve kullanıcıya dönen metinler Türkçe.
 Sonuç: Kod uluslararası okunabilir, domain dili sektör terimleriyle örtüşmeye devam ediyor.
 
+## 13. Fine-tune Colab'da LoRA, dağıtım birleşik HF repo
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Okuyucu modeli HuggingFace Inference Endpoint'te çalışacak. Yerel Mac 8 GB RAM ile Qwen fine-tune edilemez.
+Karar: Eğitim Colab GPU'da `Qwen/Qwen2.5-1.5B-Instruct` + 4-bit LoRA (`ml/train_colab.ipynb`). Adapter `oz-fatma/kontrata-qwen-lora-v1`, birleşik ağırlık `oz-fatma/kontrata-qwen-merged-v1`; endpoint birleşik sürümü kullanır. HF jetonu Colab secrets'tan okunur, koda gömülmez. Yerel `evaluate.py` endpoint'e karşı val.jsonl ve MEGEP Argos örneğini ayrı raporlar. `ml/results/` sürüme alınır; `ml/data/` ve `ml/models/` alınmaz.
+Sonuç: Eğitim bulutta, çıkarım endpoint'te, metrikler depoda izlenir.
+
+## 14. PDF metin çıkarma OCR'siz, saf Go
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Okuyucu agent PDF sözleşmeyi şemaya çevirecek; Aşama 7'de kaynak sayfa numarası gerekir. Masaüstü dağıtımında poppler/tesseract gibi native bağımlılık istenmez.
+Karar: `internal/pdf` `github.com/ledongthuc/pdf` ile sayfa sayfa düz metin çıkarır. Taranmış (metin katmanı olmayan) PDF `ErrNoTextLayer` döner; OCR yok. Sözleşme gövdesi loglanmaz, yalnızca sayfa ve karakter sayısı yazılır. Tekrarlayan başlık/altbilgi ayıklanır; tablo boşlukları ve madde numaraları korunur.
+Sonuç: Model çağrısından bağımsız bir çıkarım katmanı var; taranmış evrak ayrı ürün kararı olarak kalır.
+
 
