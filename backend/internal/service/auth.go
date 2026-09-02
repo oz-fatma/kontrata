@@ -25,23 +25,31 @@ const (
 	defaultResendEvery = 5 * time.Minute
 )
 
-// AuthService kayıt ve e-posta doğrulama iş kurallarını taşır.
+// AuthService kayıt, doğrulama, MFA ve oturum iş kurallarını taşır.
 type AuthService struct {
 	users        *repository.KullaniciRepository
 	tokens       *repository.DogrulamaTokenRepository
+	mfa          *repository.MFAKoduRepository
+	sessions     *repository.OturumRepository
 	audit        *repository.DenetimRepository
 	mailer       mailer.Mailer
 	params       auth.Params
+	jwt          *auth.JWT
+	dummyHash    string
 	limiter      *resendLimiter
 	resetLimiter *resendLimiter
+	loginGuard   *loginGuard
 }
 
 func NewAuthService(
 	users *repository.KullaniciRepository,
 	tokens *repository.DogrulamaTokenRepository,
+	mfa *repository.MFAKoduRepository,
+	sessions *repository.OturumRepository,
 	audit *repository.DenetimRepository,
 	m mailer.Mailer,
 	params auth.Params,
+	jwtSigner *auth.JWT,
 ) *AuthService {
 	if params.Time == 0 {
 		params = auth.DefaultParams()
@@ -49,14 +57,20 @@ func NewAuthService(
 	if m == nil {
 		m = mailer.NewConsole()
 	}
+	dummy, _ := auth.HashPassword("yer-tutucu-12", params)
 	return &AuthService{
 		users:        users,
 		tokens:       tokens,
+		mfa:          mfa,
+		sessions:     sessions,
 		audit:        audit,
 		mailer:       m,
 		params:       params,
+		jwt:          jwtSigner,
+		dummyHash:    dummy,
 		limiter:      newResendLimiter(defaultResendEvery),
 		resetLimiter: newResendLimiter(defaultResendEvery),
+		loginGuard:   newLoginGuard(),
 	}
 }
 
@@ -248,11 +262,10 @@ func sifreSifirlamaGovde(token string) string {
 	return fmt.Sprintf("Kontrata şifre sıfırlama\n\nSıfırlama kodunuz:\n\n%s\n\nBu kod 1 saat geçerlidir.\n", token)
 }
 
-// revokeSessions oturum koleksiyonu gelince tüm aktif oturumları düşürür.
 func (s *AuthService) revokeSessions(ctx context.Context, kullaniciID bson.ObjectID) {
-	// TODO: oturum koleksiyonu Prompt 3b'de; bu kullanıcının tüm aktif oturumlarını iptal et.
-	_ = ctx
-	_ = kullaniciID
+	if err := s.sessions.RevokeAllForUser(ctx, kullaniciID, repository.IptalSifreSifirlama); err != nil {
+		log.Printf("oturumlar iptal edilemedi")
+	}
 }
 
 func (s *AuthService) issueVerification(ctx context.Context, user *repository.Kullanici) error {

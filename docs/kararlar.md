@@ -42,3 +42,11 @@ Bağlam: Kullanıcı hesabı e-posta ile doğrulanacak; hesap varlığı yanıt 
 Karar: Şifre argon2id (OWASP varsayılan maliyet) ile PHC biçiminde tutulur. Doğrulama kodu 32 bayt rastgele değer, veritabanında SHA-256. `kayitOl` ve `dogrulamaTekrarGonder` e-posta kayıtlı olsa da aynı yanıtı verir. Denetim kaydına kimlik işlemi yazılır; şifre, token ve e-posta loglanmaz.
 Sonuç: GraphQL yüzeyi kullanıcı veya oturum token'ı dönmez; geliştirmede ConsoleMailer alıcıyı maskeleyerek iletiyi basar.
 
+## 7. MFA ve oturum jetonları
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Masaüstü istemcinin API'ye kimlik doğrulaması gerekir; şifre tek başına oturum açmamalı.
+Karar: Girişte 6 haneli MFA (120 sn, 5 deneme). Erişim jetonu JWT HS256 15 dk; yenileme jetonu 32 bayt rastgele, 7 gün, rotasyonlu. JWT'de e-posta yok. Sözleşme alanları, `cikisYap` ve `oturumlarim` `@auth` ister. `jetonYenile` erişim jetonu istemez; kimlik yenileme jetonunun kendisiyle doğrulanır. `girisYap`, `mfaDogrula`, `kayitOl` ve şifre sıfırlama alanları da `@auth` dışındadır.
+Sonuç: `JWT_SECRET` zorunlu; şifre sıfırlama tüm oturumları iptal eder. Süresi dolmuş erişim jetonu yenilemeyi engellemez.
+
+

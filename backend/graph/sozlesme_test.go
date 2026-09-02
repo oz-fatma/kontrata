@@ -2,49 +2,14 @@ package graph
 
 import (
 	"context"
-	"os"
+	"strings"
 	"testing"
-	"time"
 
 	"github.com/99designs/gqlgen/client"
-	"github.com/99designs/gqlgen/graphql/handler"
-	"github.com/99designs/gqlgen/graphql/handler/transport"
-
-	"github.com/oz-fatma/kontrata/backend/internal/mongo"
-	"github.com/oz-fatma/kontrata/backend/internal/repository"
-	"github.com/oz-fatma/kontrata/backend/internal/service"
 )
 
-func TestSozlesmeOlusturVeOku(t *testing.T) {
-	uri := os.Getenv("MONGO_URI")
-	if uri == "" {
-		t.Skip("MONGO_URI yok")
-	}
-
-	ctx, cancel := context.WithTimeout(context.Background(), 20*time.Second)
-	defer cancel()
-
-	db, err := mongo.Connect(ctx, uri)
-	if err != nil {
-		t.Fatalf("mongo bağlanamadı")
-	}
-	defer func() {
-		if err := db.Disconnect(context.Background()); err != nil {
-			t.Errorf("veritabanı bağlantısı kapatılamadı: %v", err)
-		}
-	}()
-
-	repo := repository.NewSozlesmeRepository(db)
-	if err := repo.EnsureIndexes(ctx); err != nil {
-		t.Fatalf("indeks oluşturulamadı")
-	}
-	svc := service.NewSozlesmeService(repo)
-
-	srv := handler.New(NewExecutableSchema(Config{Resolvers: &Resolver{Service: svc}}))
-	srv.AddTransport(transport.POST{})
-	c := client.New(srv)
-
-	girdi := map[string]any{
+func sozlesmeGirdi() map[string]any {
+	return map[string]any{
 		"dosyaAdi": "ornek-kontrat.pdf",
 		"donem": map[string]any{
 			"baslangic": "2026-04-01",
@@ -62,6 +27,14 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 		},
 		"stopSale": []any{},
 	}
+}
+
+func TestSozlesmeOlusturVeOku(t *testing.T) {
+	ctx, env := setupKayit(t)
+	eposta := uniqueEposta()
+	registerVerified(t, env, eposta, testSifre)
+	access, _ := loginSession(t, env, eposta, testSifre)
+	c := env.withToken(access)
 
 	var created struct {
 		SozlesmeOlustur struct {
@@ -78,7 +51,7 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 				Tutar   float64
 				Birim   string
 			}
-			Release *struct{ Gun int32 }
+			Release  *struct{ Gun int32 }
 			StopSale []any
 		}
 	}
@@ -91,14 +64,14 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 			release { gun }
 			stopSale { baslangic }
 		}
-	}`, &created, client.Var("g", girdi))
+	}`, &created, client.Var("g", sozlesmeGirdi()))
 
 	id := created.SozlesmeOlustur.ID
 	if id == "" {
 		t.Fatal("id boş")
 	}
 	t.Cleanup(func() {
-		_, _ = svc.Delete(context.Background(), id)
+		_ = env.soz.Delete(context.Background(), id)
 	})
 
 	if created.SozlesmeOlustur.DosyaAdi == nil || *created.SozlesmeOlustur.DosyaAdi != "ornek-kontrat.pdf" {
@@ -141,7 +114,7 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 				Tutar   float64
 				Birim   string
 			}
-			Release *struct{ Gun int32 }
+			Release  *struct{ Gun int32 }
 			StopSale []any
 		}
 	}
@@ -184,7 +157,7 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 		t.Fatalf("okunan stopSale uzunluğu = %d, beklenen 0", len(got.Sozlesme.StopSale))
 	}
 
-	stored, err := repo.GetByID(ctx, id)
+	stored, err := env.soz.GetByID(ctx, id)
 	if err != nil {
 		t.Fatalf("mongo okuma başarısız")
 	}
@@ -196,5 +169,17 @@ func TestSozlesmeOlusturVeOku(t *testing.T) {
 	}
 	if len(stored.Fiyatlar) != 1 || stored.Fiyatlar[0].Birim != "oda_gecelik" {
 		t.Fatalf("Mongo birim kontrat.json değeri değil")
+	}
+}
+
+func TestSozlesmeAuthOlmadanReddedilir(t *testing.T) {
+	_, env := setupKayit(t)
+	var out struct{ Sozlesmeler []any }
+	err := env.c.Post(`query { sozlesmeler { id } }`, &out)
+	if err == nil {
+		t.Fatal("@auth olmadan sorgu kabul edildi")
+	}
+	if !strings.Contains(err.Error(), "kimlik doğrulaması gerekli") {
+		t.Fatalf("err = %v", err)
 	}
 }

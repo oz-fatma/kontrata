@@ -275,9 +275,12 @@ input SozlesmeGirdi {
   cikarimMeta: [CikarimMetaGirdi!]
 }
 
+directive @auth on FIELD_DEFINITION
+
 type Query {
-  sozlesmeler(limit: Int, offset: Int): [Sozlesme!]!
-  sozlesme(id: ID!): Sozlesme
+  sozlesmeler(limit: Int, offset: Int): [Sozlesme!]! @auth
+  sozlesme(id: ID!): Sozlesme @auth
+  oturumlarim: [OturumBilgisi!]! @auth
 }
 
 type KayitSonucu {
@@ -285,13 +288,36 @@ type KayitSonucu {
   mesaj: String!
 }
 
+type GirisSonucu {
+  mfaGerekli: Boolean!
+  geciciToken: String!
+}
+
+type OturumSonucu {
+  erisimJetonu: String!
+  yenilemeJetonu: String!
+}
+
+type OturumBilgisi {
+  id: ID!
+  olusturmaTarihi: Time!
+  sonKullanma: Time!
+  ipAdresi: String
+  kullaniciAjani: String
+  mevcutMu: Boolean!
+}
+
 type Mutation {
-  sozlesmeOlustur(girdi: SozlesmeGirdi!): Sozlesme!
-  sozlesmeGuncelle(id: ID!, girdi: SozlesmeGirdi!): Sozlesme!
-  sozlesmeSil(id: ID!): Boolean!
+  sozlesmeOlustur(girdi: SozlesmeGirdi!): Sozlesme! @auth
+  sozlesmeGuncelle(id: ID!, girdi: SozlesmeGirdi!): Sozlesme! @auth
+  sozlesmeSil(id: ID!): Boolean! @auth
   kayitOl(eposta: String!, sifre: String!): KayitSonucu!
   epostaDogrula(token: String!): Boolean!
   dogrulamaTekrarGonder(eposta: String!): Boolean!
   sifreSifirlamaIste(eposta: String!): Boolean!
   sifreSifirla(token: String!, yeniSifre: String!): Boolean!
+  girisYap(eposta: String!, sifre: String!): GirisSonucu!
+  mfaDogrula(geciciToken: String!, kod: String!): OturumSonucu!
+  jetonYenile(yenilemeJetonu: String!): OturumSonucu!
+  cikisYap: Boolean! @auth
 }

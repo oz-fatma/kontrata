@@ -16,6 +16,7 @@ import (
 	"github.com/joho/godotenv"
 
 	"github.com/oz-fatma/kontrata/backend/graph"
+	"github.com/oz-fatma/kontrata/backend/internal/auth"
 	"github.com/oz-fatma/kontrata/backend/internal/config"
 	"github.com/oz-fatma/kontrata/backend/internal/mailer"
 	"github.com/oz-fatma/kontrata/backend/internal/mongo"
@@ -44,12 +45,16 @@ func main() {
 	repo := repository.NewSozlesmeRepository(db)
 	kullanicilar := repository.NewKullaniciRepository(db)
 	tokenlar := repository.NewDogrulamaTokenRepository(db)
+	mfaKodlari := repository.NewMFAKoduRepository(db)
+	oturumlar := repository.NewOturumRepository(db)
 	denetim := repository.NewDenetimRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
 		repo = repository.NewSozlesmeRepository(nil)
 		kullanicilar = repository.NewKullaniciRepository(nil)
 		tokenlar = repository.NewDogrulamaTokenRepository(nil)
+		mfaKodlari = repository.NewMFAKoduRepository(nil)
+		oturumlar = repository.NewOturumRepository(nil)
 		denetim = repository.NewDenetimRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
@@ -58,6 +63,8 @@ func main() {
 			repo.EnsureIndexes,
 			kullanicilar.EnsureIndexes,
 			tokenlar.EnsureIndexes,
+			mfaKodlari.EnsureIndexes,
+			oturumlar.EnsureIndexes,
 			denetim.EnsureIndexes,
 		} {
 			if err := ensure(idxCtx); err != nil {
@@ -66,8 +73,12 @@ func main() {
 		}
 		idxCancel()
 	}
+	signer, err := auth.NewJWT(cfg.JWTSecret)
+	if err != nil {
+		log.Fatalf("yapılandırma yüklenemedi: %v", err)
+	}
 	sozlesmeler := service.NewSozlesmeService(repo)
-	authSvc := service.NewAuthService(kullanicilar, tokenlar, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2)
+	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer)
 
 	srv := newServer(cfg, db, sozlesmeler, authSvc)
 

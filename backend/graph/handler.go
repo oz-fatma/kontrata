@@ -20,7 +20,10 @@ import (
 
 // RegisterRoutes /graphql ucunu ve isteğe bağlı playground'u bağlar.
 func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service.AuthService, enablePlayground bool) {
-	srv := handler.New(NewExecutableSchema(Config{Resolvers: &Resolver{Service: svc, Auth: authSvc}}))
+	srv := handler.New(NewExecutableSchema(Config{
+		Resolvers:  &Resolver{Service: svc, Auth: authSvc},
+		Directives: DirectiveRoot{Auth: AuthDirective},
+	}))
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
@@ -32,7 +35,8 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service
 		err := graphql.DefaultErrorPresenter(ctx, e)
 		switch {
 		case errors.Is(e, repository.ErrNotFound), errors.Is(e, repository.ErrInvalidID), errors.Is(e, repository.ErrUnavailable),
-			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail):
+			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail),
+			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrGecersizYenilemeJetonu), errors.Is(e, auth.ErrMFAFailed):
 			err.Message = e.Error()
 		default:
 			err.Message = "işlem tamamlanamadı"
@@ -45,6 +49,9 @@ func RegisterRoutes(r chi.Router, svc *service.SozlesmeService, authSvc *service
 	}
 	r.Group(func(r chi.Router) {
 		r.Use(auth.RequestMiddleware)
+		if authSvc != nil {
+			r.Use(authSvc.BearerMiddleware)
+		}
 		if enablePlayground {
 			r.Handle("/playground", playground.Handler("Kontrata", "/graphql"))
 		}

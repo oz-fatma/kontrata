@@ -2,6 +2,7 @@ package graph
 
 import (
 	"context"
+	"net/http"
 	"os"
 	"strings"
 	"sync"
@@ -60,12 +61,38 @@ func tokenAfterLabel(govde, label string) string {
 	return strings.TrimSpace(line)
 }
 
+const (
+	testSifre     = "oniki-karakter"
+	testJWTSecret = "test-jwt-secret-at-least-32-bytes!!"
+	testUserAgent = "kontrata-test"
+	testForwarded = "203.0.113.9, 10.0.0.1"
+)
+
 type kayitEnv struct {
-	c      *client.Client
-	users  *repository.KullaniciRepository
-	tokens *repository.DogrulamaTokenRepository
-	audit  *repository.DenetimRepository
-	mail   *stubMailer
+	h        http.Handler
+	c        *client.Client
+	users    *repository.KullaniciRepository
+	tokens   *repository.DogrulamaTokenRepository
+	mfa      *repository.MFAKoduRepository
+	sessions *repository.OturumRepository
+	soz      *repository.SozlesmeRepository
+	audit    *repository.DenetimRepository
+	mail     *stubMailer
+}
+
+func testParams() auth.Params {
+	return auth.Params{Time: 1, Memory: 8 * 1024, Threads: 1, KeyLen: 32, SaltLen: 16}
+}
+
+func graphqlClient(h http.Handler, access string) *client.Client {
+	opts := []client.Option{
+		client.AddHeader("User-Agent", testUserAgent),
+		client.AddHeader("X-Forwarded-For", testForwarded),
+	}
+	if access != "" {
+		opts = append(opts, client.AddHeader("Authorization", "Bearer "+access))
+	}
+	return client.New(h, opts...)
 }
 
 func setupKayit(t *testing.T) (context.Context, kayitEnv) {
@@ -74,7 +101,7 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 	if uri == "" {
 		t.Skip("MONGO_URI yok")
 	}
-	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	ctx, cancel := context.WithTimeout(context.Background(), 60*time.Second)
 	t.Cleanup(cancel)
 
 	db, err := mongo.Connect(ctx, uri)
@@ -89,30 +116,44 @@ func setupKayit(t *testing.T) (context.Context, kayitEnv) {
 
 	users := repository.NewKullaniciRepository(db)
 	tokens := repository.NewDogrulamaTokenRepository(db)
+	mfa := repository.NewMFAKoduRepository(db)
+	sessions := repository.NewOturumRepository(db)
 	denetim := repository.NewDenetimRepository(db)
-	for _, ensure := range []func(context.Context) error{users.EnsureIndexes, tokens.EnsureIndexes, denetim.EnsureIndexes} {
+	sozRepo := repository.NewSozlesmeRepository(db)
+	for _, ensure := range []func(context.Context) error{
+		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
+		sessions.EnsureIndexes, denetim.EnsureIndexes, sozRepo.EnsureIndexes,
+	} {
 		if err := ensure(ctx); err != nil {
 			t.Fatalf("indeks oluşturulamadı")
 		}
 	}
 	mail := &stubMailer{}
-	params := auth.Params{Time: 1, Memory: 8 * 1024, Threads: 1, KeyLen: 32, SaltLen: 16}
-	authSvc := service.NewAuthService(users, tokens, denetim, mail, params)
-	srv := handler.New(NewExecutableSchema(Config{Resolvers: &Resolver{Auth: authSvc}}))
+	signer, err := auth.NewJWT([]byte(testJWTSecret))
+	if err != nil {
+		t.Fatalf("jwt: %v", err)
+	}
+	authSvc := service.NewAuthService(users, tokens, mfa, sessions, denetim, mail, testParams(), signer)
+	sozSvc := service.NewSozlesmeService(sozRepo)
+	srv := handler.New(NewExecutableSchema(Config{
+		Resolvers:  &Resolver{Service: sozSvc, Auth: authSvc},
+		Directives: DirectiveRoot{Auth: AuthDirective},
+	}))
 	srv.AddTransport(transport.POST{})
-	h := auth.RequestMiddleware(srv)
-	c := client.New(h,
-		client.AddHeader("User-Agent", "kontrata-test"),
-		client.AddHeader("X-Forwarded-For", "203.0.113.9, 10.0.0.1"),
-	)
-	return ctx, kayitEnv{c: c, users: users, tokens: tokens, audit: denetim, mail: mail}
+	h := auth.RequestMiddleware(authSvc.BearerMiddleware(srv))
+	return ctx, kayitEnv{
+		h: h, c: graphqlClient(h, ""), users: users, tokens: tokens,
+		mfa: mfa, sessions: sessions, soz: sozRepo, audit: denetim, mail: mail,
+	}
+}
+
+func (e kayitEnv) withToken(access string) *client.Client {
+	return graphqlClient(e.h, access)
 }
 
 func uniqueEposta() string {
 	return "kayit-" + bson.NewObjectID().Hex() + "@ornek.test"
 }
-
-const testSifre = "oniki-karakter"
 
 type kayitYaniti struct {
 	KayitOl struct {
@@ -135,6 +176,53 @@ func postDogrula(t *testing.T, c *client.Client, token string) bool {
 	var out struct{ EpostaDogrula bool }
 	c.MustPost(`mutation ($t: String!) { epostaDogrula(token: $t) }`, &out, client.Var("t", token))
 	return out.EpostaDogrula
+}
+
+func registerVerified(t *testing.T, env kayitEnv, eposta, sifre string) {
+	t.Helper()
+	postKayit(t, env.c, eposta, sifre)
+	plain := tokenFromGovde(env.mail.lastGovde())
+	if plain == "" {
+		t.Fatal("doğrulama kodu yok")
+	}
+	if !postDogrula(t, env.c, plain) {
+		t.Fatal("e-posta doğrulanamadı")
+	}
+}
+
+func loginSession(t *testing.T, env kayitEnv, eposta, sifre string) (access, refresh string) {
+	t.Helper()
+	var giris struct {
+		GirisYap struct {
+			MfaGerekli  bool
+			GeciciToken string
+		}
+	}
+	env.c.MustPost(`mutation ($e: String!, $s: String!) {
+		girisYap(eposta: $e, sifre: $s) { mfaGerekli geciciToken }
+	}`, &giris, client.Var("e", eposta), client.Var("s", sifre))
+	if !giris.GirisYap.MfaGerekli || giris.GirisYap.GeciciToken == "" {
+		t.Fatal("MFA bekleniyordu")
+	}
+	kod := tokenAfterLabel(env.mail.lastGovde(), "Giriş kodunuz:")
+	if kod == "" {
+		t.Fatal("MFA kodu yok")
+	}
+	var oturum struct {
+		MfaDogrula struct {
+			ErisimJetonu   string
+			YenilemeJetonu string
+		}
+	}
+	if err := env.c.Post(`mutation ($g: String!, $k: String!) {
+		mfaDogrula(geciciToken: $g, kod: $k) { erisimJetonu yenilemeJetonu }
+	}`, &oturum, client.Var("g", giris.GirisYap.GeciciToken), client.Var("k", kod)); err != nil {
+		t.Fatalf("mfaDogrula: %v", err)
+	}
+	if oturum.MfaDogrula.ErisimJetonu == "" || oturum.MfaDogrula.YenilemeJetonu == "" {
+		t.Fatal("oturum jetonları boş")
+	}
+	return oturum.MfaDogrula.ErisimJetonu, oturum.MfaDogrula.YenilemeJetonu
 }
 
 func TestKayitOlVeEpostaDogrula(t *testing.T) {
@@ -166,7 +254,7 @@ func TestKayitOlVeEpostaDogrula(t *testing.T) {
 	if kayitDenetim.IPAdresi != "203.0.113.9" {
 		t.Fatalf("ipAdresi = %q", kayitDenetim.IPAdresi)
 	}
-	if kayitDenetim.KullaniciAjani != "kontrata-test" {
+	if kayitDenetim.KullaniciAjani != testUserAgent {
 		t.Fatalf("kullaniciAjani = %q", kayitDenetim.KullaniciAjani)
 	}
 

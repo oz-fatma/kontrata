@@ -40,6 +40,12 @@ Sürümü açık vermek için: `make build VERSION=0.1.0`
 make generate
 ```
 
+CI'a göndermeden önce `make verify` çalıştırın. `go mod tidy` sonrası `go.mod` veya `go.sum` değişmişse komut hata verir; dosyaları commit etmek gerekir. Ardından `go vet` ve `go test` çalışır.
+
+```sh
+make verify
+```
+
 ## Ortam değişkenleri
 
 | Değişken | Zorunlu | Varsayılan | Açıklama |
@@ -57,3 +63,4 @@ make generate
 | `ARGON2_TIME` | hayır | `2` | argon2id yineleme sayısı |
 | `ARGON2_MEMORY` | hayır | `19456` | argon2id bellek (KiB) |
 | `ARGON2_THREADS` | hayır | `1` | argon2id paralellik |
+| `JWT_SECRET` | evet | — | HS256 imza anahtarı. Eksikse süreç açılmaz. Günlüğe yazılmaz. |

@@ -51,6 +51,26 @@ func (r *mutationResolver) SifreSifirla(ctx context.Context, token string, yeniS
 	return r.Auth.SifreSifirla(ctx, token, yeniSifre)
 }
 
+// GirisYap is the resolver for the girisYap field.
+func (r *mutationResolver) GirisYap(ctx context.Context, eposta string, sifre string) (*model.GirisSonucu, error) {
+	return r.Auth.GirisYap(ctx, eposta, sifre)
+}
+
+// MfaDogrula is the resolver for the mfaDogrula field.
+func (r *mutationResolver) MfaDogrula(ctx context.Context, geciciToken string, kod string) (*model.OturumSonucu, error) {
+	return r.Auth.MFADogrula(ctx, geciciToken, kod)
+}
+
+// JetonYenile is the resolver for the jetonYenile field.
+func (r *mutationResolver) JetonYenile(ctx context.Context, yenilemeJetonu string) (*model.OturumSonucu, error) {
+	return r.Auth.JetonYenile(ctx, yenilemeJetonu)
+}
+
+// CikisYap is the resolver for the cikisYap field.
+func (r *mutationResolver) CikisYap(ctx context.Context) (bool, error) {
+	return r.Auth.CikisYap(ctx)
+}
+
 // Sozlesmeler is the resolver for the sozlesmeler field.
 func (r *queryResolver) Sozlesmeler(ctx context.Context, limit *int32, offset *int32) ([]*model.Sozlesme, error) {
 	return r.Service.List(ctx, limit, offset)
@@ -63,6 +83,11 @@ func (r *queryResolver) Sozlesme(ctx context.Context, id string) (*model.Sozlesm
 		return nil, err
 	}
 	return s, nil
+}
+
+// Oturumlarim is the resolver for the oturumlarim field.
+func (r *queryResolver) Oturumlarim(ctx context.Context) ([]*model.OturumBilgisi, error) {
+	return r.Auth.Oturumlarim(ctx)
 }
 
 // Mutation returns MutationResolver implementation.

@@ -76,6 +76,11 @@ type FiyatGirdi struct {
 	AltDonemAd *string     `json:"altDonemAd,omitempty"`
 }
 
+type GirisSonucu struct {
+	MfaGerekli  bool   `json:"mfaGerekli"`
+	GeciciToken string `json:"geciciToken"`
+}
+
 type IptalKosulu struct {
 	Kapsam           *string `json:"kapsam,omitempty"`
 	Gun              *int32  `json:"gun,omitempty"`
@@ -128,6 +133,20 @@ type OdemeGirdi struct {
 	FaturaSonrasiGun *int32  `json:"faturaSonrasiGun,omitempty"`
 	AvansVar         *bool   `json:"avansVar,omitempty"`
 	AvansAciklama    *string `json:"avansAciklama,omitempty"`
+}
+
+type OturumBilgisi struct {
+	ID              string    `json:"id"`
+	OlusturmaTarihi time.Time `json:"olusturmaTarihi"`
+	SonKullanma     time.Time `json:"sonKullanma"`
+	IPAdresi        *string   `json:"ipAdresi,omitempty"`
+	KullaniciAjani  *string   `json:"kullaniciAjani,omitempty"`
+	MevcutMu        bool      `json:"mevcutMu"`
+}
+
+type OturumSonucu struct {
+	ErisimJetonu   string `json:"erisimJetonu"`
+	YenilemeJetonu string `json:"yenilemeJetonu"`
 }
 
 type Overbooking struct {

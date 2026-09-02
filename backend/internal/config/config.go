@@ -17,6 +17,7 @@ type Config struct {
 	Port          int
 	MongoURI      string
 	MongoDatabase string
+	JWTSecret     []byte
 	Playground    bool
 	Mailer        string
 	SMTP          mailer.SMTPConfig
@@ -38,6 +39,11 @@ func Load() (Config, error) {
 	mongoDatabase := strings.TrimSpace(os.Getenv("MONGO_DATABASE"))
 	if mongoDatabase == "" {
 		mongoDatabase = "kontrata"
+	}
+
+	jwtSecret := strings.TrimSpace(os.Getenv("JWT_SECRET"))
+	if jwtSecret == "" {
+		return Config{}, fmt.Errorf("zorunlu ortam değişkeni eksik: JWT_SECRET")
 	}
 
 	mailerKind := strings.ToLower(strings.TrimSpace(os.Getenv("MAILER")))
@@ -89,6 +95,7 @@ func Load() (Config, error) {
 		Port:          port,
 		MongoURI:      mongoURI,
 		MongoDatabase: mongoDatabase,
+		JWTSecret:     []byte(jwtSecret),
 		Playground:    parseBool(os.Getenv("GRAPHQL_PLAYGROUND")),
 		Mailer:        mailerKind,
 		SMTP:          smtp,
@@ -131,7 +138,7 @@ func parseUint32(raw string, fallback uint32) (uint32, error) {
 
 // String günlük için maskelenmiş özet döner. Hassas alanlar ve e-posta yazılmaz.
 func (c Config) String() string {
-	return fmt.Sprintf("PORT=%d MONGO_URI=%s MONGO_DATABASE=%s MAILER=%s", c.Port, maskSecret(c.MongoURI), c.MongoDatabase, c.Mailer)
+	return fmt.Sprintf("PORT=%d MONGO_URI=%s MONGO_DATABASE=%s MAILER=%s JWT_SECRET=%s", c.Port, maskSecret(c.MongoURI), c.MongoDatabase, c.Mailer, maskSecret(string(c.JWTSecret)))
 }
 
 func maskSecret(value string) string {

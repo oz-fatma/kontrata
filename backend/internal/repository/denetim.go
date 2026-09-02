@@ -20,6 +20,13 @@ const (
 	OlayDogrulamaTekrarGonderildi = "DOGRULAMA_TEKRAR_GONDERILDI"
 	OlaySifreSifirlamaIstendi     = "SIFRE_SIFIRLAMA_ISTENDI"
 	OlaySifreSifirlandi           = "SIFRE_SIFIRLANDI"
+	OlayGirisBasarili             = "GIRIS_BASARILI"
+	OlayGirisBasarisiz            = "GIRIS_BASARISIZ"
+	OlayMFABasarili               = "MFA_BASARILI"
+	OlayMFABasarisiz              = "MFA_BASARISIZ"
+	OlayOturumYenilendi           = "OTURUM_YENILENDI"
+	OlayCikis                     = "CIKIS"
+	OlayHesapKilitlendi           = "HESAP_KILITLENDI"
 )
 
 // DenetimKaydi kimlik ve yetki işlemlerinin izidir. Şifre, token ve e-posta yazılmaz.
