@@ -125,13 +125,12 @@ func TestAuthAkis(t *testing.T) {
 	if len(cihazlar.Cihazlarim) != 1 || cihazlar.Cihazlarim[0].ID == idA {
 		t.Fatal("yanlış cihaz kaldı")
 	}
-	access, refresh = accessB, refreshB
 	t.Log("cihaz A oturumları iptal, cihaz B duruyor")
 
 	t.Log("7. tumOturumlariKapat mevcut oturum hariç kapatır")
 	_, extra1 := loginSessionDevice(t, env, eposta, testSifre, cihazB)
 	_, extra2 := loginSessionDevice(t, env, eposta, testSifre, cihazB)
-	cB = env.withDevice(access, cihazB)
+	cB = env.withDevice(accessB, cihazB)
 	var kapat struct{ TumOturumlariKapat int32 }
 	cB.MustPost(`mutation { tumOturumlariKapat }`, &kapat)
 	if kapat.TumOturumlariKapat < 2 {
@@ -150,7 +149,14 @@ func TestAuthAkis(t *testing.T) {
 	if len(oturumlar.Oturumlarim) != 1 || !oturumlar.Oturumlarim[0].MevcutMu {
 		t.Fatal("mevcut oturum kapanmış")
 	}
-	t.Logf("iptal edilen oturum = %d", kapat.TumOturumlariKapat)
+	env.c.MustPost(`mutation ($r: String!) {
+		jetonYenile(yenilemeJetonu: $r) { erisimJetonu yenilemeJetonu }
+	}`, &yenile, client.Var("r", refreshB))
+	if yenile.JetonYenile.ErisimJetonu == "" {
+		t.Fatal("mevcut oturum yenilenemedi")
+	}
+	cB = env.withDevice(yenile.JetonYenile.ErisimJetonu, cihazB)
+	t.Logf("iptal edilen oturum = %d, mevcut oturum yenilendi", kapat.TumOturumlariKapat)
 
 	t.Log("8. verilerimiIndir hash ve token içermez")
 	cB.MustPost(`mutation ($g: SozlesmeGirdi!) { sozlesmeOlustur(girdi: $g) { id } }`,
