@@ -70,4 +70,11 @@ Bağlam: Bireysel hesap kendi sözleşmesinin sahibidir; kurumsal hesapta sözle
 Karar: `sozlesmeler` koleksiyonuna `organizasyonId` yazılır. Kurumsal listede süzgeç yalnızca bu alandır; bireyselde `kullaniciId` ve boş `organizasyonId`. Resolver, kaydı getirmeden önce kullanıcının organizasyonuyla karşılaştırır; eşleşmezse `null` döner (yokmuş gibi). Rol yetkisi (`SAHIP` / `YONETICI` / `GORUNTULEYICI`) arayüz gizlemesine bırakılmaz, resolver'da kesilir. Mevcut belgeler açılışta kurumsal kullanıcının `organizasyonId` değeriyle doldurulur.
 Sonuç: Üye daveti 7 günlük TTL kodla gelir; sahip başka üye varken hesabını silemez, önce devir veya `organizasyonSil` gerekir.
 
+## 11. Sentetik sözleşme verisi şablonla üretilir
+Tarih: 2026-09-02
+Durum: kabul edildi
+Bağlam: Okuyucu agent'ı eğitmek için yüzlerce kontenjan sözleşmesi gerekir; gerçek otel kontratları tesiste kalır ve eğitim kümesine alınamaz. Tek kamuya açık örnek MEGEP Argos sözleşmesidir.
+Karar: `ml/generate.py` şemadan rastgele geçerli nesne üretir, metni LLM'siz şablonla yazar. MEGEP örneği (`ornek-argos.json`) eğitim/doğrulama jsonl dosyalarına karışmaz; tutulur ki model tek gerçek örneği ezberlemesin. Kasıtlı gürültü (eksik alan, tarih çelişkisi, fiyat–kontenjan uyuşmazlığı) JSON Schema'yı bozmaz.
+Sonuç: Üretim deterministiktir (`--seed`). Üretilen `ml/data/*.jsonl` sürüme girmez.
+
 
