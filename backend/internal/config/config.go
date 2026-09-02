@@ -11,8 +11,9 @@ const defaultPort = 8080
 
 // Config ortam değişkenlerinden okunan ayarlardır.
 type Config struct {
-	Port     int
-	MongoURI string
+	Port       int
+	MongoURI   string
+	Playground bool
 }
 
 // Load ortam değişkenlerini okur. Zorunlu bir değişken eksikse hata döner.
@@ -28,9 +29,19 @@ func Load() (Config, error) {
 	}
 
 	return Config{
-		Port:     port,
-		MongoURI: mongoURI,
+		Port:       port,
+		MongoURI:   mongoURI,
+		Playground: parseBool(os.Getenv("GRAPHQL_PLAYGROUND")),
 	}, nil
+}
+
+func parseBool(raw string) bool {
+	switch strings.ToLower(strings.TrimSpace(raw)) {
+	case "1", "true", "yes", "on":
+		return true
+	default:
+		return false
+	}
 }
 
 func parsePort(raw string) (int, error) {

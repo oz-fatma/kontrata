@@ -1,0 +1,287 @@
+scalar Time
+
+enum SozlesmeTipi {
+  TAMAMEN_GARANTILI
+  KISMEN_GARANTILI
+  GARANTISIZ
+  ISTEGE_BAGLI
+  SERBEST_SATIS
+  BLOK_REZERVASYON
+  BLOK_SATIN_ALMA
+  BELIRTILMEMIS
+}
+
+enum Sezon {
+  YAZ
+  KIS
+  YILLIK
+  BELIRTILMEMIS
+}
+
+enum KurEsasi {
+  GIRIS_GUNU_TCMB
+  CIKIS_GUNU_TCMB
+  SABIT_KUR
+  BELIRTILMEMIS
+}
+
+enum Pansiyon {
+  RO
+  BB
+  HB
+  FB
+  AI
+  BELIRTILMEMIS
+}
+
+enum FiyatBirimi {
+  ODA_GECELIK
+  KISI_GECELIK
+}
+
+enum ReleaseKapsami {
+  ISIM_LISTESI
+  KONTENJAN_IADESI
+  HER_IKISI
+  BELIRTILMEMIS
+}
+
+enum BildirimYontemi {
+  YAZILI
+  FAKS
+  EPOSTA
+  SISTEM
+  BELIRTILMEMIS
+}
+
+enum SozlesmeDurumu {
+  YUKLENDI
+  ISLENIYOR
+  INCELENMEYI_BEKLIYOR
+  ONAYLANDI
+  HATA
+}
+
+type CikarimMeta {
+  alanYolu: String!
+  guven: Float
+  kaynakSayfa: Int
+  kaynakMadde: String
+}
+
+type SozlesmeMeta {
+  otelAdi: String
+  acenteAdi: String
+  sozlesmeTipi: SozlesmeTipi
+  sezon: Sezon
+  paraBirimi: String
+  kurEsasi: KurEsasi
+  yetkiliMahkeme: String
+  imzaTarihi: String
+}
+
+type AltDonem {
+  ad: String!
+  baslangic: String!
+  bitis: String!
+}
+
+type Donem {
+  baslangic: String
+  bitis: String
+  altDonemler: [AltDonem!]
+}
+
+type OdaKontenjani {
+  odaTipi: String!
+  adet: Int!
+  aciklama: String
+}
+
+type Fiyat {
+  odaTipi: String!
+  pansiyon: Pansiyon
+  tutar: Float!
+  birim: FiyatBirimi!
+  altDonemAd: String
+}
+
+type ReleaseKurali {
+  gun: Int!
+  kapsam: ReleaseKapsami
+  kaynakIfade: String
+}
+
+type StopSaleAraligi {
+  baslangic: String
+  bitis: String
+  kapsam: String
+  bildirimYontemi: BildirimYontemi
+  kaynakIfade: String
+}
+
+type CocukPolitikasi {
+  yasMin: Float
+  yasMax: Float
+  indirimYuzde: Float
+  ucretsiz: Boolean
+  kosul: String
+}
+
+type IptalKosulu {
+  kapsam: String
+  gun: Int
+  tazminatAciklama: String
+}
+
+type NoShow {
+  sorumluTaraf: String
+  tazminatAciklama: String
+}
+
+type Overbooking {
+  sorumluTaraf: String
+  aciklama: String
+}
+
+type Odeme {
+  faturaSonrasiGun: Int
+  avansVar: Boolean
+  avansAciklama: String
+}
+
+type Sozlesme {
+  id: ID!
+  olusturmaTarihi: Time!
+  guncellemeTarihi: Time!
+  durum: SozlesmeDurumu!
+  dosyaAdi: String
+  meta: SozlesmeMeta
+  donem: Donem
+  odaKontenjanlari: [OdaKontenjani!]
+  fiyatlar: [Fiyat!]
+  release: ReleaseKurali
+  stopSale: [StopSaleAraligi!]
+  cocukPolitikasi: [CocukPolitikasi!]
+  iptalKosullari: [IptalKosulu!]
+  noShow: NoShow
+  overbooking: Overbooking
+  odeme: Odeme
+  cikarimMeta: [CikarimMeta!]
+}
+
+input CikarimMetaGirdi {
+  alanYolu: String!
+  guven: Float
+  kaynakSayfa: Int
+  kaynakMadde: String
+}
+
+input SozlesmeMetaGirdi {
+  otelAdi: String
+  acenteAdi: String
+  sozlesmeTipi: SozlesmeTipi
+  sezon: Sezon
+  paraBirimi: String
+  kurEsasi: KurEsasi
+  yetkiliMahkeme: String
+  imzaTarihi: String
+}
+
+input AltDonemGirdi {
+  ad: String!
+  baslangic: String!
+  bitis: String!
+}
+
+input DonemGirdi {
+  baslangic: String
+  bitis: String
+  altDonemler: [AltDonemGirdi!]
+}
+
+input OdaKontenjaniGirdi {
+  odaTipi: String!
+  adet: Int!
+  aciklama: String
+}
+
+input FiyatGirdi {
+  odaTipi: String!
+  pansiyon: Pansiyon
+  tutar: Float!
+  birim: FiyatBirimi!
+  altDonemAd: String
+}
+
+input ReleaseKuraliGirdi {
+  gun: Int!
+  kapsam: ReleaseKapsami
+  kaynakIfade: String
+}
+
+input StopSaleAraligiGirdi {
+  baslangic: String
+  bitis: String
+  kapsam: String
+  bildirimYontemi: BildirimYontemi
+  kaynakIfade: String
+}
+
+input CocukPolitikasiGirdi {
+  yasMin: Float
+  yasMax: Float
+  indirimYuzde: Float
+  ucretsiz: Boolean
+  kosul: String
+}
+
+input IptalKosuluGirdi {
+  kapsam: String
+  gun: Int
+  tazminatAciklama: String
+}
+
+input NoShowGirdi {
+  sorumluTaraf: String
+  tazminatAciklama: String
+}
+
+input OverbookingGirdi {
+  sorumluTaraf: String
+  aciklama: String
+}
+
+input OdemeGirdi {
+  faturaSonrasiGun: Int
+  avansVar: Boolean
+  avansAciklama: String
+}
+
+input SozlesmeGirdi {
+  dosyaAdi: String
+  durum: SozlesmeDurumu
+  meta: SozlesmeMetaGirdi
+  donem: DonemGirdi
+  odaKontenjanlari: [OdaKontenjaniGirdi!]
+  fiyatlar: [FiyatGirdi!]
+  release: ReleaseKuraliGirdi
+  stopSale: [StopSaleAraligiGirdi!]
+  cocukPolitikasi: [CocukPolitikasiGirdi!]
+  iptalKosullari: [IptalKosuluGirdi!]
+  noShow: NoShowGirdi
+  overbooking: OverbookingGirdi
+  odeme: OdemeGirdi
+  cikarimMeta: [CikarimMetaGirdi!]
+}
+
+type Query {
+  sozlesmeler(limit: Int, offset: Int): [Sozlesme!]!
+  sozlesme(id: ID!): Sozlesme
+}
+
+type Mutation {
+  sozlesmeOlustur(girdi: SozlesmeGirdi!): Sozlesme!
+  sozlesmeGuncelle(id: ID!, girdi: SozlesmeGirdi!): Sozlesme!
+  sozlesmeSil(id: ID!): Boolean!
+}

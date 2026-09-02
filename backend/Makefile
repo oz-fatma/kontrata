@@ -1,4 +1,4 @@
-.PHONY: run build test lint tidy
+.PHONY: run build test lint tidy generate
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
@@ -16,3 +16,6 @@ lint:
 
 tidy:
 	go mod tidy
+
+generate:
+	go tool github.com/99designs/gqlgen generate

@@ -41,6 +41,14 @@ func (c *Client) Disconnect(ctx context.Context) error {
 	return nil
 }
 
+// Collection verilen veritabanı ve koleksiyonu döner.
+func (c *Client) Collection(database, name string) *drivermongo.Collection {
+	if c == nil || c.inner == nil {
+		return nil
+	}
+	return c.inner.Database(database).Collection(name)
+}
+
 // Ping sağlık denetimi için kısa süreli erişim kontrolüdür.
 func (c *Client) Ping(ctx context.Context) error {
 	if c == nil || c.inner == nil {

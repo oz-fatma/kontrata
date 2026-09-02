@@ -1,0 +1,310 @@
+# Where are all the schema files located? globs are supported eg  src/**/*.graphqls
+schema:
+  - graph/*.graphqls
+
+# Where should the generated server code go?
+exec:
+  package: graph
+  layout: single-file # Only other option is "follow-schema," ie multi-file.
+
+  # Only for single-file layout:
+  filename: graph/generated.go
+
+  # Only for follow-schema layout:
+  # dir: graph
+  # filename_template: "{name}.generated.go"
+
+  # Optional: Maximum number of goroutines in concurrency to use per child resolvers(default: unlimited)
+  # worker_limit: 1000
+
+# Uncomment to enable federation
+# federation:
+#   filename: graph/federation.go
+#   package: graph
+#   version: 2
+#   options:
+#     # Generate a function to populate @requires fields (cannot be used with computed_requires)
+#     explicit_requires: false
+#     # Generate resolver functions to compute @requires field values (requires version 2 and call_argument_directives_with_null: true)
+#     computed_requires: false
+#     # Default engine for entityResolver generation, can be overridden per entity with @entityResolver(multi: Boolean)
+#     entity_resolver_multi: false
+
+# Where should any generated models go?
+model:
+  filename: graph/model/models_gen.go
+  package: model
+
+  # Optional: Pass in a path to a new gotpl template to use for generating the models
+  # model_template: [your/path/model.gotpl]
+
+# Where should the resolver implementations go?
+resolver:
+  package: graph
+  layout: follow-schema # Only other option is "single-file."
+
+  # Only for single-file layout:
+  # filename: graph/resolver.go
+
+  # Only for follow-schema layout:
+  dir: graph
+  filename_template: "{name}.resolvers.go"
+
+  # Optional: turn on to not generate template comments above resolvers
+  # omit_template_comment: false
+  # Optional: Pass in a path to a new gotpl template to use for generating resolvers
+  # resolver_template: [your/path/resolver.gotpl]
+  # Optional: turn on to avoid rewriting existing resolver(s) when generating
+  # preserve_resolver: false
+  # Optional: turn on to hold the root resolver in a named "r" field instead of embedding it.
+  # Speeds up compilation on large schemas. Turning this on is source-breaking for existing
+  # resolver bodies: dependencies are reached as r.r.myService instead of r.myService.
+  # omit_resolver_embedding: false
+  # Optional: the name of the resolver struct type (default: Resolver)
+  # type: Resolver
+
+# Optional: turn on use ` + "`" + `gqlgen:"fieldName"` + "`" + ` tags in your models
+# struct_tag: json
+
+# Optional: prefix for embedded structs (default: "Base")
+# embedded_structs_prefix: Base
+
+# Optional: custom directive configuration
+# directives:
+#   hasRole:
+#     skip_runtime: false
+
+# Optional: local package prefix for import sorting
+# local_prefix: ""
+
+# Optional: turn on to use []Thing instead of []*Thing
+# omit_slice_element_pointers: false
+
+# Optional: turn on to omit getter methods on models
+# omit_getters: false
+
+# Optional: turn on to omit Is<Name>() methods to interface and unions
+# omit_interface_checks: true
+
+# Optional: turn on to skip generation of ComplexityRoot struct content and Complexity function
+# omit_complexity: false
+
+# Optional: turn on to not generate any file notice comments in generated files
+# omit_gqlgen_file_notice: false
+
+# Optional: turn on to exclude the gqlgen version in the generated file notice. No effect if `omit_gqlgen_file_notice` is true.
+# omit_gqlgen_version_in_file_notice: false
+
+# Optional: turn on to exclude root models such as Query and Mutation from the generated models file.
+# omit_root_models: false
+
+# Optional: turn on to exclude resolver fields from the generated models file.
+# omit_resolver_fields: false
+
+# Optional: turn on to omit panic handler in the generated server
+# omit_panic_handler: false
+
+# Optional: turn on to omit JSON marshaler/unmarshaler generation for enums
+# omit_enum_json_marshalers: false
+
+# Optional: turn off to make struct-type struct fields not use pointers
+# e.g. type Thing struct { FieldA OtherThing } instead of { FieldA *OtherThing }
+# struct_fields_always_pointers: true
+
+# Optional: turn off to make resolvers return values instead of pointers for structs
+# resolvers_always_return_pointers: true
+
+# Optional: turn on to return pointers instead of values in unmarshalInput
+# return_pointers_in_unmarshalinput: false
+
+# Optional: wrap nullable input fields with Omittable
+# nullable_input_omittable: true
+
+# Optional: enable adding omitempty to the json tag of generated model fields
+# enable_model_json_omitempty_tag: false
+
+# Optional: enable adding omitzero to the json tag of generated model fields
+# enable_model_json_omitzero_tag: false
+
+# Optional: set to speed up generation time by not performing a final validation pass.
+# skip_validation: true
+
+# generate sırasında go.mod sürümünün yükselmesini önle
+skip_mod_tidy: true
+
+# Optional: if this is set to true, argument directives that
+# decorate a field with a null value will still be called.
+#
+# This enables argumment directives to not just mutate
+# argument values but to set them even if they're null.
+call_argument_directives_with_null: true
+
+# This enables gql server to use function syntax for execution context
+# instead of generating receiver methods of the execution context.
+# use_function_syntax_for_execution_context: false
+
+# Optional: set build tags that will be used to load packages
+# go_build_tags:
+#  - private
+#  - enterprise
+
+# Optional: set to modify the initialisms regarded for Go names
+# go_initialisms:
+#   replace_defaults: false # if true, the default initialisms will get dropped in favor of the new ones instead of being added
+#   initialisms: # List of initialisms to for Go names
+#     - 'CC'
+#     - 'BCC'
+
+# Optional: enable getter/haser methods for autobind
+# autobind_getter_haser: false
+
+# gqlgen will search for any type names in the schema in these go packages
+# if they match it will use them, otherwise it will generate them.
+autobind:
+#  - "github.com/oz-fatma/kontrata/backend/graph/model"
+
+# This section declares type mapping between the GraphQL and go type systems
+#
+# The first line in each type will be used as defaults for resolver arguments and
+# modelgen, the others will be allowed when binding to fields. Configure them to
+# your liking
+models:
+  ID:
+    model:
+      - github.com/99designs/gqlgen/graphql.ID
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+      - github.com/99designs/gqlgen/graphql.Int32
+  # gqlgen provides a default GraphQL UUID convenience wrapper for github.com/google/uuid 
+  # but you can override this to provide your own GraphQL UUID implementation
+  UUID:
+    model:
+      - github.com/99designs/gqlgen/graphql.UUID
+
+  # The GraphQL spec explicitly states that the Int type is a signed 32-bit
+  # integer. Using Go int or int64 to represent it can lead to unexpected
+  # behavior, and some GraphQL tools like Apollo Router will fail when
+  # communicating numbers that overflow 32-bits.
+  #
+  # You may choose to use the custom, built-in Int64 scalar to represent 64-bit
+  # integers, or ignore the spec and bind Int to graphql.Int / graphql.Int64
+  # (the default behavior of gqlgen). This is fine in simple use cases when you
+  # do not need to worry about interoperability and only expect small numbers.
+  Time:
+    model:
+      - github.com/99designs/gqlgen/graphql.Time
+  Int:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int32
+  Int64:
+    model:
+      - github.com/99designs/gqlgen/graphql.Int
+      - github.com/99designs/gqlgen/graphql.Int64
+  SozlesmeTipi:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipi
+    enum_values:
+      TAMAMEN_GARANTILI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiTamamenGarantili
+      KISMEN_GARANTILI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiKismenGarantili
+      GARANTISIZ:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiGarantisiz
+      ISTEGE_BAGLI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiIstegeBagli
+      SERBEST_SATIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiSerbestSatis
+      BLOK_REZERVASYON:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiBlokRezervasyon
+      BLOK_SATIN_ALMA:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiBlokSatinAlma
+      BELIRTILMEMIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeTipiBelirtilmemis
+  Sezon:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.Sezon
+    enum_values:
+      YAZ:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SezonYaz
+      KIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SezonKis
+      YILLIK:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SezonYillik
+      BELIRTILMEMIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SezonBelirtilmemis
+  KurEsasi:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.KurEsasi
+    enum_values:
+      GIRIS_GUNU_TCMB:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.KurEsasiGirisGunuTcmb
+      CIKIS_GUNU_TCMB:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.KurEsasiCikisGunuTcmb
+      SABIT_KUR:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.KurEsasiSabitKur
+      BELIRTILMEMIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.KurEsasiBelirtilmemis
+  Pansiyon:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.Pansiyon
+    enum_values:
+      RO:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.PansiyonRo
+      BB:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.PansiyonBb
+      HB:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.PansiyonHb
+      FB:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.PansiyonFb
+      AI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.PansiyonAi
+      BELIRTILMEMIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.PansiyonBelirtilmemis
+  FiyatBirimi:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.FiyatBirimi
+    enum_values:
+      ODA_GECELIK:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.FiyatBirimiOdaGecelik
+      KISI_GECELIK:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.FiyatBirimiKisiGecelik
+  ReleaseKapsami:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.ReleaseKapsami
+    enum_values:
+      ISIM_LISTESI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.ReleaseKapsamiIsimListesi
+      KONTENJAN_IADESI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.ReleaseKapsamiKontenjanIadesi
+      HER_IKISI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.ReleaseKapsamiHerIkisi
+      BELIRTILMEMIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.ReleaseKapsamiBelirtilmemis
+  BildirimYontemi:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.BildirimYontemi
+    enum_values:
+      YAZILI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BildirimYontemiYazili
+      FAKS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BildirimYontemiFaks
+      EPOSTA:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BildirimYontemiEposta
+      SISTEM:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BildirimYontemiSistem
+      BELIRTILMEMIS:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BildirimYontemiBelirtilmemis
+  SozlesmeDurumu:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumu
+    enum_values:
+      YUKLENDI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumuYuklendi
+      ISLENIYOR:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumuIsleniyor
+      INCELENMEYI_BEKLIYOR:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumuIncelenmeyiBekliyor
+      ONAYLANDI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumuOnaylandi
+      HATA:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumuHata

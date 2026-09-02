@@ -31,6 +31,14 @@ Sürümü açık vermek için: `make build VERSION=0.1.0`
 | Metot | Yol | Açıklama |
 | --- | --- | --- |
 | `GET` | `/healthz` | Sağlık denetimi. Veritabanı bağlıysa `200` ve `"database":"connected"`; erişilemezse `503` ve `"database":"unreachable"`. |
+| `POST`/`GET` | `/graphql` | GraphQL API. |
+| `GET` | `/playground` | GraphQL Playground. Yalnızca `GRAPHQL_PLAYGROUND=true` iken açık. |
+
+Şema `graph/schema.graphqls` dosyasındadır; Go modelleri ve resolver iskeleti `make generate` ile üretilir.
+
+```sh
+make generate
+```
 
 ## Ortam değişkenleri
 
@@ -38,3 +46,4 @@ Sürümü açık vermek için: `make build VERSION=0.1.0`
 | --- | --- | --- | --- |
 | `PORT` | hayır | `8080` | HTTP dinleme kapısı |
 | `MONGO_URI` | evet | — | MongoDB bağlantı adresi. Günlüğe yazılmaz. |
+| `GRAPHQL_PLAYGROUND` | hayır | kapalı | `true` ise `/playground` açılır. |

@@ -15,8 +15,11 @@ import (
 	"github.com/go-chi/chi/v5"
 	"github.com/joho/godotenv"
 
+	"github.com/oz-fatma/kontrata/backend/graph"
 	"github.com/oz-fatma/kontrata/backend/internal/config"
 	"github.com/oz-fatma/kontrata/backend/internal/mongo"
+	"github.com/oz-fatma/kontrata/backend/internal/repository"
+	"github.com/oz-fatma/kontrata/backend/internal/service"
 )
 
 // version derleme sırasında ldflags ile gömülür; verilmezse "dev".
@@ -37,13 +40,21 @@ func main() {
 	connectCtx, connectCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	db, err := mongo.Connect(connectCtx, cfg.MongoURI)
 	connectCancel()
+	repo := repository.NewSozlesmeRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
+		repo = repository.NewSozlesmeRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
+		idxCtx, idxCancel := context.WithTimeout(context.Background(), 10*time.Second)
+		if err := repo.EnsureIndexes(idxCtx); err != nil {
+			log.Printf("indeksler oluşturulamadı")
+		}
+		idxCancel()
 	}
+	sozlesmeler := service.NewSozlesmeService(repo)
 
-	srv := newServer(cfg, db)
+	srv := newServer(cfg, db, sozlesmeler)
 
 	go func() {
 		log.Printf("sunucu dinliyor addr=:%d", cfg.Port)
@@ -71,13 +82,14 @@ func main() {
 	log.Printf("sunucu durdu")
 }
 
-func newServer(cfg config.Config, db *mongo.Client) *http.Server {
+func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.SozlesmeService) *http.Server {
 	r := chi.NewRouter()
 	r.Use(recoverPanic)
 	r.Use(logRequest)
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		handleHealthz(w, r, db)
 	})
+	graph.RegisterRoutes(r, sozlesmeler, cfg.Playground)
 
 	return &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
