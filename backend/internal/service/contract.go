@@ -170,6 +170,12 @@ func (s *ContractService) Update(ctx context.Context, id string, girdi model.Soz
 	if doc.ProcessingSeconds == nil {
 		doc.ProcessingSeconds = existing.ProcessingSeconds
 	}
+	if len(doc.Findings) == 0 {
+		doc.Findings = existing.Findings
+	}
+	if doc.AuditorSeconds == nil {
+		doc.AuditorSeconds = existing.AuditorSeconds
+	}
 	if len(doc.ExtractionMeta) == 0 {
 		doc.ExtractionMeta = existing.ExtractionMeta
 	}

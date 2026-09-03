@@ -114,3 +114,20 @@ textarea:focus {
 .hairline {
   border: 0.5px solid var(--line);
 }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spinner {
+  display: inline-block;
+  width: 0.75rem;
+  height: 0.75rem;
+  flex-shrink: 0;
+  border: 1.5px solid var(--line);
+  border-top-color: var(--muted);
+  border-radius: 999px;
+  animation: spin 0.7s linear infinite;
+}

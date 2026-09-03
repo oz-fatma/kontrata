@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
   SozlesmeDocument,
@@ -12,12 +12,16 @@ import { useAuth } from "@/lib/auth";
 import { AuthExpiredError, gqlRequest, graphqlMessage } from "@/lib/client";
 import {
   enumLabel,
+  findingSourceLabel,
+  findingTone,
   formatDateTime,
   formatPeriod,
+  isExtractPending,
   missingField,
   statusLabel,
   statusTone,
 } from "@/lib/format";
+import { usePolling } from "@/lib/use-polling";
 import { AppShell } from "@/components/shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
@@ -42,42 +46,50 @@ function ContractDetail() {
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  async function load() {
-    if (!id) {
-      setRow(null);
-      return;
-    }
-    setError(null);
-    try {
-      const data = await gqlRequest(SozlesmeDocument, { id });
-      setRow(data.sozlesme ?? null);
-    } catch (err) {
-      if (err instanceof AuthExpiredError) {
+  const load = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!id) {
+        setRow(null);
         return;
       }
-      setError(graphqlMessage(err));
-      setRow(null);
-    }
-  }
+      if (!opts?.silent) {
+        setError(null);
+      }
+      try {
+        const data = await gqlRequest(SozlesmeDocument, { id });
+        const next = data.sozlesme ?? null;
+        setRow((prev) => {
+          if (
+            prev &&
+            next &&
+            prev.id === next.id &&
+            prev.durum === next.durum &&
+            prev.guncellemeTarihi === next.guncellemeTarihi &&
+            prev.denetciSuresi === next.denetciSuresi &&
+            (prev.bulgular?.length ?? 0) === (next.bulgular?.length ?? 0)
+          ) {
+            return prev;
+          }
+          return next;
+        });
+      } catch (err) {
+        if (err instanceof AuthExpiredError) {
+          return;
+        }
+        if (!opts?.silent) {
+          setError(graphqlMessage(err));
+          setRow(null);
+        }
+      }
+    },
+    [id],
+  );
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id]);
+  }, [load]);
 
-  useEffect(() => {
-    const waiting =
-      row?.durum === SozlesmeDurumu.Isleniyor ||
-      row?.durum === SozlesmeDurumu.Yuklendi;
-    if (!waiting) {
-      return;
-    }
-    const t = window.setInterval(() => {
-      void load();
-    }, 3000);
-    return () => window.clearInterval(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [id, row?.durum]);
+  usePolling(() => load({ silent: true }), isExtractPending(row?.durum));
 
   const fields = useMemo(() => (row ? fieldRows(row) : []), [row]);
 
@@ -138,9 +150,8 @@ function ContractDetail() {
     );
   }
 
-  const processing =
-    row.durum === SozlesmeDurumu.Isleniyor ||
-    row.durum === SozlesmeDurumu.Yuklendi;
+  const processing = isExtractPending(row.durum);
+  const findings = row.bulgular ?? [];
 
   return (
     <div>
@@ -175,25 +186,33 @@ function ContractDetail() {
 
         <aside className="bg-[var(--subtle)] px-3 py-3">
           <h2 className="mb-2">Denetçi bulguları</h2>
-          <FindingCard
-            tone="red"
-            title="Kritik madde"
-            body="Denetçi çıktısı Aşama 8’de bağlanacak."
-          />
-          <FindingCard
-            tone="yellow"
-            title="Uyarı"
-            body="Denetçi çıktısı Aşama 8’de bağlanacak."
-          />
+          {processing ? (
+            <p className="text-[13px] text-[var(--muted)]">Denetçi henüz çalışmadı.</p>
+          ) : findings.length === 0 ? (
+            <p className="text-[13px] text-[var(--muted)]">Bulgu yok</p>
+          ) : (
+            findings.map((f) => (
+              <FindingCard
+                key={`${f.kod}-${f.alanYolu ?? ""}-${f.baslik}`}
+                tone={findingTone(f.onem)}
+                title={f.baslik}
+                body={f.aciklama}
+                source={findingSourceLabel(f.kaynak)}
+              />
+            ))
+          )}
           <div className="mt-3 border-t-[0.5px] border-[var(--line)] pt-2 text-[12px] text-[var(--muted)]">
-            <p>0 bulgu</p>
+            <p>{processing ? "—" : `${findings.length} bulgu`}</p>
             <p>
               Okuyucu süresi{" "}
               {row.islemSuresi != null
                 ? `${Math.round(row.islemSuresi)} sn`
                 : "—"}
             </p>
-            <p>Denetçi süresi —</p>
+            <p>
+              Denetçi süresi{" "}
+              {row.denetciSuresi != null ? `${row.denetciSuresi} sn` : "—"}
+            </p>
             {row.semaHatalari && row.semaHatalari.length > 0 ? (
               <p>Şema hataları: {row.semaHatalari.length}</p>
             ) : null}

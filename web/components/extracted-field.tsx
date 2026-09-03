@@ -31,6 +31,7 @@ export function ExtractedField({
   const display = empty ? missingField() : value;
   const [draft, setDraft] = useState(display);
   const source = confidenceLabel(meta?.kaynakSayfa, score);
+  const lines = display.split("\n");
 
   return (
     <div
@@ -49,15 +50,30 @@ export function ExtractedField({
           <label htmlFor={`alan-${path}`} className="sr-only">
             {label}
           </label>
-          <input
-            id={`alan-${path}`}
-            value={draft}
-            onChange={(e) => setDraft(e.target.value)}
-          />
+          {lines.length > 1 ? (
+            <textarea
+              id={`alan-${path}`}
+              value={draft}
+              rows={Math.min(8, lines.length)}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+          ) : (
+            <input
+              id={`alan-${path}`}
+              value={draft}
+              onChange={(e) => setDraft(e.target.value)}
+            />
+          )}
           <p className="mt-1 text-[12px] text-[var(--yellow-ink)]">
             Düşük güven, kontrol edin
           </p>
         </div>
+      ) : lines.length > 1 ? (
+        <ul className="mt-0.5 list-none text-[14px]">
+          {lines.map((line, i) => (
+            <li key={`${path}-${i}`}>{line}</li>
+          ))}
+        </ul>
       ) : (
         <p className="mt-0.5 text-[14px]">{display}</p>
       )}

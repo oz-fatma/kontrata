@@ -89,6 +89,18 @@ func NewHFEndpoint(endpointURL, token string, maxTokens int, timeout time.Durati
 	}
 }
 
+// LimitTokens HuggingFace istemcisinin kopyasını verilen token üst sınırıyla döner.
+// Diğer Client uygulamaları olduğu gibi bırakılır.
+func LimitTokens(c Client, n int) Client {
+	hf, ok := c.(*HFEndpoint)
+	if !ok || hf == nil || n <= 0 {
+		return c
+	}
+	cp := *hf
+	cp.MaxNewTokens = n
+	return &cp
+}
+
 // Generate sohbet şablonunu kurar, endpoint'e gönderir ve üretilen metni döner.
 // Prompt ve çıktı loglanmaz; yalnızca gecikme, karakter sayısı ve hata durumu yazılır.
 func (c *HFEndpoint) Generate(ctx context.Context, systemPrompt, userPrompt string) (string, error) {

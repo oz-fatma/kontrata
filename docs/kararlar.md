@@ -154,5 +154,14 @@ Bağlam: Karar 20 üretim prompt'unu eğitimden ayırmıştı. İngilizce sözle
 Karar: `SYSTEM_PROMPT` eğitim defteri, `evaluate.py` ve Okuyucu agent'ta aynıdır. `generate.py` dil oranı %50/%50; İngilizce metinde oda tipleri İngilizce, `cikti` Türkçe kalır.
 Sonuç: Yeniden eğitim bu hizalamayı modele taşır.
 
+## 23. Denetçi karma kural + LLM
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Okuyucu şemaya çevirir; çelişki, eksik madde ve belirsiz ifade ayrı bir denetim ister. Tamamen LLM hem yavaş hem de tarih/tablo hatalarında tutarsız kalır.
+Karar: Denetçi iki katmanlıdır. Altı kural Go'da deterministik çalışır (tarih çelişkisi, alt dönem taşması, fiyat–kontenjan uyuşmazlığı, boş stop-sale, makul olmayan release, zorunlu alan). Yoruma dayalı denetim ayrı sistem prompt'u ve 300 token ile LLM'dedir; kurallarla çakışan konular istenmez. LLM çıktısı ayrışmazsa veya model hata verirse kural bulguları yine yazılır; sözleşme HATA olmaz. Onay kullanıcıdadır: çıkarım başarılıysa durum her zaman INCELENMEYI_BEKLIYOR.
+Sonuç: Bulgular sözleşme kaydına ve GraphQL `bulgular` alanına yazılır.
+
+
+
 
 

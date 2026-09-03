@@ -12,6 +12,9 @@ func TestSYSTEM_PROMPTHasExampleJSON(t *testing.T) {
 	if !strings.Contains(SYSTEM_PROMPT, `"oda_kontenjanlari"`) {
 		t.Fatal("örnek JSON yok")
 	}
+	if !strings.Contains(SYSTEM_PROMPT, `"meta"`) || !strings.Contains(SYSTEM_PROMPT, `"otel_adi"`) {
+		t.Fatal("örnek çıktıda meta yok")
+	}
 	if strings.Contains(SYSTEM_PROMPT, "Çekirdek alanlar") {
 		t.Fatal("eğitimdeki uzun şema özeti kullanılmamalı")
 	}

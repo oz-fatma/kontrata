@@ -1,0 +1,2 @@
+
+{"donem": {"baslangic": "2026-04-01", "bitis": "2026-10-31"}, "alt_donemler": []}, "oda_kontenjanlari": [{"oda_tipi": "standart", "adet": 170}, {"oda_tipi": "suit", "adet": 20}, {"oda_tipi": "balayi", "adet": 5}, {"oda_tipi": "özürlü", "adet": 1}], "fiyatlar": [{"oda_tipi": "standart", "pansiyon": "RO", "tutar": 50.0, "birim": "oda_gecelik"}], "release": {"gun": 10, "kapsam": "isim_listesi"}}}

@@ -115,6 +115,22 @@ func fromInput(g model.SozlesmeGirdi) repository.Contract {
 	return doc
 }
 
+func mapModelFindings(in []repository.Finding) []*model.Bulgu {
+	out := make([]*model.Bulgu, 0, len(in))
+	for i := range in {
+		f := in[i]
+		out = append(out, &model.Bulgu{
+			Kod:      f.Code,
+			Baslik:   f.Title,
+			Aciklama: f.Description,
+			Onem:     model.BulguOnemi(f.Severity),
+			Kaynak:   model.BulguKaynagi(f.Source),
+			AlanYolu: f.FieldPath,
+		})
+	}
+	return out
+}
+
 func toModel(doc *repository.Contract) *model.Sozlesme {
 	if doc == nil {
 		return nil
@@ -128,6 +144,7 @@ func toModel(doc *repository.Contract) *model.Sozlesme {
 		OdaKontenjanlari: []*model.OdaKontenjani{},
 		Fiyatlar:         []*model.Fiyat{},
 		StopSale:         []*model.StopSaleAraligi{},
+		Bulgular:         []*model.Bulgu{},
 	}
 	if doc.Meta != nil {
 		out.Meta = &model.SozlesmeMeta{
@@ -152,6 +169,8 @@ func toModel(doc *repository.Contract) *model.Sozlesme {
 	out.Duzeltmeler = append([]string{}, doc.Repairs...)
 	out.SemaHatalari = append([]string{}, doc.SchemaErrors...)
 	out.IslemSuresi = doc.ProcessingSeconds
+	out.DenetciSuresi = doc.AuditorSeconds
+	out.Bulgular = mapModelFindings(doc.Findings)
 	for i := range doc.RoomAllotments {
 		o := doc.RoomAllotments[i]
 		out.OdaKontenjanlari = append(out.OdaKontenjanlari, &model.OdaKontenjani{OdaTipi: o.RoomType, Adet: o.Quantity, Aciklama: o.Description})

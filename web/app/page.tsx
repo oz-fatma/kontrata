@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   SozlesmeSilDocument,
@@ -14,11 +14,15 @@ import { AuthExpiredError, gqlRequest, graphqlMessage } from "@/lib/client";
 import {
   formatDateTime,
   formatPeriod,
+  isExtractPending,
+  listFindingCell,
   statusLabel,
   statusTone,
 } from "@/lib/format";
+import { usePolling } from "@/lib/use-polling";
 import { AppShell } from "@/components/shell";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
+import { Spinner } from "@/components/spinner";
 import { StatusBadge } from "@/components/status-badge";
 
 type Row = SozlesmelerQuery["sozlesmeler"][number];
@@ -31,6 +35,38 @@ export default function HomePage() {
   );
 }
 
+function listRowKey(row: Row): string {
+  return [
+    row.id,
+    row.durum,
+    row.dosyaAdi ?? "",
+    row.olusturmaTarihi,
+    row.guncellemeTarihi,
+    row.meta?.acenteAdi ?? "",
+    row.meta?.otelAdi ?? "",
+    row.donem?.baslangic ?? "",
+    row.donem?.bitis ?? "",
+    (row.bulgular ?? []).map((f) => f.onem).join(","),
+  ].join("\0");
+}
+
+function reuseListRows(prev: Row[] | null, next: Row[]): Row[] {
+  if (!prev) {
+    return next;
+  }
+  if (
+    prev.length === next.length &&
+    prev.every((row, i) => row.id === next[i].id && listRowKey(row) === listRowKey(next[i]))
+  ) {
+    return prev;
+  }
+  const prevById = new Map(prev.map((row) => [row.id, row]));
+  return next.map((row) => {
+    const old = prevById.get(row.id);
+    return old && listRowKey(old) === listRowKey(row) ? old : row;
+  });
+}
+
 function ContractList() {
   const { org, canWrite } = useAuth();
   const router = useRouter();
@@ -41,27 +77,36 @@ function ContractList() {
   const [status, setStatus] = useState("all");
   const [busy, setBusy] = useState(false);
 
-  const load = async () => {
-    setError(null);
-    try {
-      const data = await gqlRequest(SozlesmelerDocument, {
-        limit: 100,
-        offset: 0,
-      });
-      setRows(data.sozlesmeler);
-    } catch (err) {
-      if (err instanceof AuthExpiredError) {
-        router.replace("/giris/");
-        return;
+  const load = useCallback(
+    async (opts?: { silent?: boolean }) => {
+      if (!opts?.silent) {
+        setError(null);
       }
-      setError(graphqlMessage(err));
-    }
-  };
+      try {
+        const data = await gqlRequest(SozlesmelerDocument, {
+          limit: 100,
+          offset: 0,
+        });
+        setRows((prev) => reuseListRows(prev, data.sozlesmeler ?? []));
+      } catch (err) {
+        console.error("sozlesmeler sorgu hatasi", err);
+        if (err instanceof AuthExpiredError) {
+          router.replace("/giris/");
+          return;
+        }
+        if (!opts?.silent) {
+          setError(graphqlMessage(err));
+        }
+      }
+    },
+    [router],
+  );
 
   useEffect(() => {
     void load();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [load]);
+
+  usePolling(() => load({ silent: true }), true);
 
   const filtered = useMemo(() => {
     if (!rows) {
@@ -80,6 +125,13 @@ function ContractList() {
     });
   }, [rows, query, status]);
 
+  const onOpen = useCallback(
+    (id: string) => {
+      router.push(`/sozlesme/?id=${encodeURIComponent(id)}`);
+    },
+    [router],
+  );
+
   async function onUpload(file: File) {
     setBusy(true);
     setError(null);
@@ -93,18 +145,21 @@ function ContractList() {
     }
   }
 
-  async function onDelete(id: string, e: React.MouseEvent) {
-    e.stopPropagation();
-    if (!window.confirm("Bu sözleşmeyi silmek istiyor musunuz?")) {
-      return;
-    }
-    try {
-      await gqlRequest(SozlesmeSilDocument, { id });
-      await load();
-    } catch (err) {
-      setError(graphqlMessage(err));
-    }
-  }
+  const onDelete = useCallback(
+    async (id: string, e: React.MouseEvent) => {
+      e.stopPropagation();
+      if (!window.confirm("Bu sözleşmeyi silmek istiyor musunuz?")) {
+        return;
+      }
+      try {
+        await gqlRequest(SozlesmeSilDocument, { id });
+        await load();
+      } catch (err) {
+        setError(graphqlMessage(err));
+      }
+    },
+    [load],
+  );
 
   return (
     <div>
@@ -200,53 +255,87 @@ function ContractList() {
               </tr>
             </thead>
             <tbody>
-              {filtered.map((row) => {
-                const processing = row.durum === SozlesmeDurumu.Isleniyor;
-                return (
-                  <tr
-                    key={row.id}
-                    className="cursor-pointer border-b-[0.5px] border-[var(--line)] last:border-0 hover:bg-[var(--subtle)]"
-                    onClick={() => router.push(`/sozlesme/?id=${encodeURIComponent(row.id)}`)}
-                  >
-                    <td className="px-3 py-2">
-                      <div className="font-medium">{row.dosyaAdi || "Adsız dosya"}</div>
-                      <div className="text-[12px] text-[var(--muted)]">
-                        {row.meta?.acenteAdi || row.meta?.otelAdi || "Operatör yok"}
-                        {" · "}
-                        {formatDateTime(row.olusturmaTarihi)}
-                      </div>
-                    </td>
-                    <td className="px-3 py-2">
-                      {processing
-                        ? "—"
-                        : formatPeriod(row.donem?.baslangic, row.donem?.bitis)}
-                    </td>
-                    <td className="px-3 py-2">{processing ? "—" : "—"}</td>
-                    <td className="px-3 py-2">
-                      <StatusBadge
-                        label={statusLabel(row.durum)}
-                        tone={statusTone(row.durum)}
-                      />
-                    </td>
-                    {canWrite ? (
-                      <td className="px-3 py-2">
-                        <button
-                          type="button"
-                          className="btn btn-danger"
-                          aria-label="Sözleşmeyi sil"
-                          onClick={(e) => void onDelete(row.id, e)}
-                        >
-                          Sil
-                        </button>
-                      </td>
-                    ) : null}
-                  </tr>
-                );
-              })}
+              {filtered.map((row) => (
+                <ContractRow
+                  key={row.id}
+                  row={row}
+                  canWrite={canWrite}
+                  onOpen={onOpen}
+                  onDelete={onDelete}
+                />
+              ))}
             </tbody>
           </table>
         </div>
       ) : null}
     </div>
   );
+}
+
+const ContractRow = memo(function ContractRow({
+  row,
+  canWrite,
+  onOpen,
+  onDelete,
+}: {
+  row: Row;
+  canWrite: boolean;
+  onOpen: (id: string) => void;
+  onDelete: (id: string, e: React.MouseEvent) => void;
+}) {
+  const processing = isExtractPending(row.durum);
+  return (
+    <tr
+      className="cursor-pointer border-b-[0.5px] border-[var(--line)] last:border-0 hover:bg-[var(--subtle)]"
+      onClick={() => onOpen(row.id)}
+    >
+      <td className="px-3 py-2">
+        <div className="font-medium">{row.dosyaAdi || "Adsız dosya"}</div>
+        <div className="text-[12px] text-[var(--muted)]">
+          {row.meta?.acenteAdi || row.meta?.otelAdi || "Operatör yok"}
+          {" · "}
+          {formatDateTime(row.olusturmaTarihi)}
+        </div>
+      </td>
+      <td className="px-3 py-2">
+        {processing ? "—" : formatPeriod(row.donem?.baslangic, row.donem?.bitis)}
+      </td>
+      <td className="px-3 py-2">
+        {processing ? (
+          "—"
+        ) : (
+          <FindingCount findings={row.bulgular} />
+        )}
+      </td>
+      <td className="px-3 py-2">
+        <span className="inline-flex items-center gap-1.5">
+          {processing ? <Spinner /> : null}
+          <StatusBadge label={statusLabel(row.durum)} tone={statusTone(row.durum)} />
+        </span>
+      </td>
+      {canWrite ? (
+        <td className="px-3 py-2">
+          <button
+            type="button"
+            className="btn btn-danger"
+            aria-label="Sözleşmeyi sil"
+            onClick={(e) => void onDelete(row.id, e)}
+          >
+            Sil
+          </button>
+        </td>
+      ) : null}
+    </tr>
+  );
+});
+
+function FindingCount({ findings }: { findings: Row["bulgular"] }) {
+  const cell = listFindingCell(findings);
+  const color =
+    cell.tone === "red"
+      ? "var(--red)"
+      : cell.tone === "yellow"
+        ? "var(--yellow)"
+        : "var(--muted)";
+  return <span style={{ color }}>{cell.text}</span>;
 }

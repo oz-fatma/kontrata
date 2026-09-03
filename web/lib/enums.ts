@@ -16,3 +16,14 @@ export const SozlesmeDurumu = {
   Onaylandi: "ONAYLANDI",
   Hata: "HATA",
 } as const;
+
+export const BulguOnemi = {
+  Kritik: "KRITIK",
+  Uyari: "UYARI",
+  Bilgi: "BILGI",
+} as const;
+
+export const BulguKaynagi = {
+  Kural: "KURAL",
+  Model: "MODEL",
+} as const;

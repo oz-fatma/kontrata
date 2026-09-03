@@ -1,5 +1,5 @@
 import type { SozlesmeDurumu as ContractStatus } from "@/generated/graphql";
-import { SozlesmeDurumu } from "@/lib/enums";
+import { BulguKaynagi, BulguOnemi, SozlesmeDurumu } from "@/lib/enums";
 
 export function formatUserAgent(ua: string | null | undefined): string {
   if (!ua?.trim()) {
@@ -92,6 +92,10 @@ export function statusTone(durum: ContractStatus): StatusTone {
   }
 }
 
+export function isExtractPending(durum: string | null | undefined): boolean {
+  return durum === "YUKLENDI" || durum === "ISLENIYOR";
+}
+
 export function confidenceLabel(
   page: number | null | undefined,
   score: number | null | undefined,
@@ -108,6 +112,36 @@ export function confidenceLabel(
 
 export function missingField(): string {
   return "Sözleşmede madde yok";
+}
+
+export function findingTone(onem: string | null | undefined): "red" | "yellow" | "muted" {
+  if (onem === BulguOnemi.Kritik) {
+    return "red";
+  }
+  if (onem === BulguOnemi.Uyari) {
+    return "yellow";
+  }
+  return "muted";
+}
+
+export function findingSourceLabel(kaynak: string | null | undefined): "kural" | "model" {
+  return kaynak === BulguKaynagi.Model ? "model" : "kural";
+}
+
+export function listFindingCell(
+  findings: { onem: string }[] | null | undefined,
+): { text: string; tone: "red" | "yellow" | "muted" } {
+  if (!findings || findings.length === 0) {
+    return { text: "Bulgu yok", tone: "muted" };
+  }
+  const text = `${findings.length} bulgu`;
+  if (findings.some((f) => f.onem === BulguOnemi.Kritik)) {
+    return { text, tone: "red" };
+  }
+  if (findings.some((f) => f.onem === BulguOnemi.Uyari)) {
+    return { text, tone: "yellow" };
+  }
+  return { text, tone: "muted" };
 }
 
 export function roleLabel(rol: string): string {

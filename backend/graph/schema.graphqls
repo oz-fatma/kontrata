@@ -63,6 +63,26 @@ enum SozlesmeDurumu {
   HATA
 }
 
+enum BulguOnemi {
+  KRITIK
+  UYARI
+  BILGI
+}
+
+enum BulguKaynagi {
+  KURAL
+  MODEL
+}
+
+type Bulgu {
+  kod: String!
+  baslik: String!
+  aciklama: String!
+  onem: BulguOnemi!
+  kaynak: BulguKaynagi!
+  alanYolu: String
+}
+
 type CikarimMeta {
   alanYolu: String!
   guven: Float
@@ -172,6 +192,8 @@ type Sozlesme {
   duzeltmeler: [String!]
   semaHatalari: [String!]
   islemSuresi: Float
+  bulgular: [Bulgu!]!
+  denetciSuresi: Int
 }
 
 input CikarimMetaGirdi {

@@ -2,6 +2,7 @@ package service
 
 import (
 	"fmt"
+	"log"
 	"strings"
 
 	"github.com/oz-fatma/kontrata/backend/internal/agent"
@@ -36,6 +37,48 @@ func applyExtract(doc *repository.Contract, res *agent.ExtractResult) {
 	doc.SchemaErrors = append([]string{}, res.SchemaErrors...)
 	sec := res.Duration.Seconds()
 	doc.ProcessingSeconds = &sec
+}
+
+func applyAudit(doc *repository.Contract, res *agent.AuditResult) {
+	if doc == nil || res == nil {
+		return
+	}
+	doc.Findings = mapFindings(res.Findings)
+	total := res.RuleDuration + res.ModelDuration
+	sec := int32(total.Seconds())
+	if total > 0 && sec == 0 {
+		sec = 1
+	}
+	doc.AuditorSeconds = &sec
+}
+
+func applyAuditOutcome(doc *repository.Contract, res *agent.AuditResult, err error) {
+	if doc == nil {
+		return
+	}
+	if err != nil {
+		log.Printf("denetci atlandi: %v", err)
+		return
+	}
+	applyAudit(doc, res)
+}
+
+func mapFindings(in []agent.Finding) []repository.Finding {
+	out := make([]repository.Finding, 0, len(in))
+	for _, f := range in {
+		item := repository.Finding{
+			Code:        f.Code,
+			Title:       f.Title,
+			Description: f.Description,
+			Severity:    f.Severity,
+			Source:      f.Source,
+		}
+		if p := strings.TrimSpace(f.FieldPath); p != "" {
+			item.FieldPath = &p
+		}
+		out = append(out, item)
+	}
+	return out
 }
 
 func mapExtractMeta(in []agent.FieldMeta) []repository.ExtractionMeta {

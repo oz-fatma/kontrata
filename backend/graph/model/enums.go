@@ -80,3 +80,18 @@ const (
 	SozlesmeDurumuOnaylandi           SozlesmeDurumu = "ONAYLANDI"
 	SozlesmeDurumuHata                SozlesmeDurumu = "HATA"
 )
+
+type BulguOnemi string
+
+const (
+	BulguOnemiKritik BulguOnemi = "KRITIK"
+	BulguOnemiUyari  BulguOnemi = "UYARI"
+	BulguOnemiBilgi  BulguOnemi = "BILGI"
+)
+
+type BulguKaynagi string
+
+const (
+	BulguKaynagiKural BulguKaynagi = "KURAL"
+	BulguKaynagiModel BulguKaynagi = "MODEL"
+)

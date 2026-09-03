@@ -1,4 +1,4 @@
-// Package agent Okuyucu çıkarım motorunu çalıştırır.
+// Package agent Okuyucu çıkarım ve Denetçi denetim motorlarını çalıştırır.
 package agent
 
 import (

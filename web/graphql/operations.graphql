@@ -15,6 +15,9 @@ query Sozlesmeler($limit: Int, $offset: Int) {
       baslangic
       bitis
     }
+    bulgular {
+      onem
+    }
   }
 }
 
@@ -77,6 +80,15 @@ query Sozlesme($id: ID!) {
     duzeltmeler
     semaHatalari
     islemSuresi
+    denetciSuresi
+    bulgular {
+      kod
+      baslik
+      aciklama
+      onem
+      kaynak
+      alanYolu
+    }
   }
 }
 

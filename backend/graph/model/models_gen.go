@@ -22,6 +22,15 @@ type AltDonemGirdi struct {
 	Bitis     string `json:"bitis"`
 }
 
+type Bulgu struct {
+	Kod      string       `json:"kod"`
+	Baslik   string       `json:"baslik"`
+	Aciklama string       `json:"aciklama"`
+	Onem     BulguOnemi   `json:"onem"`
+	Kaynak   BulguKaynagi `json:"kaynak"`
+	AlanYolu *string      `json:"alanYolu,omitempty"`
+}
+
 type Cihaz struct {
 	ID             string    `json:"id"`
 	Ad             string    `json:"ad"`
@@ -217,6 +226,8 @@ type Sozlesme struct {
 	Duzeltmeler      []string           `json:"duzeltmeler,omitempty"`
 	SemaHatalari     []string           `json:"semaHatalari,omitempty"`
 	IslemSuresi      *float64           `json:"islemSuresi,omitempty"`
+	Bulgular         []*Bulgu           `json:"bulgular"`
+	DenetciSuresi    *int32             `json:"denetciSuresi,omitempty"`
 }
 
 type SozlesmeGirdi struct {

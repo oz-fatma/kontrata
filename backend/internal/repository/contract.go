@@ -50,6 +50,18 @@ type Contract struct {
 	Repairs           []string           `bson:"duzeltmeler,omitempty"`
 	SchemaErrors      []string           `bson:"semaHatalari,omitempty"`
 	ProcessingSeconds *float64           `bson:"islemSuresi,omitempty"`
+	Findings          []Finding          `bson:"bulgular,omitempty"`
+	AuditorSeconds    *int32             `bson:"denetciSuresi,omitempty"`
+}
+
+// Finding Denetçi çıktısının Mongo belgesidir.
+type Finding struct {
+	Code        string  `bson:"kod"`
+	Title       string  `bson:"baslik"`
+	Description string  `bson:"aciklama"`
+	Severity    string  `bson:"onem"`
+	Source      string  `bson:"kaynak"`
+	FieldPath   *string `bson:"alanYolu,omitempty"`
 }
 
 type ContractMeta struct {

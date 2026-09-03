@@ -311,3 +311,21 @@ models:
         value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumuOnaylandi
       HATA:
         value: github.com/oz-fatma/kontrata/backend/graph/model.SozlesmeDurumuHata
+  BulguOnemi:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.BulguOnemi
+    enum_values:
+      KRITIK:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BulguOnemiKritik
+      UYARI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BulguOnemiUyari
+      BILGI:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BulguOnemiBilgi
+  BulguKaynagi:
+    model:
+      - github.com/oz-fatma/kontrata/backend/graph/model.BulguKaynagi
+    enum_values:
+      KURAL:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BulguKaynagiKural
+      MODEL:
+        value: github.com/oz-fatma/kontrata/backend/graph/model.BulguKaynagiModel

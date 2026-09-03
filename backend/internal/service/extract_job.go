@@ -81,6 +81,9 @@ func (s *ContractService) runExtract(id string) {
 		return
 	}
 	applyExtract(doc, res)
+	doc.Findings = nil
+	doc.AuditorSeconds = nil
+	s.runAudit(ctx, doc, res.Data, pages)
 	if len(res.SchemaErrors) > 0 {
 		doc.Status = string(model.SozlesmeDurumuHata)
 	} else {
@@ -91,8 +94,8 @@ func (s *ContractService) runExtract(id string) {
 		log.Printf("cikarma kayit yazilamadi: %v", err)
 		return
 	}
-	log.Printf("cikarma bitti durum=%s sure=%s duzeltme=%d hata=%d deneme=%d",
-		doc.Status, res.Duration, len(res.Repairs), len(res.SchemaErrors), res.RetryCount)
+	log.Printf("cikarma bitti durum=%s sure=%s duzeltme=%d hata=%d deneme=%d bulgu=%d",
+		doc.Status, res.Duration, len(res.Repairs), len(res.SchemaErrors), res.RetryCount, len(doc.Findings))
 }
 
 func (s *ContractService) readPages(storedID string) ([]string, error) {
@@ -109,6 +112,20 @@ func (s *ContractService) readPages(storedID string) ([]string, error) {
 		}
 	}()
 	return pdf.ExtractText(f)
+}
+
+func (s *ContractService) runAudit(ctx context.Context, doc *repository.Contract, data map[string]any, pages []string) {
+	if doc == nil {
+		return
+	}
+	a := &agent.Auditor{LLM: llm.LimitTokens(s.llm, agent.AuditorMaxTokens)}
+	res, err := a.Audit(ctx, data, pages)
+	applyAuditOutcome(doc, res, err)
+	n := 0
+	if res != nil {
+		n = len(res.Findings)
+	}
+	log.Printf("denetci kaydedildi bulgu=%d", n)
 }
 
 func (s *ContractService) failExtract(ctx context.Context, doc *repository.Contract, errs []string, res *agent.ExtractResult) {

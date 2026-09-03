@@ -45,6 +45,15 @@ type ComplexityRoot struct {
 		Bitis     func(childComplexity int) int
 	}
 
+	Bulgu struct {
+		Aciklama func(childComplexity int) int
+		AlanYolu func(childComplexity int) int
+		Baslik   func(childComplexity int) int
+		Kaynak   func(childComplexity int) int
+		Kod      func(childComplexity int) int
+		Onem     func(childComplexity int) int
+	}
+
 	Cihaz struct {
 		Ad             func(childComplexity int) int
 		Guvenilir      func(childComplexity int) int
@@ -188,8 +197,10 @@ type ComplexityRoot struct {
 	}
 
 	Sozlesme struct {
+		Bulgular         func(childComplexity int) int
 		CikarimMeta      func(childComplexity int) int
 		CocukPolitikasi  func(childComplexity int) int
+		DenetciSuresi    func(childComplexity int) int
 		Donem            func(childComplexity int) int
 		DosyaAdi         func(childComplexity int) int
 		Durum            func(childComplexity int) int
@@ -313,6 +324,43 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.AltDonem.Bitis(childComplexity), true
+
+	case "Bulgu.aciklama":
+		if e.ComplexityRoot.Bulgu.Aciklama == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Bulgu.Aciklama(childComplexity), true
+	case "Bulgu.alanYolu":
+		if e.ComplexityRoot.Bulgu.AlanYolu == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Bulgu.AlanYolu(childComplexity), true
+	case "Bulgu.baslik":
+		if e.ComplexityRoot.Bulgu.Baslik == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Bulgu.Baslik(childComplexity), true
+	case "Bulgu.kaynak":
+		if e.ComplexityRoot.Bulgu.Kaynak == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Bulgu.Kaynak(childComplexity), true
+	case "Bulgu.kod":
+		if e.ComplexityRoot.Bulgu.Kod == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Bulgu.Kod(childComplexity), true
+	case "Bulgu.onem":
+		if e.ComplexityRoot.Bulgu.Onem == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Bulgu.Onem(childComplexity), true
 
 	case "Cihaz.ad":
 		if e.ComplexityRoot.Cihaz.Ad == nil {
@@ -971,6 +1019,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.ReleaseKurali.KaynakIfade(childComplexity), true
 
+	case "Sozlesme.bulgular":
+		if e.ComplexityRoot.Sozlesme.Bulgular == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Sozlesme.Bulgular(childComplexity), true
 	case "Sozlesme.cikarimMeta":
 		if e.ComplexityRoot.Sozlesme.CikarimMeta == nil {
 			break
@@ -983,6 +1037,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Sozlesme.CocukPolitikasi(childComplexity), true
+	case "Sozlesme.denetciSuresi":
+		if e.ComplexityRoot.Sozlesme.DenetciSuresi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Sozlesme.DenetciSuresi(childComplexity), true
 	case "Sozlesme.donem":
 		if e.ComplexityRoot.Sozlesme.Donem == nil {
 			break
@@ -1325,6 +1385,24 @@ func (ec *executionContext) childFields_AltDonem(ctx context.Context, field grap
 	return nil, fmt.Errorf("no field named %q was found under type AltDonem", field.Name)
 }
 
+func (ec *executionContext) childFields_Bulgu(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "kod":
+		return ec.fieldContext_Bulgu_kod(ctx, field)
+	case "baslik":
+		return ec.fieldContext_Bulgu_baslik(ctx, field)
+	case "aciklama":
+		return ec.fieldContext_Bulgu_aciklama(ctx, field)
+	case "onem":
+		return ec.fieldContext_Bulgu_onem(ctx, field)
+	case "kaynak":
+		return ec.fieldContext_Bulgu_kaynak(ctx, field)
+	case "alanYolu":
+		return ec.fieldContext_Bulgu_alanYolu(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Bulgu", field.Name)
+}
+
 func (ec *executionContext) childFields_Cihaz(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "id":
@@ -1577,6 +1655,10 @@ func (ec *executionContext) childFields_Sozlesme(ctx context.Context, field grap
 		return ec.fieldContext_Sozlesme_semaHatalari(ctx, field)
 	case "islemSuresi":
 		return ec.fieldContext_Sozlesme_islemSuresi(ctx, field)
+	case "bulgular":
+		return ec.fieldContext_Sozlesme_bulgular(ctx, field)
+	case "denetciSuresi":
+		return ec.fieldContext_Sozlesme_denetciSuresi(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Sozlesme", field.Name)
 }
@@ -2294,6 +2376,144 @@ func (ec *executionContext) _AltDonem_bitis(ctx context.Context, field graphql.C
 }
 func (ec *executionContext) fieldContext_AltDonem_bitis(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("AltDonem", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Bulgu_kod(ctx context.Context, field graphql.CollectedField, obj *model.Bulgu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Bulgu_kod(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Kod, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Bulgu_kod(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Bulgu", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Bulgu_baslik(ctx context.Context, field graphql.CollectedField, obj *model.Bulgu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Bulgu_baslik(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Baslik, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Bulgu_baslik(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Bulgu", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Bulgu_aciklama(ctx context.Context, field graphql.CollectedField, obj *model.Bulgu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Bulgu_aciklama(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Aciklama, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Bulgu_aciklama(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Bulgu", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Bulgu_onem(ctx context.Context, field graphql.CollectedField, obj *model.Bulgu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Bulgu_onem(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Onem, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.BulguOnemi) graphql.Marshaler {
+			return ec.marshalNBulguOnemi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguOnemi(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Bulgu_onem(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Bulgu", field, false, false, errors.New("field of type BulguOnemi does not have child fields"))
+}
+
+func (ec *executionContext) _Bulgu_kaynak(ctx context.Context, field graphql.CollectedField, obj *model.Bulgu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Bulgu_kaynak(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Kaynak, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.BulguKaynagi) graphql.Marshaler {
+			return ec.marshalNBulguKaynagi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguKaynagi(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Bulgu_kaynak(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Bulgu", field, false, false, errors.New("field of type BulguKaynagi does not have child fields"))
+}
+
+func (ec *executionContext) _Bulgu_alanYolu(ctx context.Context, field graphql.CollectedField, obj *model.Bulgu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Bulgu_alanYolu(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AlanYolu, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOString2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Bulgu_alanYolu(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Bulgu", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
 func (ec *executionContext) _Cihaz_id(ctx context.Context, field graphql.CollectedField, obj *model.Cihaz) (ret graphql.Marshaler) {
@@ -5744,6 +5964,61 @@ func (ec *executionContext) fieldContext_Sozlesme_islemSuresi(_ context.Context,
 	return graphql.NewScalarFieldContext("Sozlesme", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
+func (ec *executionContext) _Sozlesme_bulgular(ctx context.Context, field graphql.CollectedField, obj *model.Sozlesme) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Sozlesme_bulgular(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Bulgular, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.Bulgu) graphql.Marshaler {
+			return ec.marshalNBulgu2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Sozlesme_bulgular(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Sozlesme",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Bulgu(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Sozlesme_denetciSuresi(ctx context.Context, field graphql.CollectedField, obj *model.Sozlesme) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Sozlesme_denetciSuresi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DenetciSuresi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Sozlesme_denetciSuresi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Sozlesme", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
 func (ec *executionContext) _SozlesmeMeta_otelAdi(ctx context.Context, field graphql.CollectedField, obj *model.SozlesmeMeta) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -8013,6 +8288,69 @@ func (ec *executionContext) _AltDonem(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var bulguImplementors = []string{"Bulgu"}
+
+func (ec *executionContext) _Bulgu(ctx context.Context, sel ast.SelectionSet, obj *model.Bulgu) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, bulguImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Bulgu")
+		case "kod":
+			out.Values[i] = ec._Bulgu_kod(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "baslik":
+			out.Values[i] = ec._Bulgu_baslik(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "aciklama":
+			out.Values[i] = ec._Bulgu_aciklama(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "onem":
+			out.Values[i] = ec._Bulgu_onem(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "kaynak":
+			out.Values[i] = ec._Bulgu_kaynak(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "alanYolu":
+			out.Values[i] = ec._Bulgu_alanYolu(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var cihazImplementors = []string{"Cihaz"}
 
 func (ec *executionContext) _Cihaz(ctx context.Context, sel ast.SelectionSet, obj *model.Cihaz) graphql.Marshaler {
@@ -9356,6 +9694,16 @@ func (ec *executionContext) _Sozlesme(ctx context.Context, sel ast.SelectionSet,
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
+		case "bulgular":
+			out.Values[i] = ec._Sozlesme_bulgular(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "denetciSuresi":
+			out.Values[i] = ec._Sozlesme_denetciSuresi(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9983,6 +10331,90 @@ func (ec *executionContext) marshalNBoolean2bool(ctx context.Context, sel ast.Se
 	}
 	return res
 }
+
+func (ec *executionContext) marshalNBulgu2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.Bulgu) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNBulgu2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulgu(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNBulgu2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulgu(ctx context.Context, sel ast.SelectionSet, v *model.Bulgu) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Bulgu(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNBulguKaynagi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguKaynagi(ctx context.Context, v any) (model.BulguKaynagi, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := unmarshalNBulguKaynagi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguKaynagi[tmp]
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBulguKaynagi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguKaynagi(ctx context.Context, sel ast.SelectionSet, v model.BulguKaynagi) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(marshalNBulguKaynagi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguKaynagi[v])
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+var (
+	unmarshalNBulguKaynagi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguKaynagi = map[string]model.BulguKaynagi{
+		"KURAL": model.BulguKaynagiKural,
+		"MODEL": model.BulguKaynagiModel,
+	}
+	marshalNBulguKaynagi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguKaynagi = map[model.BulguKaynagi]string{
+		model.BulguKaynagiKural: "KURAL",
+		model.BulguKaynagiModel: "MODEL",
+	}
+)
+
+func (ec *executionContext) unmarshalNBulguOnemi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguOnemi(ctx context.Context, v any) (model.BulguOnemi, error) {
+	tmp, err := graphql.UnmarshalString(v)
+	res := unmarshalNBulguOnemi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguOnemi[tmp]
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNBulguOnemi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguOnemi(ctx context.Context, sel ast.SelectionSet, v model.BulguOnemi) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalString(marshalNBulguOnemi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguOnemi[v])
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
+var (
+	unmarshalNBulguOnemi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguOnemi = map[string]model.BulguOnemi{
+		"KRITIK": model.BulguOnemiKritik,
+		"UYARI":  model.BulguOnemiUyari,
+		"BILGI":  model.BulguOnemiBilgi,
+	}
+	marshalNBulguOnemi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐBulguOnemi = map[model.BulguOnemi]string{
+		model.BulguOnemiKritik: "KRITIK",
+		model.BulguOnemiUyari:  "UYARI",
+		model.BulguOnemiBilgi:  "BILGI",
+	}
+)
 
 func (ec *executionContext) marshalNCihaz2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐCihaz(ctx context.Context, sel ast.SelectionSet, v model.Cihaz) graphql.Marshaler {
 	return ec._Cihaz(ctx, sel, &v)
