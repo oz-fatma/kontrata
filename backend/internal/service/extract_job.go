@@ -11,6 +11,7 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/llm"
 	"github.com/oz-fatma/kontrata/backend/internal/pdf"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
+	"go.mongodb.org/mongo-driver/v2/bson"
 )
 
 const extractJobTimeout = 12 * time.Minute
@@ -56,6 +57,8 @@ func (s *ContractService) runExtract(id string) {
 	}
 	doc.Status = string(model.SozlesmeDurumuIsleniyor)
 	doc.UpdatedAt = time.Now().UTC()
+	cfg := s.loadOrgLLM(ctx, doc.OrganizationID)
+	doc.PromptVersion = cfg.ReaderVersion
 	if err := s.repo.Update(ctx, doc); err != nil {
 		log.Printf("cikarma durum guncellenemedi: %v", err)
 		return
@@ -69,7 +72,12 @@ func (s *ContractService) runExtract(id string) {
 	}
 	log.Printf("cikarma basladi sayfa=%d", len(pages))
 
-	reader := &agent.Reader{LLM: s.llm, DumpDir: s.dump, ContractID: id}
+	reader := &agent.Reader{
+		LLM:          llm.LimitTokens(s.llm, cfg.MaxToken),
+		DumpDir:      s.dump,
+		ContractID:   id,
+		SystemPrompt: cfg.ReaderPrompt,
+	}
 	res, err := reader.Extract(ctx, pages)
 	if err != nil {
 		log.Printf("cikarma model hatasi: %v", err)
@@ -118,7 +126,16 @@ func (s *ContractService) runAudit(ctx context.Context, doc *repository.Contract
 	if doc == nil {
 		return
 	}
-	a := &agent.Auditor{LLM: llm.LimitTokens(s.llm, agent.AuditorMaxTokens)}
+	cfg := s.loadOrgLLM(ctx, doc.OrganizationID)
+	auditorMax := agent.AuditorMaxTokens
+	if cfg.MaxToken > 0 && cfg.MaxToken < auditorMax {
+		auditorMax = cfg.MaxToken
+	}
+	a := &agent.Auditor{
+		LLM:           llm.LimitTokens(s.llm, auditorMax),
+		SystemPrompt:  cfg.AuditorPrompt,
+		RiskThreshold: cfg.RiskThreshold,
+	}
 	res, err := a.Audit(ctx, data, pages)
 	applyAuditOutcome(doc, res, err)
 	n := 0
@@ -151,4 +168,43 @@ func userExtractError(err error) string {
 	default:
 		return "çıkarım başarısız"
 	}
+}
+
+type orgLLMConfig struct {
+	ReaderPrompt  string
+	ReaderVersion *int32
+	AuditorPrompt string
+	MaxToken      int
+	RiskThreshold float64
+}
+
+func (s *ContractService) loadOrgLLM(ctx context.Context, orgID bson.ObjectID) orgLLMConfig {
+	cfg := orgLLMConfig{
+		ReaderPrompt:  agent.SYSTEM_PROMPT,
+		AuditorPrompt: agent.AUDITOR_SYSTEM_PROMPT,
+		MaxToken:      repository.DefaultMaxToken,
+		RiskThreshold: repository.DefaultAuditorRiskThreshold,
+	}
+	if s == nil || orgID.IsZero() {
+		return cfg
+	}
+	if s.prompts != nil {
+		if v, err := s.prompts.GetActive(ctx, orgID, repository.PromptKindReader); err == nil && v != nil {
+			cfg.ReaderPrompt = v.Content
+			ver := v.Version
+			cfg.ReaderVersion = &ver
+		}
+		if v, err := s.prompts.GetActive(ctx, orgID, repository.PromptKindAuditor); err == nil && v != nil {
+			cfg.AuditorPrompt = v.Content
+		}
+	}
+	if s.settings != nil {
+		if st, err := s.settings.GetByOrg(ctx, orgID); err == nil && st != nil {
+			cfg.RiskThreshold = st.RiskThreshold
+			if st.MaxToken > 0 {
+				cfg.MaxToken = int(st.MaxToken)
+			}
+		}
+	}
+	return cfg
 }

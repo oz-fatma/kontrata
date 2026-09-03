@@ -55,6 +55,8 @@ func main() {
 	organizasyonlar := repository.NewOrganizationRepository(db)
 	davetler := repository.NewInviteRepository(db)
 	denetim := repository.NewAuditRepository(db)
+	promptlar := repository.NewPromptVersionRepository(db)
+	ayarlarRepo := repository.NewOrgSettingsRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
 		repo = repository.NewContractRepository(nil)
@@ -66,6 +68,8 @@ func main() {
 		organizasyonlar = repository.NewOrganizationRepository(nil)
 		davetler = repository.NewInviteRepository(nil)
 		denetim = repository.NewAuditRepository(nil)
+		promptlar = repository.NewPromptVersionRepository(nil)
+		ayarlarRepo = repository.NewOrgSettingsRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
 		idxCtx, idxCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -79,6 +83,8 @@ func main() {
 			organizasyonlar.EnsureIndexes,
 			davetler.EnsureIndexes,
 			denetim.EnsureIndexes,
+			promptlar.EnsureIndexes,
+			ayarlarRepo.EnsureIndexes,
 		} {
 			if err := ensure(idxCtx); err != nil {
 				log.Printf("indeksler oluşturulamadı: %v", err)
@@ -101,7 +107,9 @@ func main() {
 	}
 	sozlesmeler := service.NewContractService(repo, kullanicilar)
 	sozlesmeler.AttachAudit(denetim)
+	sozlesmeler.AttachOrgLLM(promptlar, ayarlarRepo)
 	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, organizasyonlar, davetler, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
+	authSvc.AttachOrgLLM(promptlar, ayarlarRepo)
 
 	files, err := filestore.New(cfg.UploadDir)
 	if err != nil {

@@ -52,6 +52,7 @@ type Contract struct {
 	ProcessingSeconds *float64           `bson:"islemSuresi,omitempty"`
 	Findings          []Finding          `bson:"bulgular,omitempty"`
 	AuditorSeconds    *int32             `bson:"denetciSuresi,omitempty"`
+	PromptVersion     *int32             `bson:"promptSurumu,omitempty"`
 }
 
 // Finding Denetçi çıktısının Mongo belgesidir.

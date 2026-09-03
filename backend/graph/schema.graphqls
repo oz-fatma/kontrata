@@ -196,6 +196,7 @@ type Sozlesme {
   islemSuresi: Float
   bulgular: [Bulgu!]!
   denetciSuresi: Int
+  promptSurumu: Int
 }
 
 input CikarimMetaGirdi {
@@ -337,6 +338,28 @@ type Uye {
   hesapTipi: HesapTipi!
 }
 
+enum PromptTipi {
+  OKUYUCU
+  DENETCI
+}
+
+type PromptSurumu {
+  id: ID!
+  tip: PromptTipi!
+  icerik: String!
+  surum: Int!
+  aktif: Boolean!
+  olusturmaTarihi: Time!
+  olusturanKullaniciId: ID!
+}
+
+type Ayarlar {
+  denetciRiskEsigi: Float!
+  maxToken: Int!
+  guncellemeTarihi: Time!
+  guncelleyenKullaniciId: ID
+}
+
 type Query {
 	sozlesmeler(limit: Int, offset: Int): [Sozlesme!]! @auth
   sozlesme(id: ID!): Sozlesme @auth
@@ -345,6 +368,9 @@ type Query {
   verilerimiIndir: String! @auth
   organizasyonum: Organizasyon @auth
   uyeler: [Uye!]! @auth
+  promptSurumleri(tip: PromptTipi!): [PromptSurumu!]! @auth
+  aktifPrompt(tip: PromptTipi!): PromptSurumu! @auth
+  ayarlar: Ayarlar! @auth
 }
 
 type KayitSonucu {
@@ -408,4 +434,7 @@ type Mutation {
   uyeRolDegistir(kullaniciId: ID!, rol: Rol!): Uye! @auth
   uyeCikar(kullaniciId: ID!): Boolean! @auth
   organizasyonSil: Boolean! @auth
+  promptGuncelle(tip: PromptTipi!, icerik: String!): PromptSurumu! @auth
+  promptSurumeDon(id: ID!): PromptSurumu! @auth
+  ayarlariGuncelle(denetciRiskEsigi: Float, maxToken: Int): Ayarlar! @auth
 }

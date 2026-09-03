@@ -45,6 +45,13 @@ type ComplexityRoot struct {
 		Bitis     func(childComplexity int) int
 	}
 
+	Ayarlar struct {
+		DenetciRiskEsigi       func(childComplexity int) int
+		GuncellemeTarihi       func(childComplexity int) int
+		GuncelleyenKullaniciID func(childComplexity int) int
+		MaxToken               func(childComplexity int) int
+	}
+
 	Bulgu struct {
 		Aciklama func(childComplexity int) int
 		AlanYolu func(childComplexity int) int
@@ -111,6 +118,7 @@ type ComplexityRoot struct {
 	}
 
 	Mutation struct {
+		AyarlariGuncelle      func(childComplexity int, denetciRiskEsigi *float64, maxToken *int32) int
 		CihazAdlandir         func(childComplexity int, id string, ad string) int
 		CihazGuvenilirYap     func(childComplexity int, id string) int
 		CihazKaldir           func(childComplexity int, id string) int
@@ -125,6 +133,8 @@ type ComplexityRoot struct {
 		KayitOl               func(childComplexity int, eposta string, sifre string, hesapTipi *model.HesapTipi, organizasyonAdi *string) int
 		MfaDogrula            func(childComplexity int, geciciToken string, kod string) int
 		OrganizasyonSil       func(childComplexity int) int
+		PromptGuncelle        func(childComplexity int, tip model.PromptTipi, icerik string) int
+		PromptSurumeDon       func(childComplexity int, id string) int
 		SifreSifirla          func(childComplexity int, token string, yeniSifre string) int
 		SifreSifirlamaIste    func(childComplexity int, eposta string) int
 		SozlesmeAlanGuncelle  func(childComplexity int, id string, alanYolu string, deger interface{}) int
@@ -183,10 +193,23 @@ type ComplexityRoot struct {
 		SorumluTaraf func(childComplexity int) int
 	}
 
+	PromptSurumu struct {
+		Aktif                func(childComplexity int) int
+		ID                   func(childComplexity int) int
+		Icerik               func(childComplexity int) int
+		OlusturanKullaniciID func(childComplexity int) int
+		OlusturmaTarihi      func(childComplexity int) int
+		Surum                func(childComplexity int) int
+		Tip                  func(childComplexity int) int
+	}
+
 	Query struct {
+		AktifPrompt     func(childComplexity int, tip model.PromptTipi) int
+		Ayarlar         func(childComplexity int) int
 		Cihazlarim      func(childComplexity int) int
 		Organizasyonum  func(childComplexity int) int
 		Oturumlarim     func(childComplexity int) int
+		PromptSurumleri func(childComplexity int, tip model.PromptTipi) int
 		Sozlesme        func(childComplexity int, id string) int
 		Sozlesmeler     func(childComplexity int, limit *int32, offset *int32) int
 		Uyeler          func(childComplexity int) int
@@ -219,6 +242,7 @@ type ComplexityRoot struct {
 		Odeme            func(childComplexity int) int
 		OlusturmaTarihi  func(childComplexity int) int
 		Overbooking      func(childComplexity int) int
+		PromptSurumu     func(childComplexity int) int
 		Release          func(childComplexity int) int
 		SemaHatalari     func(childComplexity int) int
 		StopSale         func(childComplexity int) int
@@ -282,6 +306,9 @@ type MutationResolver interface {
 	UyeRolDegistir(ctx context.Context, kullaniciID string, rol model.Rol) (*model.Uye, error)
 	UyeCikar(ctx context.Context, kullaniciID string) (bool, error)
 	OrganizasyonSil(ctx context.Context) (bool, error)
+	PromptGuncelle(ctx context.Context, tip model.PromptTipi, icerik string) (*model.PromptSurumu, error)
+	PromptSurumeDon(ctx context.Context, id string) (*model.PromptSurumu, error)
+	AyarlariGuncelle(ctx context.Context, denetciRiskEsigi *float64, maxToken *int32) (*model.Ayarlar, error)
 }
 type QueryResolver interface {
 	Sozlesmeler(ctx context.Context, limit *int32, offset *int32) ([]*model.Sozlesme, error)
@@ -291,6 +318,9 @@ type QueryResolver interface {
 	VerilerimiIndir(ctx context.Context) (string, error)
 	Organizasyonum(ctx context.Context) (*model.Organizasyon, error)
 	Uyeler(ctx context.Context) ([]*model.Uye, error)
+	PromptSurumleri(ctx context.Context, tip model.PromptTipi) ([]*model.PromptSurumu, error)
+	AktifPrompt(ctx context.Context, tip model.PromptTipi) (*model.PromptSurumu, error)
+	Ayarlar(ctx context.Context) (*model.Ayarlar, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -329,6 +359,31 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.AltDonem.Bitis(childComplexity), true
+
+	case "Ayarlar.denetciRiskEsigi":
+		if e.ComplexityRoot.Ayarlar.DenetciRiskEsigi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ayarlar.DenetciRiskEsigi(childComplexity), true
+	case "Ayarlar.guncellemeTarihi":
+		if e.ComplexityRoot.Ayarlar.GuncellemeTarihi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ayarlar.GuncellemeTarihi(childComplexity), true
+	case "Ayarlar.guncelleyenKullaniciId":
+		if e.ComplexityRoot.Ayarlar.GuncelleyenKullaniciID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ayarlar.GuncelleyenKullaniciID(childComplexity), true
+	case "Ayarlar.maxToken":
+		if e.ComplexityRoot.Ayarlar.MaxToken == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Ayarlar.MaxToken(childComplexity), true
 
 	case "Bulgu.aciklama":
 		if e.ComplexityRoot.Bulgu.Aciklama == nil {
@@ -567,6 +622,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.KayitSonucu.Mesaj(childComplexity), true
 
+	case "Mutation.ayarlariGuncelle":
+		if e.ComplexityRoot.Mutation.AyarlariGuncelle == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_ayarlariGuncelle_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.AyarlariGuncelle(childComplexity, args["denetciRiskEsigi"].(*float64), args["maxToken"].(*int32)), true
 	case "Mutation.cihazAdlandir":
 		if e.ComplexityRoot.Mutation.CihazAdlandir == nil {
 			break
@@ -706,6 +772,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.OrganizasyonSil(childComplexity), true
+	case "Mutation.promptGuncelle":
+		if e.ComplexityRoot.Mutation.PromptGuncelle == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_promptGuncelle_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.PromptGuncelle(childComplexity, args["tip"].(model.PromptTipi), args["icerik"].(string)), true
+	case "Mutation.promptSurumeDon":
+		if e.ComplexityRoot.Mutation.PromptSurumeDon == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_promptSurumeDon_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.PromptSurumeDon(childComplexity, args["id"].(string)), true
 	case "Mutation.sifreSifirla":
 		if e.ComplexityRoot.Mutation.SifreSifirla == nil {
 			break
@@ -979,6 +1067,66 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Overbooking.SorumluTaraf(childComplexity), true
 
+	case "PromptSurumu.aktif":
+		if e.ComplexityRoot.PromptSurumu.Aktif == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PromptSurumu.Aktif(childComplexity), true
+	case "PromptSurumu.id":
+		if e.ComplexityRoot.PromptSurumu.ID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PromptSurumu.ID(childComplexity), true
+	case "PromptSurumu.icerik":
+		if e.ComplexityRoot.PromptSurumu.Icerik == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PromptSurumu.Icerik(childComplexity), true
+	case "PromptSurumu.olusturanKullaniciId":
+		if e.ComplexityRoot.PromptSurumu.OlusturanKullaniciID == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PromptSurumu.OlusturanKullaniciID(childComplexity), true
+	case "PromptSurumu.olusturmaTarihi":
+		if e.ComplexityRoot.PromptSurumu.OlusturmaTarihi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PromptSurumu.OlusturmaTarihi(childComplexity), true
+	case "PromptSurumu.surum":
+		if e.ComplexityRoot.PromptSurumu.Surum == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PromptSurumu.Surum(childComplexity), true
+	case "PromptSurumu.tip":
+		if e.ComplexityRoot.PromptSurumu.Tip == nil {
+			break
+		}
+
+		return e.ComplexityRoot.PromptSurumu.Tip(childComplexity), true
+
+	case "Query.aktifPrompt":
+		if e.ComplexityRoot.Query.AktifPrompt == nil {
+			break
+		}
+
+		args, err := ec.field_Query_aktifPrompt_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.AktifPrompt(childComplexity, args["tip"].(model.PromptTipi)), true
+	case "Query.ayarlar":
+		if e.ComplexityRoot.Query.Ayarlar == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Query.Ayarlar(childComplexity), true
 	case "Query.cihazlarim":
 		if e.ComplexityRoot.Query.Cihazlarim == nil {
 			break
@@ -998,6 +1146,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Query.Oturumlarim(childComplexity), true
+	case "Query.promptSurumleri":
+		if e.ComplexityRoot.Query.PromptSurumleri == nil {
+			break
+		}
+
+		args, err := ec.field_Query_promptSurumleri_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.PromptSurumleri(childComplexity, args["tip"].(model.PromptTipi)), true
 	case "Query.sozlesme":
 		if e.ComplexityRoot.Query.Sozlesme == nil {
 			break
@@ -1166,6 +1325,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Sozlesme.Overbooking(childComplexity), true
+	case "Sozlesme.promptSurumu":
+		if e.ComplexityRoot.Sozlesme.PromptSurumu == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Sozlesme.PromptSurumu(childComplexity), true
 	case "Sozlesme.release":
 		if e.ComplexityRoot.Sozlesme.Release == nil {
 			break
@@ -1418,6 +1583,20 @@ func (ec *executionContext) childFields_AltDonem(ctx context.Context, field grap
 	return nil, fmt.Errorf("no field named %q was found under type AltDonem", field.Name)
 }
 
+func (ec *executionContext) childFields_Ayarlar(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "denetciRiskEsigi":
+		return ec.fieldContext_Ayarlar_denetciRiskEsigi(ctx, field)
+	case "maxToken":
+		return ec.fieldContext_Ayarlar_maxToken(ctx, field)
+	case "guncellemeTarihi":
+		return ec.fieldContext_Ayarlar_guncellemeTarihi(ctx, field)
+	case "guncelleyenKullaniciId":
+		return ec.fieldContext_Ayarlar_guncelleyenKullaniciId(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type Ayarlar", field.Name)
+}
+
 func (ec *executionContext) childFields_Bulgu(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "kod":
@@ -1636,6 +1815,26 @@ func (ec *executionContext) childFields_Overbooking(ctx context.Context, field g
 	return nil, fmt.Errorf("no field named %q was found under type Overbooking", field.Name)
 }
 
+func (ec *executionContext) childFields_PromptSurumu(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "id":
+		return ec.fieldContext_PromptSurumu_id(ctx, field)
+	case "tip":
+		return ec.fieldContext_PromptSurumu_tip(ctx, field)
+	case "icerik":
+		return ec.fieldContext_PromptSurumu_icerik(ctx, field)
+	case "surum":
+		return ec.fieldContext_PromptSurumu_surum(ctx, field)
+	case "aktif":
+		return ec.fieldContext_PromptSurumu_aktif(ctx, field)
+	case "olusturmaTarihi":
+		return ec.fieldContext_PromptSurumu_olusturmaTarihi(ctx, field)
+	case "olusturanKullaniciId":
+		return ec.fieldContext_PromptSurumu_olusturanKullaniciId(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type PromptSurumu", field.Name)
+}
+
 func (ec *executionContext) childFields_ReleaseKurali(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 	switch field.Name {
 	case "gun":
@@ -1694,6 +1893,8 @@ func (ec *executionContext) childFields_Sozlesme(ctx context.Context, field grap
 		return ec.fieldContext_Sozlesme_bulgular(ctx, field)
 	case "denetciSuresi":
 		return ec.fieldContext_Sozlesme_denetciSuresi(ctx, field)
+	case "promptSurumu":
+		return ec.fieldContext_Sozlesme_promptSurumu(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Sozlesme", field.Name)
 }
@@ -1865,6 +2066,28 @@ func (ec *executionContext) childFields___Type(ctx context.Context, field graphq
 // endregion ************************** internal!.gotpl ***************************
 
 // region    ***************************** args.gotpl *****************************
+
+func (ec *executionContext) field_Mutation_ayarlariGuncelle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "denetciRiskEsigi",
+		func(ctx context.Context, v any) (*float64, error) {
+			return ec.unmarshalOFloat2ᚖfloat64(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["denetciRiskEsigi"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "maxToken",
+		func(ctx context.Context, v any) (*int32, error) {
+			return ec.unmarshalOInt2ᚖint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["maxToken"] = arg1
+	return args, nil
+}
 
 func (ec *executionContext) field_Mutation_cihazAdlandir_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
@@ -2073,6 +2296,42 @@ func (ec *executionContext) field_Mutation_mfaDogrula_args(ctx context.Context, 
 		return nil, err
 	}
 	args["kod"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_promptGuncelle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tip",
+		func(ctx context.Context, v any) (model.PromptTipi, error) {
+			return ec.unmarshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["tip"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "icerik",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNString2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["icerik"] = arg1
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_promptSurumeDon_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "id",
+		func(ctx context.Context, v any) (string, error) {
+			return ec.unmarshalNID2string(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["id"] = arg0
 	return args, nil
 }
 
@@ -2292,6 +2551,34 @@ func (ec *executionContext) field_Query___type_args(ctx context.Context, rawArgs
 	return args, nil
 }
 
+func (ec *executionContext) field_Query_aktifPrompt_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tip",
+		func(ctx context.Context, v any) (model.PromptTipi, error) {
+			return ec.unmarshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["tip"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_promptSurumleri_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "tip",
+		func(ctx context.Context, v any) (model.PromptTipi, error) {
+			return ec.unmarshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["tip"] = arg0
+	return args, nil
+}
+
 func (ec *executionContext) field_Query_sozlesme_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
 	var err error
 	args := map[string]any{}
@@ -2455,6 +2742,98 @@ func (ec *executionContext) _AltDonem_bitis(ctx context.Context, field graphql.C
 }
 func (ec *executionContext) fieldContext_AltDonem_bitis(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("AltDonem", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Ayarlar_denetciRiskEsigi(ctx context.Context, field graphql.CollectedField, obj *model.Ayarlar) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ayarlar_denetciRiskEsigi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DenetciRiskEsigi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ayarlar_denetciRiskEsigi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ayarlar", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _Ayarlar_maxToken(ctx context.Context, field graphql.CollectedField, obj *model.Ayarlar) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ayarlar_maxToken(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.MaxToken, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ayarlar_maxToken(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ayarlar", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _Ayarlar_guncellemeTarihi(ctx context.Context, field graphql.CollectedField, obj *model.Ayarlar) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ayarlar_guncellemeTarihi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.GuncellemeTarihi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Ayarlar_guncellemeTarihi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ayarlar", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _Ayarlar_guncelleyenKullaniciId(ctx context.Context, field graphql.CollectedField, obj *model.Ayarlar) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Ayarlar_guncelleyenKullaniciId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.GuncelleyenKullaniciID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *string) graphql.Marshaler {
+			return ec.marshalOID2ᚖstring(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Ayarlar_guncelleyenKullaniciId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Ayarlar", field, false, false, errors.New("field of type ID does not have child fields"))
 }
 
 func (ec *executionContext) _Bulgu_kod(ctx context.Context, field graphql.CollectedField, obj *model.Bulgu) (ret graphql.Marshaler) {
@@ -4614,6 +4993,177 @@ func (ec *executionContext) fieldContext_Mutation_organizasyonSil(_ context.Cont
 	return graphql.NewScalarFieldContext("Mutation", field, true, true, errors.New("field of type Boolean does not have child fields"))
 }
 
+func (ec *executionContext) _Mutation_promptGuncelle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_promptGuncelle(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().PromptGuncelle(ctx, fc.Args["tip"].(model.PromptTipi), fc.Args["icerik"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.PromptSurumu
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.PromptSurumu) graphql.Marshaler {
+			return ec.marshalNPromptSurumu2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumu(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_promptGuncelle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PromptSurumu(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_promptGuncelle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_promptSurumeDon(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_promptSurumeDon(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().PromptSurumeDon(ctx, fc.Args["id"].(string))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.PromptSurumu
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.PromptSurumu) graphql.Marshaler {
+			return ec.marshalNPromptSurumu2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumu(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_promptSurumeDon(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PromptSurumu(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_promptSurumeDon_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Mutation_ayarlariGuncelle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_ayarlariGuncelle(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().AyarlariGuncelle(ctx, fc.Args["denetciRiskEsigi"].(*float64), fc.Args["maxToken"].(*int32))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.Ayarlar
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Ayarlar) graphql.Marshaler {
+			return ec.marshalNAyarlar2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐAyarlar(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_ayarlariGuncelle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Ayarlar(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_ayarlariGuncelle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
 func (ec *executionContext) _NoShow_sorumluTaraf(ctx context.Context, field graphql.CollectedField, obj *model.NoShow) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5143,6 +5693,167 @@ func (ec *executionContext) fieldContext_Overbooking_aciklama(_ context.Context,
 	return graphql.NewScalarFieldContext("Overbooking", field, false, false, errors.New("field of type String does not have child fields"))
 }
 
+func (ec *executionContext) _PromptSurumu_id(ctx context.Context, field graphql.CollectedField, obj *model.PromptSurumu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PromptSurumu_id(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PromptSurumu_id(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PromptSurumu", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
+func (ec *executionContext) _PromptSurumu_tip(ctx context.Context, field graphql.CollectedField, obj *model.PromptSurumu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PromptSurumu_tip(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Tip, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.PromptTipi) graphql.Marshaler {
+			return ec.marshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PromptSurumu_tip(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PromptSurumu", field, false, false, errors.New("field of type PromptTipi does not have child fields"))
+}
+
+func (ec *executionContext) _PromptSurumu_icerik(ctx context.Context, field graphql.CollectedField, obj *model.PromptSurumu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PromptSurumu_icerik(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Icerik, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PromptSurumu_icerik(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PromptSurumu", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _PromptSurumu_surum(ctx context.Context, field graphql.CollectedField, obj *model.PromptSurumu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PromptSurumu_surum(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Surum, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PromptSurumu_surum(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PromptSurumu", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _PromptSurumu_aktif(ctx context.Context, field graphql.CollectedField, obj *model.PromptSurumu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PromptSurumu_aktif(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Aktif, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PromptSurumu_aktif(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PromptSurumu", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _PromptSurumu_olusturmaTarihi(ctx context.Context, field graphql.CollectedField, obj *model.PromptSurumu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PromptSurumu_olusturmaTarihi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OlusturmaTarihi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PromptSurumu_olusturmaTarihi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PromptSurumu", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _PromptSurumu_olusturanKullaniciId(ctx context.Context, field graphql.CollectedField, obj *model.PromptSurumu) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_PromptSurumu_olusturanKullaniciId(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OlusturanKullaniciID, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNID2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_PromptSurumu_olusturanKullaniciId(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("PromptSurumu", field, false, false, errors.New("field of type ID does not have child fields"))
+}
+
 func (ec *executionContext) _Query_sozlesmeler(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
 	return graphql.ResolveField(
 		ctx,
@@ -5468,6 +6179,165 @@ func (ec *executionContext) fieldContext_Query_uyeler(_ context.Context, field g
 		IsResolver: true,
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_Uye(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_promptSurumleri(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_promptSurumleri(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().PromptSurumleri(ctx, fc.Args["tip"].(model.PromptTipi))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal []*model.PromptSurumu
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.PromptSurumu) graphql.Marshaler {
+			return ec.marshalNPromptSurumu2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumuᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_promptSurumleri(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PromptSurumu(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_promptSurumleri_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_aktifPrompt(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_aktifPrompt(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().AktifPrompt(ctx, fc.Args["tip"].(model.PromptTipi))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.PromptSurumu
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.PromptSurumu) graphql.Marshaler {
+			return ec.marshalNPromptSurumu2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumu(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_aktifPrompt(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_PromptSurumu(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_aktifPrompt_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_ayarlar(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_ayarlar(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return ec.Resolvers.Query().Ayarlar(ctx)
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.Ayarlar
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Ayarlar) graphql.Marshaler {
+			return ec.marshalNAyarlar2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐAyarlar(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_ayarlar(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Ayarlar(ctx, field)
 		},
 	}
 	return fc, nil
@@ -6238,6 +7108,29 @@ func (ec *executionContext) _Sozlesme_denetciSuresi(ctx context.Context, field g
 	)
 }
 func (ec *executionContext) fieldContext_Sozlesme_denetciSuresi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Sozlesme", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _Sozlesme_promptSurumu(ctx context.Context, field graphql.CollectedField, obj *model.Sozlesme) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Sozlesme_promptSurumu(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.PromptSurumu, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *int32) graphql.Marshaler {
+			return ec.marshalOInt2ᚖint32(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Sozlesme_promptSurumu(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("Sozlesme", field, false, false, errors.New("field of type Int does not have child fields"))
 }
 
@@ -8517,6 +9410,59 @@ func (ec *executionContext) _AltDonem(ctx context.Context, sel ast.SelectionSet,
 	return out
 }
 
+var ayarlarImplementors = []string{"Ayarlar"}
+
+func (ec *executionContext) _Ayarlar(ctx context.Context, sel ast.SelectionSet, obj *model.Ayarlar) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, ayarlarImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("Ayarlar")
+		case "denetciRiskEsigi":
+			out.Values[i] = ec._Ayarlar_denetciRiskEsigi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "maxToken":
+			out.Values[i] = ec._Ayarlar_maxToken(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "guncellemeTarihi":
+			out.Values[i] = ec._Ayarlar_guncellemeTarihi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "guncelleyenKullaniciId":
+			out.Values[i] = ec._Ayarlar_guncelleyenKullaniciId(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var bulguImplementors = []string{"Bulgu"}
 
 func (ec *executionContext) _Bulgu(ctx context.Context, sel ast.SelectionSet, obj *model.Bulgu) graphql.Marshaler {
@@ -9206,6 +10152,27 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 			if out.Values[i] == graphql.Null {
 				out.Invalids++
 			}
+		case "promptGuncelle":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_promptGuncelle(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "promptSurumeDon":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_promptSurumeDon(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ayarlariGuncelle":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_ayarlariGuncelle(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		default:
 			panic("unknown field " + strconv.Quote(field.Name))
 		}
@@ -9573,6 +10540,74 @@ func (ec *executionContext) _Overbooking(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var promptSurumuImplementors = []string{"PromptSurumu"}
+
+func (ec *executionContext) _PromptSurumu(ctx context.Context, sel ast.SelectionSet, obj *model.PromptSurumu) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, promptSurumuImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("PromptSurumu")
+		case "id":
+			out.Values[i] = ec._PromptSurumu_id(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "tip":
+			out.Values[i] = ec._PromptSurumu_tip(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "icerik":
+			out.Values[i] = ec._PromptSurumu_icerik(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "surum":
+			out.Values[i] = ec._PromptSurumu_surum(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "aktif":
+			out.Values[i] = ec._PromptSurumu_aktif(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "olusturmaTarihi":
+			out.Values[i] = ec._PromptSurumu_olusturmaTarihi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "olusturanKullaniciId":
+			out.Values[i] = ec._PromptSurumu_olusturanKullaniciId(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var queryImplementors = []string{"Query"}
 
 func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -9735,6 +10770,72 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_uyeler(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "promptSurumleri":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_promptSurumleri(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "aktifPrompt":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_aktifPrompt(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "ayarlar":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_ayarlar(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -9949,6 +11050,11 @@ func (ec *executionContext) _Sozlesme(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "denetciSuresi":
 			out.Values[i] = ec._Sozlesme_denetciSuresi(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "promptSurumu":
+			out.Values[i] = ec._Sozlesme_promptSurumu(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
@@ -10564,6 +11670,20 @@ func (ec *executionContext) unmarshalNAltDonemGirdi2ᚖgithubᚗcomᚋozᚑfatma
 	return &res, graphql.ErrorOnPath(ctx, err)
 }
 
+func (ec *executionContext) marshalNAyarlar2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐAyarlar(ctx context.Context, sel ast.SelectionSet, v model.Ayarlar) graphql.Marshaler {
+	return ec._Ayarlar(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNAyarlar2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐAyarlar(ctx context.Context, sel ast.SelectionSet, v *model.Ayarlar) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._Ayarlar(ctx, sel, v)
+}
+
 func (ec *executionContext) unmarshalNBoolean2bool(ctx context.Context, v any) (bool, error) {
 	res, err := graphql.UnmarshalBoolean(v)
 	return res, graphql.ErrorOnPath(ctx, err)
@@ -10953,6 +12073,46 @@ func (ec *executionContext) marshalNOturumSonucu2ᚖgithubᚗcomᚋozᚑfatmaᚋ
 		return graphql.Null
 	}
 	return ec._OturumSonucu(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNPromptSurumu2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumu(ctx context.Context, sel ast.SelectionSet, v model.PromptSurumu) graphql.Marshaler {
+	return ec._PromptSurumu(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNPromptSurumu2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumuᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.PromptSurumu) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNPromptSurumu2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumu(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNPromptSurumu2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptSurumu(ctx context.Context, sel ast.SelectionSet, v *model.PromptSurumu) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._PromptSurumu(ctx, sel, v)
+}
+
+func (ec *executionContext) unmarshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx context.Context, v any) (model.PromptTipi, error) {
+	var res model.PromptTipi
+	err := res.UnmarshalGQL(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx context.Context, sel ast.SelectionSet, v model.PromptTipi) graphql.Marshaler {
+	return v
 }
 
 func (ec *executionContext) unmarshalNRol2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐRol(ctx context.Context, v any) (model.Rol, error) {
@@ -11523,6 +12683,24 @@ func (ec *executionContext) marshalOHesapTipi2ᚖgithubᚗcomᚋozᚑfatmaᚋkon
 		return graphql.Null
 	}
 	return v
+}
+
+func (ec *executionContext) unmarshalOID2ᚖstring(ctx context.Context, v any) (*string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalID(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOID2ᚖstring(ctx context.Context, sel ast.SelectionSet, v *string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalID(*v)
+	return res
 }
 
 func (ec *executionContext) unmarshalOInt2ᚖint32(ctx context.Context, v any) (*int32, error) {

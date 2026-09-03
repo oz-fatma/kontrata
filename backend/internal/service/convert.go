@@ -174,6 +174,7 @@ func toModel(doc *repository.Contract) *model.Sozlesme {
 	out.SemaHatalari = append([]string{}, doc.SchemaErrors...)
 	out.IslemSuresi = doc.ProcessingSeconds
 	out.DenetciSuresi = doc.AuditorSeconds
+	out.PromptSurumu = doc.PromptVersion
 	out.Bulgular = mapModelFindings(doc.Findings)
 	for i := range doc.RoomAllotments {
 		o := doc.RoomAllotments[i]

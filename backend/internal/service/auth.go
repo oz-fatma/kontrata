@@ -50,6 +50,8 @@ type AuthService struct {
 	loginGuard    *loginGuard
 	deleteFailAt  string
 	files         *filestore.Store
+	prompts       *repository.PromptVersionRepository
+	settings      *repository.OrgSettingsRepository
 }
 
 func NewAuthService(

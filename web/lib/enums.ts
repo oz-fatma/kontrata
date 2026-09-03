@@ -27,3 +27,8 @@ export const BulguKaynagi = {
   Kural: "KURAL",
   Model: "MODEL",
 } as const;
+
+export const PromptTipi = {
+  Okuyucu: "OKUYUCU",
+  Denetci: "DENETCI",
+} as const;

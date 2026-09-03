@@ -77,23 +77,54 @@ function redirectToLogin(): void {
   window.location.assign("/giris/");
 }
 
-export function graphqlMessage(err: unknown): string {
+const genericFailure = "İşlem tamamlanamadı";
+
+function graphQLErrorText(err: unknown): string | undefined {
+  if (!(err instanceof ClientError)) {
+    return undefined;
+  }
+  const msg = err.response.errors?.[0]?.message?.trim();
+  return msg || undefined;
+}
+
+function isNetworkFailure(err: unknown): boolean {
   if (err instanceof ClientError) {
-    const msg = err.response.errors?.[0]?.message;
-    if (msg) {
-      return msg;
+    if (err.response.errors && err.response.errors.length > 0) {
+      return false;
     }
     if (err.response.status) {
-      return "Sunucuya ulaşılamadı";
+      return true;
     }
   }
-  if (err instanceof Error && err.message) {
-    if (/fetch|network|Failed/i.test(err.message)) {
-      return "Sunucuya ulaşılamadı";
-    }
-    return err.message;
+  return err instanceof Error && /fetch|network|Failed/i.test(err.message);
+}
+
+function isInternalServerMessage(msg: string): boolean {
+  const lower = msg.toLowerCase();
+  if (lower === "işlem tamamlanamadı" || lower === "iç sunucu hatası") {
+    return true;
   }
-  return "İşlem tamamlanamadı";
+  return /cannot return null|must not be null|internal system error|did not conform to/i.test(msg);
+}
+
+export function graphqlMessage(err: unknown): string {
+  if (isNetworkFailure(err)) {
+    return "Sunucuya ulaşılamadı";
+  }
+  const server = graphQLErrorText(err);
+  if (process.env.NODE_ENV === "development") {
+    if (server) {
+      return server;
+    }
+    if (err instanceof Error && err.message) {
+      return err.message;
+    }
+    return genericFailure;
+  }
+  if (server && !isInternalServerMessage(server)) {
+    return server;
+  }
+  return genericFailure;
 }
 
 let refreshInFlight: Promise<boolean> | null = null;

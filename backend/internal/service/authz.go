@@ -20,6 +20,7 @@ const (
 	opMemberView
 	opMemberManage
 	opOrgDelete
+	opPromptManage
 )
 
 type actor struct {

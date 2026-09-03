@@ -21,6 +21,7 @@ const (
 	CodeMissingStopSale        = "KURAL_STOP_SALE_YOK"
 	CodeReleaseUnreasonable    = "KURAL_RELEASE_MAKUL_DEGIL"
 	CodeMissingRequired        = "KURAL_ZORUNLU_ALAN_EKSIK"
+	CodeLowConfidence          = "KURAL_DUSUK_GUVEN"
 )
 
 const dateLayout = "2006-01-02"

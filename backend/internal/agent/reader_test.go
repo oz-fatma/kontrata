@@ -124,8 +124,28 @@ func TestReader_DumpsRawWhenConfigured(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if !strings.Contains(string(b), `"donem"`) {
-		t.Fatalf("dump içeriği beklenen değil: %s", b)
+	body := string(b)
+	if !strings.Contains(body, "=== GONDERILEN (maskelenmis) ===") {
+		t.Fatalf("gönderilen bölüm yok: %s", body)
+	}
+	if !strings.Contains(body, "=== ALINAN ===") {
+		t.Fatalf("alınan bölüm yok: %s", body)
+	}
+	if !strings.Contains(body, `"donem"`) {
+		t.Fatalf("dump çıktısı beklenen değil: %s", body)
+	}
+	sent, recv, ok := strings.Cut(body, "=== ALINAN ===")
+	if !ok {
+		t.Fatal("bölümler ayrılamadı")
+	}
+	if !strings.Contains(sent, "sayfa") {
+		t.Fatalf("gönderilen prompt yok: %s", sent)
+	}
+	if strings.Contains(sent, `"donem"`) {
+		t.Fatal("model çıktısı gönderilen bölüme karıştı")
+	}
+	if !strings.Contains(recv, `"donem"`) {
+		t.Fatalf("alınan çıktı yok: %s", recv)
 	}
 }
 
@@ -146,4 +166,38 @@ func TestReader_NoDumpByDefault(t *testing.T) {
 	}
 }
 
-var _ llm.Client = (*stubLLM)(nil)
+func TestReader_DumpUsesMaskedPrompt(t *testing.T) {
+	dir := t.TempDir()
+	stub := &stubLLM{responses: []string{validJSON}}
+	r := &Reader{LLM: stub, DumpDir: dir, ContractID: "pii1"}
+	_, err := r.Extract(context.Background(), []string{
+		"İletişim ayse.demir@argosotel.com ve +90 242 813 45\n67 kimlik 12345678901",
+	})
+	if err != nil {
+		t.Fatal(err)
+	}
+	ents, err := os.ReadDir(dir)
+	if err != nil {
+		t.Fatal(err)
+	}
+	if len(ents) == 0 {
+		t.Fatal("dump dosyası yok")
+	}
+	b, err := os.ReadFile(filepath.Join(dir, ents[0].Name()))
+	if err != nil {
+		t.Fatal(err)
+	}
+	body := string(b)
+	sent, _, ok := strings.Cut(body, "=== ALINAN ===")
+	if !ok {
+		t.Fatalf("bölüm yok: %s", body)
+	}
+	for _, leak := range []string{"ayse.demir@argosotel.com", "+90 242", "12345678901"} {
+		if strings.Contains(sent, leak) {
+			t.Fatalf("dump sızıntı %q: %s", leak, sent)
+		}
+	}
+	if !strings.Contains(sent, "[EPOSTA]") || !strings.Contains(sent, "[TELEFON]") || !strings.Contains(sent, "[TCKN]") {
+		t.Fatalf("maske jetonu yok: %s", sent)
+	}
+}

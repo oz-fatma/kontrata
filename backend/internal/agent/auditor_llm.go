@@ -7,6 +7,8 @@ import (
 	"strconv"
 	"strings"
 	"unicode"
+
+	"github.com/oz-fatma/kontrata/backend/internal/mask"
 )
 
 // AuditorMaxTokens Denetçi LLM çağrısının üst sınırıdır.
@@ -53,7 +55,9 @@ func (a *Auditor) llmFindings(ctx context.Context, data map[string]any, pages []
 	if !ok {
 		return nil
 	}
-	raw, err := a.LLM.Generate(ctx, AUDITOR_SYSTEM_PROMPT, user)
+	masked := mask.Apply(user)
+	log.Printf("maskeleme uygulandi alan=%d", masked.Count)
+	raw, err := a.LLM.Generate(ctx, a.systemPrompt(), masked.Text)
 	if err != nil {
 		log.Printf("denetci llm atlandi")
 		return nil

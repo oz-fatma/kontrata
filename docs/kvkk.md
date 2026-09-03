@@ -1,7 +1,10 @@
 # KVKK
 
-Kontrata sözleşme verisini tesiste tutar; kişisel veri uygulama günlüklerine
-yazılmaz. Model çağrılarına giden metin maskeleme katmanından geçer.
+Model çağrılarına giden sözleşme metni `internal/mask` katmanından geçer.
+Yönetici prompt'u değiştiremez bunu; e-posta, telefon (05xx cep / +90 cep veya
+saha kodu; PDF satır sonuyla bölünmüş yazımlar dahil) ve 11 haneli
+sayı (TCKN) her zaman `[EPOSTA]` / `[TELEFON]` / `[TCKN]` ile örtülür. Logda
+yalnızca kaç desenin değiştiği yazılır, içerik yazılmaz.
 
 ## Toplanan kişisel veri
 

@@ -6,7 +6,7 @@ import { useAuth } from "@/lib/auth";
 import { LoadingState } from "./states";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
-  const { ready, user, org, canViewMembers, logout } = useAuth();
+  const { ready, user, org, canViewMembers, isOwner, logout } = useAuth();
   const pathname = usePathname();
   if (!ready) {
     return (
@@ -29,6 +29,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   ];
   if (canViewMembers) {
     nav.push({ href: "/ayarlar/uyeler", label: "Üyeler" });
+  }
+  if (isOwner && org) {
+    nav.push({ href: "/ayarlar/yonetici", label: "Yönetici" });
   }
   return (
     <div className="min-h-screen">

@@ -130,8 +130,8 @@ Sonuç: Çıkarım 60–180 sn sürebilir. Bu yüzden iş asenkron kalır; kulla
 Tarih: 2026-09-03
 Durum: kabul edildi
 Bağlam: İlk çıkarım turunda model 830 karakter üretip JSON nesnesi döndürmeyebiliyor; logda yalnızca `neden=nesne_yok` ve `hata=N` görünüyordu. Üretimde model çıktısı ve sözleşme metni loglanmaz (karar 17).
-Karar: `LLM_DEBUG_DUMP=true` iken ham model çıktısı `UPLOAD_DIR` altına `cikarma-{sozlesmeId}-{zaman}-{n}.txt` yazılır ve `nesne_yok` durumunda ilk 200 karakter loglanır. Varsayılan kapalıdır; üretimde açılmaz. Şema doğrulama hataları alan yolu ve kısıt adıyla loglanır, değerler yazılmaz.
-Sonuç: Yerelde modelin ne ürettiği incelenebilir; üretim günlüklerinde sözleşme içeriği yoktur.
+Karar: `LLM_DEBUG_DUMP=true` iken `UPLOAD_DIR` altına `cikarma-{sozlesmeId}-{zaman}-{n}.txt` yazılır. Dosyada modele giden maskelenmiş kullanıcı metni (`=== GONDERILEN (maskelenmis) ===`) ve ham model çıktısı (`=== ALINAN ===`) vardır. `nesne_yok` durumunda ilk 200 karakter loglanır. Varsayılan kapalıdır; üretimde açılmaz. Şema doğrulama hataları alan yolu ve kısıt adıyla loglanır, değerler yazılmaz.
+Sonuç: Yerelde hem maskeleme hem model çıktısı dosyadan doğrulanır; üretim günlüklerinde sözleşme içeriği yoktur.
 
 ## 20. Çıkarım prompt'u eğitim metninden ayrıldı
 Tarih: 2026-09-03
@@ -181,6 +181,14 @@ Durum: kabul edildi
 Bağlam: Sözleşme verisi tesisten çıkmaz; arayüz masaüstü kabuğunda, Go API aynı makinede alt süreçtir. Next.js static export mutlak yolları (`/giris/`) ham `file://` altında kırılır. Kod imzalama sertifikası uzun ve ücretlidir. Otomatik güncelleme ayrı bir dağıtım altyapısı ister.
 Karar: Paketlenmiş arayüz `kontrata://app/` özel şemasıyla `resources/web` dizininden okunur (ağ yok). Geliştirmede `NODE_ENV=development` iken `http://localhost:3000` yüklenir. API `backend/bin` ikilisinden spawn edilir, `/healthz` 200 olana kadar (30 sn) beklenir, kapanışta SIGTERM ve 5 sn sonra SIGKILL. Kullanıcı verisi `app.getPath('userData')`; MongoDB, LLM uç noktası ve jeton ilk açılışta istenir, `safeStorage` ile saklanır. `JWT_SECRET` burada üretilir. `contextIsolation` açık, `nodeIntegration` kapalı. Paketler imzasızdır (`mac.identity` boş); otomatik güncelleme yoktur. Platform ikilileri `make build-darwin` / `make build-windows` ile üretilir.
 Sonuç: Windows NSIS (x64) ve macOS dmg (arm64 + x64) üretilebilir. Gatekeeper/SmartScreen uyarısı beklenir. Mongo ve model uç noktası kullanıcı ortamındadır.
+
+## 27. Çalışma zamanı prompt sürümü ve zorunlu maskeleme
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Yönetici Okuyucu/Denetçi davranışını kod dağıtmadan değiştirmek ister. Serbest prompt, kişisel verinin modele gidişini zayıflatır.
+Karar: Prompt sürümleri `prompt_surumleri` koleksiyonunda organizasyon ve tip (OKUYUCU/DENETCI) başına tutulur; yalnızca bir aktif sürüm vardır, eskiler silinmez. Ayarlar (`denetciRiskEsigi`, `maxToken`) `ayarlar` belgesindedir. GraphQL uçları `@auth` ve yalnızca SAHIP. Organizasyon sürümü yoksa koddaki varsayılan kullanılır; kullanılan Okuyucu sürüm numarası sözleşmeye `promptSurumu` yazılır. `ayarlar` belgesi yoksa ilk okumada varsayılan değerlerle oluşturulur (`guncellemeTarihi` Time! boş kalmaz). Sözleşme metni LLM'e gitmeden önce `internal/mask` e-posta, telefon ve TCKN benzeri desenleri örter; bu katman kapatılamaz. Denetim kaydı tip/sürüm/değişen ayar adını tutar, prompt metnini tutmaz. GraphQL ErrorPresenter bilinmeyen hataları üretimde «işlem tamamlanamadı» yapar; `GRAPHQL_PLAYGROUND=true` iken gqlgen metni korunur. Arayüz geliştirmede (`NODE_ENV=development`) sunucu mesajını gösterir.
+Sonuç: Tesis sahibi çıkarımı ayarlayabilir; kişisel veri maskelemesi yöneticiye bağlı değildir. Boş yönetici paneli hata değildir.
+
 
 
 

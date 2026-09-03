@@ -35,13 +35,15 @@ var (
 
 // ContractService sözleşme iş kurallarını taşır.
 type ContractService struct {
-	repo  *repository.ContractRepository
-	users *repository.UserRepository
-	files *filestore.Store
-	llm   llm.Client
-	audit *repository.AuditRepository
-	jobs  chan string
-	dump  string
+	repo     *repository.ContractRepository
+	users    *repository.UserRepository
+	files    *filestore.Store
+	llm      llm.Client
+	audit    *repository.AuditRepository
+	jobs     chan string
+	dump     string
+	prompts  *repository.PromptVersionRepository
+	settings *repository.OrgSettingsRepository
 }
 
 func NewContractService(repo *repository.ContractRepository, users *repository.UserRepository) *ContractService {
@@ -53,7 +55,7 @@ func NewContractService(repo *repository.ContractRepository, users *repository.U
 }
 
 // AttachExtract çıkarım işçisi ve dosya deposunu bağlar.
-// dumpDir doluysa ham model çıktısı oraya yazılır (LLM_DEBUG_DUMP).
+// dumpDir doluysa modele giden (maskelenmiş) metin ve ham çıktı oraya yazılır (LLM_DEBUG_DUMP).
 func (s *ContractService) AttachExtract(files *filestore.Store, client llm.Client, dumpDir string) {
 	s.files = files
 	s.llm = client
@@ -63,6 +65,15 @@ func (s *ContractService) AttachExtract(files *filestore.Store, client llm.Clien
 // AttachAudit denetim kaydı deposunu bağlar.
 func (s *ContractService) AttachAudit(audit *repository.AuditRepository) {
 	s.audit = audit
+}
+
+// AttachOrgLLM organizasyon prompt ve ayar depolarını bağlar.
+func (s *ContractService) AttachOrgLLM(prompts *repository.PromptVersionRepository, settings *repository.OrgSettingsRepository) {
+	if s == nil {
+		return
+	}
+	s.prompts = prompts
+	s.settings = settings
 }
 
 func (s *ContractService) Create(ctx context.Context, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
@@ -375,6 +386,11 @@ func (s *ContractService) Upload(ctx context.Context, filename string, r io.Read
 	s.enqueueExtract(doc.ID.Hex())
 	log.Printf("sozlesme yüklendi")
 	return toModel(&doc), nil
+}
+
+// RunExtractForTest çıkarımı senkron çalıştırır; yalnızca testler kullanır.
+func (s *ContractService) RunExtractForTest(id string) {
+	s.runExtract(id)
 }
 
 func sanitizeFileName(name string) string {

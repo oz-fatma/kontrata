@@ -38,23 +38,7 @@ func RegisterRoutes(r chi.Router, svc *service.ContractService, authSvc *service
 		return errors.New("iç sunucu hatası")
 	})
 	srv.SetErrorPresenter(func(ctx context.Context, e error) *gqlerror.Error {
-		err := graphql.DefaultErrorPresenter(ctx, e)
-		switch {
-		case errors.Is(e, repository.ErrNotFound), errors.Is(e, repository.ErrInvalidID), errors.Is(e, repository.ErrUnavailable),
-			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail),
-			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrInvalidRefreshToken), errors.Is(e, auth.ErrMFAFailed),
-			errors.Is(e, auth.ErrInvalidName), errors.Is(e, auth.ErrForbidden), errors.Is(e, auth.ErrOrgNameRequired),
-			errors.Is(e, auth.ErrTransferOwnership),
-			errors.Is(e, filestore.ErrNotPDF), errors.Is(e, filestore.ErrTooLarge), errors.Is(e, filestore.ErrInvalidID),
-			errors.Is(e, llm.ErrUnavailable), errors.Is(e, llm.ErrColdStart),
-			errors.Is(e, service.ErrApprovedReadOnly), errors.Is(e, service.ErrNotAwaitingReview),
-			errors.Is(e, service.ErrUnknownField), errors.Is(e, service.ErrInvalidFieldValue):
-			err.Message = e.Error()
-		default:
-			err.Message = "işlem tamamlanamadı"
-		}
-		err.Extensions = nil
-		return err
+		return presentGraphQLError(ctx, e, enablePlayground)
 	})
 	if enablePlayground {
 		srv.Use(extension.Introspection{})
@@ -72,4 +56,32 @@ func RegisterRoutes(r chi.Router, svc *service.ContractService, authSvc *service
 		}
 		r.Handle("/graphql", srv)
 	})
+}
+
+func presentGraphQLError(ctx context.Context, e error, exposeInternal bool) *gqlerror.Error {
+	err := graphql.DefaultErrorPresenter(ctx, e)
+	if isUserFacingGraphQLError(e) {
+		err.Message = e.Error()
+		err.Extensions = nil
+		return err
+	}
+	log.Printf("graphql hata: %v", e)
+	if !exposeInternal {
+		err.Message = "işlem tamamlanamadı"
+	}
+	err.Extensions = nil
+	return err
+}
+
+func isUserFacingGraphQLError(e error) bool {
+	return errors.Is(e, repository.ErrNotFound) || errors.Is(e, repository.ErrInvalidID) || errors.Is(e, repository.ErrUnavailable) ||
+		errors.Is(e, auth.ErrPasswordTooShort) || errors.Is(e, auth.ErrInvalidEmail) ||
+		errors.Is(e, auth.ErrUnauthorized) || errors.Is(e, auth.ErrInvalidRefreshToken) || errors.Is(e, auth.ErrMFAFailed) ||
+		errors.Is(e, auth.ErrInvalidName) || errors.Is(e, auth.ErrForbidden) || errors.Is(e, auth.ErrOrgNameRequired) ||
+		errors.Is(e, auth.ErrTransferOwnership) ||
+		errors.Is(e, filestore.ErrNotPDF) || errors.Is(e, filestore.ErrTooLarge) || errors.Is(e, filestore.ErrInvalidID) ||
+		errors.Is(e, llm.ErrUnavailable) || errors.Is(e, llm.ErrColdStart) ||
+		errors.Is(e, service.ErrApprovedReadOnly) || errors.Is(e, service.ErrNotAwaitingReview) ||
+		errors.Is(e, service.ErrUnknownField) || errors.Is(e, service.ErrInvalidFieldValue) ||
+		errors.Is(e, service.ErrEmptyPrompt) || errors.Is(e, service.ErrInvalidSettings)
 }

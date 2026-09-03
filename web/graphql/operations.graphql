@@ -82,6 +82,7 @@ query Sozlesme($id: ID!) {
     semaHatalari
     islemSuresi
     denetciSuresi
+    promptSurumu
     bulgular {
       kod
       baslik
@@ -330,4 +331,70 @@ mutation UyeRolDegistir($kullaniciId: ID!, $rol: Rol!) {
 
 mutation UyeCikar($kullaniciId: ID!) {
   uyeCikar(kullaniciId: $kullaniciId)
+}
+
+query AktifPrompt($tip: PromptTipi!) {
+  aktifPrompt(tip: $tip) {
+    id
+    tip
+    icerik
+    surum
+    aktif
+    olusturmaTarihi
+    olusturanKullaniciId
+  }
+}
+
+query PromptSurumleri($tip: PromptTipi!) {
+  promptSurumleri(tip: $tip) {
+    id
+    tip
+    icerik
+    surum
+    aktif
+    olusturmaTarihi
+    olusturanKullaniciId
+  }
+}
+
+query Ayarlar {
+  ayarlar {
+    denetciRiskEsigi
+    maxToken
+    guncellemeTarihi
+    guncelleyenKullaniciId
+  }
+}
+
+mutation PromptGuncelle($tip: PromptTipi!, $icerik: String!) {
+  promptGuncelle(tip: $tip, icerik: $icerik) {
+    id
+    tip
+    icerik
+    surum
+    aktif
+    olusturmaTarihi
+    olusturanKullaniciId
+  }
+}
+
+mutation PromptSurumeDon($id: ID!) {
+  promptSurumeDon(id: $id) {
+    id
+    tip
+    icerik
+    surum
+    aktif
+    olusturmaTarihi
+    olusturanKullaniciId
+  }
+}
+
+mutation AyarlariGuncelle($denetciRiskEsigi: Float, $maxToken: Int) {
+  ayarlariGuncelle(denetciRiskEsigi: $denetciRiskEsigi, maxToken: $maxToken) {
+    denetciRiskEsigi
+    maxToken
+    guncellemeTarihi
+    guncelleyenKullaniciId
+  }
 }

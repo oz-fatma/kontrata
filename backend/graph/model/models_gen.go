@@ -22,6 +22,13 @@ type AltDonemGirdi struct {
 	Bitis     string `json:"bitis"`
 }
 
+type Ayarlar struct {
+	DenetciRiskEsigi       float64   `json:"denetciRiskEsigi"`
+	MaxToken               int32     `json:"maxToken"`
+	GuncellemeTarihi       time.Time `json:"guncellemeTarihi"`
+	GuncelleyenKullaniciID *string   `json:"guncelleyenKullaniciId,omitempty"`
+}
+
 type Bulgu struct {
 	Kod      string       `json:"kod"`
 	Baslik   string       `json:"baslik"`
@@ -192,6 +199,16 @@ type OverbookingGirdi struct {
 	Aciklama     *string `json:"aciklama,omitempty"`
 }
 
+type PromptSurumu struct {
+	ID                   string     `json:"id"`
+	Tip                  PromptTipi `json:"tip"`
+	Icerik               string     `json:"icerik"`
+	Surum                int32      `json:"surum"`
+	Aktif                bool       `json:"aktif"`
+	OlusturmaTarihi      time.Time  `json:"olusturmaTarihi"`
+	OlusturanKullaniciID string     `json:"olusturanKullaniciId"`
+}
+
 type Query struct {
 }
 
@@ -230,6 +247,7 @@ type Sozlesme struct {
 	IslemSuresi      *float64           `json:"islemSuresi,omitempty"`
 	Bulgular         []*Bulgu           `json:"bulgular"`
 	DenetciSuresi    *int32             `json:"denetciSuresi,omitempty"`
+	PromptSurumu     *int32             `json:"promptSurumu,omitempty"`
 }
 
 type SozlesmeGirdi struct {
@@ -399,6 +417,61 @@ func (e *OrganizasyonDurumu) UnmarshalJSON(b []byte) error {
 }
 
 func (e OrganizasyonDurumu) MarshalJSON() ([]byte, error) {
+	var buf bytes.Buffer
+	e.MarshalGQL(&buf)
+	return buf.Bytes(), nil
+}
+
+type PromptTipi string
+
+const (
+	PromptTipiOkuyucu PromptTipi = "OKUYUCU"
+	PromptTipiDenetci PromptTipi = "DENETCI"
+)
+
+var AllPromptTipi = []PromptTipi{
+	PromptTipiOkuyucu,
+	PromptTipiDenetci,
+}
+
+func (e PromptTipi) IsValid() bool {
+	switch e {
+	case PromptTipiOkuyucu, PromptTipiDenetci:
+		return true
+	}
+	return false
+}
+
+func (e PromptTipi) String() string {
+	return string(e)
+}
+
+func (e *PromptTipi) UnmarshalGQL(v any) error {
+	str, ok := v.(string)
+	if !ok {
+		return fmt.Errorf("enums must be strings")
+	}
+
+	*e = PromptTipi(str)
+	if !e.IsValid() {
+		return fmt.Errorf("%s is not a valid PromptTipi", str)
+	}
+	return nil
+}
+
+func (e PromptTipi) MarshalGQL(w io.Writer) {
+	fmt.Fprint(w, strconv.Quote(e.String()))
+}
+
+func (e *PromptTipi) UnmarshalJSON(b []byte) error {
+	s, err := strconv.Unquote(string(b))
+	if err != nil {
+		return err
+	}
+	return e.UnmarshalGQL(s)
+}
+
+func (e PromptTipi) MarshalJSON() ([]byte, error) {
 	var buf bytes.Buffer
 	e.MarshalGQL(&buf)
 	return buf.Bytes(), nil

@@ -12,16 +12,25 @@ import (
 
 	"github.com/oz-fatma/kontrata/backend/internal/extract"
 	"github.com/oz-fatma/kontrata/backend/internal/llm"
+	"github.com/oz-fatma/kontrata/backend/internal/mask"
 )
 
 const parseError = "model çıktısı JSON olarak çözülemedi"
 
 // Reader PDF sayfa metinlerinden şemaya uygun JSON çıkarır.
 type Reader struct {
-	LLM        llm.Client
-	DumpDir    string
-	ContractID string
-	dumpN      int
+	LLM          llm.Client
+	DumpDir      string
+	ContractID   string
+	SystemPrompt string
+	dumpN        int
+}
+
+func (r *Reader) systemPrompt() string {
+	if r != nil && strings.TrimSpace(r.SystemPrompt) != "" {
+		return r.SystemPrompt
+	}
+	return SYSTEM_PROMPT
 }
 
 // Extract sayfaları birleştirir, modeli çağırır, onarır, doğrular.
@@ -35,21 +44,23 @@ func (r *Reader) Extract(ctx context.Context, pages []string) (*ExtractResult, e
 		return out, nil
 	}
 
-	user := joinPages(pages)
-	raw, err := r.LLM.Generate(ctx, SYSTEM_PROMPT, user)
+	masked := mask.Apply(joinPages(pages))
+	log.Printf("maskeleme uygulandi alan=%d", masked.Count)
+	sys := r.systemPrompt()
+	raw, err := r.LLM.Generate(ctx, sys, masked.Text)
 	if err != nil {
 		out.Duration = time.Since(start)
 		return out, err
 	}
-	r.dumpRaw(raw)
+	r.dumpExchange(masked.Text, raw)
 
 	data, repairs, errs := decodeAndCheck(raw)
 	if len(errs) > 0 {
 		out.RetryCount = 1
-		corr := correctionPrompt(user, errs)
-		raw2, err := r.LLM.Generate(ctx, SYSTEM_PROMPT, corr)
+		corr := correctionPrompt(masked.Text, errs)
+		raw2, err := r.LLM.Generate(ctx, sys, corr)
 		if err == nil {
-			r.dumpRaw(raw2)
+			r.dumpExchange(corr, raw2)
 			data, repairs, errs = decodeAndCheck(raw2)
 		}
 	}
@@ -63,7 +74,7 @@ func (r *Reader) Extract(ctx context.Context, pages []string) (*ExtractResult, e
 	return out, nil
 }
 
-func (r *Reader) dumpRaw(raw string) {
+func (r *Reader) dumpExchange(sent, received string) {
 	if r == nil || r.DumpDir == "" {
 		return
 	}
@@ -71,11 +82,26 @@ func (r *Reader) dumpRaw(raw string) {
 	id := sanitizeDumpID(r.ContractID)
 	name := "cikarma-" + id + "-" + time.Now().UTC().Format("20060102T150405Z") + "-" + strconv.Itoa(r.dumpN) + ".txt"
 	path := filepath.Join(r.DumpDir, name)
-	if err := os.WriteFile(path, []byte(raw), 0o600); err != nil {
+	if err := os.WriteFile(path, []byte(formatLLMDump(sent, received)), 0o600); err != nil {
 		log.Printf("llm dump yazılamadı: %v", err)
 		return
 	}
-	log.Printf("llm dump yazildi karakter=%d", utf8.RuneCountInString(raw))
+	log.Printf("llm dump yazildi gonderilen=%d alinan=%d", utf8.RuneCountInString(sent), utf8.RuneCountInString(received))
+}
+
+func formatLLMDump(sent, received string) string {
+	var b strings.Builder
+	b.WriteString("=== GONDERILEN (maskelenmis) ===\n")
+	b.WriteString(sent)
+	if !strings.HasSuffix(sent, "\n") {
+		b.WriteByte('\n')
+	}
+	b.WriteString("\n=== ALINAN ===\n")
+	b.WriteString(received)
+	if received != "" && !strings.HasSuffix(received, "\n") {
+		b.WriteByte('\n')
+	}
+	return b.String()
 }
 
 func sanitizeDumpID(id string) string {

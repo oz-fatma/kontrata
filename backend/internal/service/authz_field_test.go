@@ -15,12 +15,18 @@ func TestActor_ViewerCannotApprove(t *testing.T) {
 		t.Fatal("görüntüleyici yazmamalı")
 	}
 	admin := actor{user: repository.User{Role: repository.RoleAdmin}}
+	if admin.can(opPromptManage) {
+		t.Fatal("yönetici prompt yönetememeli")
+	}
 	if !admin.can(opContractApprove) {
 		t.Fatal("yönetici onaylayabilmeli")
 	}
 	owner := actor{user: repository.User{Role: repository.RoleOwner}}
 	if !owner.can(opContractApprove) {
 		t.Fatal("sahip onaylayabilmeli")
+	}
+	if !owner.can(opPromptManage) {
+		t.Fatal("sahip prompt yönetebilmeli")
 	}
 }
 

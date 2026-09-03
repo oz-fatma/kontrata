@@ -36,6 +36,9 @@ const (
 	EventOrganizationDeleted    = "ORGANIZASYON_SILINDI"
 	EventContractApproved       = "SOZLESME_ONAYLANDI"
 	EventContractFieldUpdated   = "SOZLESME_ALAN_GUNCELLENDI"
+	EventPromptUpdated          = "PROMPT_GUNCELLENDI"
+	EventPromptReverted         = "PROMPT_SURUME_DONULDU"
+	EventSettingsUpdated        = "AYARLAR_GUNCELLENDI"
 )
 
 // UserDeleted denetim kaydında anonimleştirilmiş kullanıcı kimliğidir.

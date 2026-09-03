@@ -96,6 +96,8 @@ type registerEnv struct {
 	db       *mongo.Client
 	sozSvc   *service.ContractService
 	files    *filestore.Store
+	prompts  *repository.PromptVersionRepository
+	settings *repository.OrgSettingsRepository
 }
 
 func testParams() auth.Params {
@@ -165,10 +167,13 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 	sozRepo := repository.NewContractRepository(db)
 	orgs := repository.NewOrganizationRepository(db)
 	davets := repository.NewInviteRepository(db)
+	promptlar := repository.NewPromptVersionRepository(db)
+	ayarlarRepo := repository.NewOrgSettingsRepository(db)
 	for _, ensure := range []func(context.Context) error{
 		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
 		sessions.EnsureIndexes, devices.EnsureIndexes, denetim.EnsureIndexes, sozRepo.EnsureIndexes,
-		orgs.EnsureIndexes, davets.EnsureIndexes, users.BackfillAccountFields,
+		orgs.EnsureIndexes, davets.EnsureIndexes, promptlar.EnsureIndexes, ayarlarRepo.EnsureIndexes,
+		users.BackfillAccountFields,
 	} {
 		if err := ensure(ctx); err != nil {
 			t.Fatalf("indeks oluşturulamadı")
@@ -180,8 +185,10 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 		t.Fatalf("jwt: %v", err)
 	}
 	authSvc := service.NewAuthService(users, tokens, mfa, sessions, devices, sozRepo, orgs, davets, denetim, mail, testParams(), signer, db)
+	authSvc.AttachOrgLLM(promptlar, ayarlarRepo)
 	sozSvc := service.NewContractService(sozRepo, users)
 	sozSvc.AttachAudit(denetim)
+	sozSvc.AttachOrgLLM(promptlar, ayarlarRepo)
 	files, err := filestore.New(t.TempDir())
 	if err != nil {
 		t.Fatalf("dosya deposu: %v", err)
@@ -200,6 +207,7 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 		h: mux, c: graphqlClient(mux, "", ""), users: users, tokens: tokens,
 		mfa: mfa, sessions: sessions, soz: sozRepo, audit: denetim, mail: mail,
 		devices: devices, orgs: orgs, db: db, sozSvc: sozSvc, files: files,
+		prompts: promptlar, settings: ayarlarRepo,
 	}
 }
 

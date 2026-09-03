@@ -142,6 +142,21 @@ func (r *mutationResolver) OrganizasyonSil(ctx context.Context) (bool, error) {
 	return r.Auth.DeleteOrganization(ctx)
 }
 
+// PromptGuncelle is the resolver for the promptGuncelle field.
+func (r *mutationResolver) PromptGuncelle(ctx context.Context, tip model.PromptTipi, icerik string) (*model.PromptSurumu, error) {
+	return r.Auth.UpdatePrompt(ctx, tip, icerik)
+}
+
+// PromptSurumeDon is the resolver for the promptSurumeDon field.
+func (r *mutationResolver) PromptSurumeDon(ctx context.Context, id string) (*model.PromptSurumu, error) {
+	return r.Auth.RevertPrompt(ctx, id)
+}
+
+// AyarlariGuncelle is the resolver for the ayarlariGuncelle field.
+func (r *mutationResolver) AyarlariGuncelle(ctx context.Context, denetciRiskEsigi *float64, maxToken *int32) (*model.Ayarlar, error) {
+	return r.Auth.UpdateSettings(ctx, denetciRiskEsigi, maxToken)
+}
+
 // Sozlesmeler is the resolver for the sozlesmeler field.
 func (r *queryResolver) Sozlesmeler(ctx context.Context, limit *int32, offset *int32) ([]*model.Sozlesme, error) {
 	return r.Service.List(ctx, limit, offset)
@@ -179,6 +194,21 @@ func (r *queryResolver) Organizasyonum(ctx context.Context) (*model.Organizasyon
 // Uyeler is the resolver for the uyeler field.
 func (r *queryResolver) Uyeler(ctx context.Context) ([]*model.Uye, error) {
 	return r.Auth.Members(ctx)
+}
+
+// PromptSurumleri is the resolver for the promptSurumleri field.
+func (r *queryResolver) PromptSurumleri(ctx context.Context, tip model.PromptTipi) ([]*model.PromptSurumu, error) {
+	return r.Auth.PromptVersions(ctx, tip)
+}
+
+// AktifPrompt is the resolver for the aktifPrompt field.
+func (r *queryResolver) AktifPrompt(ctx context.Context, tip model.PromptTipi) (*model.PromptSurumu, error) {
+	return r.Auth.ActivePrompt(ctx, tip)
+}
+
+// Ayarlar is the resolver for the ayarlar field.
+func (r *queryResolver) Ayarlar(ctx context.Context) (*model.Ayarlar, error) {
+	return r.Auth.Settings(ctx)
 }
 
 // Mutation returns MutationResolver implementation.
