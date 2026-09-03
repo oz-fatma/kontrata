@@ -11,11 +11,13 @@ import { HesapTipi } from "@/lib/enums";
 import { registerSchema, type RegisterValues } from "@/lib/schemas";
 import { AuthLayout } from "@/components/shell";
 import { ErrorState, Field } from "@/components/states";
+import { VerifyTokenForm } from "@/components/verify-token-form";
 
 export default function RegisterPage() {
   const router = useRouter();
   const [serverError, setServerError] = useState<string | null>(null);
   const [done, setDone] = useState<string | null>(null);
+  const [verified, setVerified] = useState(false);
   const form = useForm<RegisterValues>({
     resolver: zodResolver(registerSchema),
     defaultValues: {
@@ -47,17 +49,23 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout title="Kayıt ol">
+    <AuthLayout>
       {done ? (
-        <div>
+        <div className="flex flex-col gap-4">
           <p className="text-[13px]">{done}</p>
-          <button
-            type="button"
-            className="btn btn-primary mt-4 w-full"
-            onClick={() => router.push("/giris/")}
-          >
-            Girişe git
-          </button>
+          <VerifyTokenForm
+            hint="E-postadaki doğrulama kodunu yapıştırın. Masaüstünde bağlantı açılamaz."
+            onVerified={() => setVerified(true)}
+          />
+          {!verified ? (
+            <button
+              type="button"
+              className="btn w-full"
+              onClick={() => router.push("/giris/")}
+            >
+              Girişe git
+            </button>
+          ) : null}
         </div>
       ) : (
         <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>

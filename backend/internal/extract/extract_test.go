@@ -318,6 +318,69 @@ func TestValidate_LogsFieldAndConstraint(t *testing.T) {
 	}
 }
 
+func TestNormalize_FabricatedReleaseKapsam(t *testing.T) {
+	cases := []struct {
+		in   string
+		want string
+	}{
+		{"unknown_scope", "belirtilmemis"},
+		{"kontenjan iadesi", "kontenjan_iadesi"},
+		{"her ikisi", "her_ikisi"},
+		{"faks", "belirtilmemis"},
+		{"isim_listesi", "isim_listesi"},
+	}
+	for _, tc := range cases {
+		raw := `{"donem":{"baslangic":null,"bitis":null,"alt_donemler":[]},"oda_kontenjanlari":[],"fiyatlar":[],"release":{"gun":10,"kapsam":"` + tc.in + `"},"stop_sale":[]}`
+		data, err := RepairJSON(raw)
+		if err != nil {
+			t.Fatalf("RepairJSON(%q): %v", tc.in, err)
+		}
+		got, notes := Normalize(data)
+		rel := got["release"].(map[string]any)
+		if rel["kapsam"] != tc.want {
+			t.Fatalf("kapsam %q => %v, want %v (notes: %v)", tc.in, rel["kapsam"], tc.want, notes)
+		}
+	}
+}
+
+func TestNormalize_PrunesHallucinatedFields(t *testing.T) {
+	raw := `{
+		"donem":{"baslangic":"2026-04-01","bitis":"2026-10-31","alt_donemler":[]},
+		"oda_kontenjanlari":[{"oda_tipi":"standart","adet":10,"aciklama":"uydurma"}],
+		"fiyatlar":[{"oda_tipi":"standart","tutar":50,"birim":"oda_gecelik","pansiyon":"BB","alt_donem_ad":"yaz"}],
+		"release":{"gun":7,"kapsam":"yazili"},
+		"stop_sale":[],
+		"ekstra_not":"atilmali"
+	}`
+	data, err := RepairJSON(raw)
+	if err != nil {
+		t.Fatalf("RepairJSON: %v", err)
+	}
+	got, notes := Normalize(data)
+	if _, ok := got["ekstra_not"]; ok {
+		t.Fatal("kök uydurma alan kalmış")
+	}
+	rel := got["release"].(map[string]any)
+	if rel["kapsam"] != "belirtilmemis" {
+		t.Fatalf("release.kapsam = %v, belirtilmemis bekleniyordu", rel["kapsam"])
+	}
+	oda := got["oda_kontenjanlari"].([]any)[0].(map[string]any)
+	if oda["aciklama"] != "uydurma" {
+		t.Fatalf("aciklama şemada olduğu için korunur: %v", oda["aciklama"])
+	}
+	fiyat := got["fiyatlar"].([]any)[0].(map[string]any)
+	if fiyat["alt_donem_ad"] != "yaz" {
+		t.Fatalf("alt_donem_ad şemada olduğu için korunur: %v", fiyat["alt_donem_ad"])
+	}
+	joined := strings.Join(notes, "\n")
+	if !strings.Contains(joined, "ekstra_not") {
+		t.Fatalf("uydurma kök alan notu yok: %s", joined)
+	}
+	if !strings.Contains(joined, "release.kapsam") {
+		t.Fatalf("release.kapsam enum notu yok: %s", joined)
+	}
+}
+
 func TestNormalize_IntegerFromProse(t *testing.T) {
 	cases := []struct {
 		gun  any

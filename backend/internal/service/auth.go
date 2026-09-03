@@ -5,7 +5,6 @@ import (
 	"crypto/sha256"
 	"encoding/hex"
 	"errors"
-	"fmt"
 	"log"
 	"strings"
 	"sync"
@@ -313,14 +312,10 @@ func (s *AuthService) issuePasswordReset(ctx context.Context, user *repository.U
 	if err := s.tokens.Create(ctx, &doc); err != nil {
 		return err
 	}
-	if err := s.mailer.Send(user.Email, passwordResetSubject, sifreSifirlamaGovde(plain)); err != nil {
+	if err := s.mailer.Send(user.Email, passwordResetSubject, mailer.PasswordResetBody(plain)); err != nil {
 		log.Printf("şifre sıfırlama iletisi gönderilemedi: %v", err)
 	}
 	return nil
-}
-
-func sifreSifirlamaGovde(token string) string {
-	return fmt.Sprintf("Kontrata şifre sıfırlama\n\nSıfırlama kodunuz:\n\n%s\n\nBu kod 1 saat geçerlidir.\n", token)
 }
 
 func (s *AuthService) revokeSessions(ctx context.Context, kullaniciID bson.ObjectID) {
@@ -347,14 +342,10 @@ func (s *AuthService) issueVerification(ctx context.Context, user *repository.Us
 	if err := s.tokens.Create(ctx, &doc); err != nil {
 		return err
 	}
-	if err := s.mailer.Send(user.Email, verificationSubject, dogrulamaGovde(plain)); err != nil {
+	if err := s.mailer.Send(user.Email, verificationSubject, mailer.VerificationBody(plain)); err != nil {
 		log.Printf("doğrulama iletisi gönderilemedi: %v", err)
 	}
 	return nil
-}
-
-func dogrulamaGovde(token string) string {
-	return fmt.Sprintf("Kontrata e-posta doğrulama\n\nDoğrulama kodunuz:\n\n%s\n\nBu kod 24 saat geçerlidir.\n", token)
 }
 
 func (s *AuthService) writeAudit(ctx context.Context, userID *bson.ObjectID, event, detail string) {

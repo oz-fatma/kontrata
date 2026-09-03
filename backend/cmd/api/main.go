@@ -41,6 +41,7 @@ func main() {
 	if err != nil {
 		log.Fatalf("yapılandırma yüklenemedi: %v", err)
 	}
+	mailer.SetAppURL(cfg.AppURL)
 	log.Printf("yapılandırma yüklendi %s sürüm=%s", cfg.String(), version)
 
 	connectCtx, connectCancel := context.WithTimeout(context.Background(), 10*time.Second)

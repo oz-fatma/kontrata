@@ -4,13 +4,13 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
+	"github.com/oz-fatma/kontrata/backend/internal/mailer"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
@@ -62,8 +62,7 @@ func (s *AuthService) issueAccountDelete(ctx context.Context, user *repository.U
 	if err := s.tokens.Create(ctx, &doc); err != nil {
 		return err
 	}
-	govde := fmt.Sprintf("Kontrata hesap silme\n\nHesap silme onay kodunuz:\n\n%s\n\nBu kod 1 saat geçerlidir.\n", plain)
-	if err := s.mailer.Send(user.Email, accountDeleteSubject, govde); err != nil {
+	if err := s.mailer.Send(user.Email, accountDeleteSubject, mailer.AccountDeleteBody(plain)); err != nil {
 		log.Printf("hesap silme iletisi gönderilemedi: %v", err)
 	}
 	return nil

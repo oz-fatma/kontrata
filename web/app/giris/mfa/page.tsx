@@ -82,10 +82,10 @@ export default function MfaPage() {
   const ss = String(left % 60).padStart(2, "0");
 
   return (
-    <AuthLayout title="Doğrulama kodu">
+    <AuthLayout>
       <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>
         {serverError ? <ErrorState message={serverError} /> : null}
-        <p className="text-[13px] text-[var(--muted)]">
+        <p className="text-[14px] text-[var(--ink-muted)]">
           E-postanıza gelen 6 haneli kodu girin. Kalan süre {mm}:{ss}.
         </p>
         <Field id="kod" label="Doğrulama kodu" error={form.formState.errors.kod?.message}>
@@ -107,7 +107,7 @@ export default function MfaPage() {
         <button type="button" className="btn w-full" onClick={() => void resend()}>
           Tekrar gönder
         </button>
-        <p className="text-[12px] text-[var(--muted)]">
+        <p className="meta-text">
           <Link href="/giris/" className="underline">
             Girişe dön
           </Link>

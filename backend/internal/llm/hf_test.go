@@ -164,6 +164,34 @@ func TestHFEndpoint_NoRetryOn400(t *testing.T) {
 	}
 }
 
+func TestHFEndpoint_TemperatureFromContext(t *testing.T) {
+	var got hfParameters
+	srv := httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		raw, _ := io.ReadAll(r.Body)
+		var req hfRequest
+		if err := json.Unmarshal(raw, &req); err != nil {
+			t.Errorf("istek JSON değil: %v", err)
+		}
+		got = req.Parameters
+		w.Header().Set("Content-Type", "application/json")
+		_, _ = w.Write([]byte(`[{"generated_text":"ok"}]`))
+	}))
+	t.Cleanup(srv.Close)
+
+	c := testClient(srv.URL)
+	ctx := WithTemperature(context.Background(), 0.2)
+	_, err := c.Generate(ctx, "s", "u")
+	if err != nil {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+	if !got.DoSample {
+		t.Fatal("do_sample=true bekleniyordu")
+	}
+	if got.Temperature == nil || *got.Temperature != 0.2 {
+		t.Fatalf("temperature = %v", got.Temperature)
+	}
+}
+
 func testClient(url string) *HFEndpoint {
 	return &HFEndpoint{
 		URL:          url,

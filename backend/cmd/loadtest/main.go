@@ -407,7 +407,8 @@ func renderReport(pdf string, conc, tekrar, total, fail int, wall time.Duration,
 	var b strings.Builder
 	fmt.Fprintf(&b, "# Yük testi %s\n\n", time.Now().UTC().Format("2006-01-02"))
 	fmt.Fprintf(&b, "- PDF: `%s`\n", pdf)
-	fmt.Fprintf(&b, "- Eşzamanlı: %d, tekrar: %d, toplam: %d\n\n", conc, tekrar, total)
+	fmt.Fprintf(&b, "- Eşzamanlı: %d, tekrar: %d, toplam: %d\n", conc, tekrar, total)
+	fmt.Fprintf(&b, "- LLM metrikleri bu koşunun başlangıcından itibaren (önceki koşular dahil değil)\n\n")
 	fmt.Fprintf(&b, "## Süre\n\n")
 	fmt.Fprintf(&b, "| Ölçüt | Değer |\n| --- | --- |\n")
 	fmt.Fprintf(&b, "| Toplam süre | %s |\n", wall.Round(time.Millisecond))

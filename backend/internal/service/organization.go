@@ -3,7 +3,6 @@ package service
 import (
 	"context"
 	"errors"
-	"fmt"
 	"log"
 	"time"
 
@@ -11,6 +10,7 @@ import (
 
 	"github.com/oz-fatma/kontrata/backend/graph/model"
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
+	"github.com/oz-fatma/kontrata/backend/internal/mailer"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
@@ -156,8 +156,7 @@ func (s *AuthService) InviteMember(ctx context.Context, eposta string, rol model
 		log.Printf("davet yazılamadı: %v", err)
 		return false, err
 	}
-	govde := fmt.Sprintf("Kontrata organizasyon daveti\n\nDavet kodunuz:\n\n%s\n\nBu kod 7 gün geçerlidir.\n", plain)
-	if err := s.mailer.Send(norm, inviteSubject, govde); err != nil {
+	if err := s.mailer.Send(norm, inviteSubject, mailer.InviteBody(plain)); err != nil {
 		log.Printf("davet iletisi gönderilemedi: %v", err)
 	}
 	s.writeAudit(ctx, &act.user.ID, repository.EventMemberInvited, r)

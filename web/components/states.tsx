@@ -1,27 +1,56 @@
+import { Loader2 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import type { ReactNode } from "react";
 
 export function LoadingState({ label = "Yükleniyor" }: { label?: string }) {
   return (
-    <p className="py-8 text-[13px] text-[var(--muted)]" role="status">
-      {label}…
-    </p>
+    <div
+      className="flex items-center justify-center gap-2 py-8 text-[14px] font-medium text-[var(--ink-muted)]"
+      role="status"
+    >
+      <Loader2
+        className="h-3.5 w-3.5 shrink-0 animate-spin text-[var(--blue)]"
+        strokeWidth={2}
+        aria-hidden
+      />
+      <span>{label}…</span>
+    </div>
   );
 }
 
 export function EmptyState({
   title,
   detail,
+  icon: Icon,
+  compact,
 }: {
   title: string;
   detail?: string;
+  icon?: LucideIcon;
+  compact?: boolean;
 }) {
-  return (
-    <div className="py-10 text-center">
-      <p className="text-[15px] font-medium">{title}</p>
-      {detail ? (
-        <p className="mt-1 text-[13px] text-[var(--muted)]">{detail}</p>
+  const inner = (
+    <>
+      {Icon ? (
+        <Icon
+          className="mx-auto mb-3 h-7 w-7 text-[var(--ink-muted)]"
+          strokeWidth={1.5}
+          aria-hidden
+        />
       ) : null}
-    </div>
+      <p className={`${compact ? "text-[14px]" : "text-[15px]"} font-semibold text-[var(--ink)]`}>
+        {title}
+      </p>
+      {detail ? <p className="meta-text mt-1">{detail}</p> : null}
+    </>
+  );
+
+  if (compact) {
+    return <div className="py-4 text-center">{inner}</div>;
+  }
+
+  return (
+    <div className="card px-[var(--space-card)] py-10 text-center">{inner}</div>
   );
 }
 
@@ -34,7 +63,7 @@ export function ErrorState({
 }) {
   return (
     <div
-      className="rounded-card bg-[var(--red-bg)] px-3 py-3 text-[13px] text-[var(--red)]"
+      className="card bg-[var(--red-bg)] px-[var(--space-card)] py-3 text-[13px] text-[var(--red)]"
       role="alert"
     >
       <p>{message}</p>
@@ -60,7 +89,7 @@ export function Field({
 }) {
   return (
     <div className="flex flex-col gap-1">
-      <label htmlFor={id} className="text-[13px] text-[var(--muted)]">
+      <label htmlFor={id} className="meta-text">
         {label}
       </label>
       {children}

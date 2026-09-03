@@ -23,9 +23,15 @@ type stubLLM struct {
 	err       error
 	calls     int
 	users     []string
+	temps     []float64
 }
 
-func (s *stubLLM) Generate(_ context.Context, _, userPrompt string) (string, error) {
+func (s *stubLLM) Generate(ctx context.Context, _, userPrompt string) (string, error) {
+	if t, ok := llm.TemperatureFrom(ctx); ok {
+		s.temps = append(s.temps, t)
+	} else {
+		s.temps = append(s.temps, 0)
+	}
 	s.users = append(s.users, userPrompt)
 	if s.calls >= len(s.responses) {
 		if s.err != nil {
@@ -83,21 +89,51 @@ func TestReader_RepairRound(t *testing.T) {
 	}
 }
 
-func TestReader_FailsTwice(t *testing.T) {
-	stub := &stubLLM{responses: []string{"bu json değil", "yine değil"}}
+func TestReader_FailsThrice(t *testing.T) {
+	stub := &stubLLM{responses: []string{"bu json değil", "yine değil", "hala değil"}}
 	r := &Reader{LLM: stub}
 	res, err := r.Extract(context.Background(), []string{"metin"})
 	if err != nil {
 		t.Fatalf("elde kalan kayıt için hata dönülmemeli: %v", err)
 	}
-	if res.RetryCount != 1 {
+	if res.RetryCount != maxCorrectionRounds {
 		t.Fatalf("RetryCount = %d", res.RetryCount)
 	}
 	if len(res.SchemaErrors) == 0 {
 		t.Fatal("şema hataları bekleniyordu")
 	}
+	if stub.calls != 3 {
+		t.Fatalf("çağrı = %d", stub.calls)
+	}
+	if len(stub.temps) != 3 || stub.temps[0] != 0 || stub.temps[1] != 0 || stub.temps[2] != correctionTemperature {
+		t.Fatalf("sıcaklık = %v", stub.temps)
+	}
 	if res.Data == nil {
 		t.Fatal("elde kalan veri boş")
+	}
+}
+
+func TestReader_SecondRepairUsesTemperature(t *testing.T) {
+	stub := &stubLLM{responses: []string{"not json", "still not json", validJSON}}
+	r := &Reader{LLM: stub}
+	res, err := r.Extract(context.Background(), []string{"standart oda kontenjanı 10"})
+	if err != nil {
+		t.Fatalf("beklenmeyen hata: %v", err)
+	}
+	if res.RetryCount != maxCorrectionRounds {
+		t.Fatalf("RetryCount = %d", res.RetryCount)
+	}
+	if len(res.SchemaErrors) != 0 {
+		t.Fatalf("ikinci düzeltme sonrası hata: %v", res.SchemaErrors)
+	}
+	if stub.calls != 3 {
+		t.Fatalf("çağrı = %d", stub.calls)
+	}
+	if stub.temps[2] != correctionTemperature {
+		t.Fatalf("üçüncü çağrı sıcaklığı = %v", stub.temps[2])
+	}
+	if !strings.Contains(stub.users[2], "SADECE tek JSON nesnesi döndür, markdown yok, açıklama yok.") {
+		t.Fatalf("ikinci düzeltme vurgusu yok: %q", stub.users[2])
 	}
 }
 

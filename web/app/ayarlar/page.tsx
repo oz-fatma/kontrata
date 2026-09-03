@@ -63,10 +63,10 @@ function SettingsBody() {
   }, [load]);
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-[var(--space-section)]">
       <div>
         <h1>Ayarlar</h1>
-        <p className="text-[12px] text-[var(--muted)]">
+        <p className="meta-text mt-1">
           {org?.ad ?? "Bireysel hesap"}
           {user?.eposta ? ` · ${user.eposta}` : ""}
         </p>
@@ -75,13 +75,13 @@ function SettingsBody() {
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
 
       <section>
-        <h2 className="mb-2">Cihazlar</h2>
+        <h2 className="mb-3">Cihazlar</h2>
         {devices === null ? <LoadingState /> : null}
         {devices && devices.length === 0 && !error ? (
           <EmptyState title="Kayıtlı cihaz yok" detail="Giriş yapılan cihazlar burada görünür." />
         ) : null}
         {devices && devices.length > 0 ? (
-          <ul className="divide-y divide-[var(--line)] rounded-card border-[0.5px] border-[var(--line)]">
+          <ul className="card list-panel divide-y divide-[var(--border)] overflow-hidden">
             {devices.map((device) => (
               <DeviceRow key={device.id} device={device} onChanged={() => void load()} />
             ))}
@@ -90,25 +90,25 @@ function SettingsBody() {
       </section>
 
       <section>
-        <h2 className="mb-2">Oturumlar</h2>
+        <h2 className="mb-3">Oturumlar</h2>
         {sessions === null ? <LoadingState /> : null}
         {sessions && sessions.length === 0 && !error ? (
           <EmptyState title="Açık oturum yok" />
         ) : null}
         {sessions && sessions.length > 0 ? (
           <div>
-            <ul className="divide-y divide-[var(--line)] rounded-card border-[0.5px] border-[var(--line)]">
+            <ul className="card list-panel divide-y divide-[var(--border)] overflow-hidden">
               {sessions.map((session) => (
-                <li key={session.id} className="px-3 py-2 text-[13px]">
+                <li key={session.id} className="text-[14px]">
                   <div className="flex items-center justify-between gap-2">
-                    <span className="font-medium">
+                    <span className="font-medium text-[var(--ink)]">
                       {formatUserAgent(session.kullaniciAjani)}
                     </span>
                     {session.mevcutMu ? (
-                      <span className="text-[12px] text-[var(--blue)]">Bu oturum</span>
+                      <span className="meta-text text-[var(--blue)]">Bu oturum</span>
                     ) : null}
                   </div>
-                  <p className="text-[12px] text-[var(--muted)]">
+                  <p className="meta-text tabular-nums">
                     Son erişim: {formatDateTime(session.olusturmaTarihi)}
                     {" · IP: "}
                     {session.ipAdresi || "—"}
@@ -118,7 +118,7 @@ function SettingsBody() {
             </ul>
             <button
               type="button"
-              className="btn mt-2"
+              className="btn mt-3"
               onClick={async () => {
                 try {
                   await gqlRequest(TumOturumlariKapatDocument);
@@ -162,7 +162,7 @@ function DeviceRow({
   }
 
   return (
-    <li className="px-3 py-2 text-[13px]">
+    <li className="text-[14px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <div>
           {editing ? (
@@ -183,11 +183,11 @@ function DeviceRow({
             <p className="font-medium">
               {device.ad || "Adsız cihaz"}
               {device.guvenilir ? (
-                <span className="ml-2 text-[12px] font-normal text-[var(--green)]">Güvenilir</span>
+                <span className="ml-2 meta-text font-normal text-[var(--green)]">Güvenilir</span>
               ) : null}
             </p>
           )}
-          <p className="text-[12px] text-[var(--muted)]">
+          <p className="meta-text tabular-nums">
             Son görülme {formatDateTime(device.sonGorulme)}
             {device.ipAdresi ? ` · ${device.ipAdresi}` : ""}
           </p>
@@ -258,7 +258,7 @@ function DeleteAccount() {
   return (
     <section>
       <h2>Hesabı sil</h2>
-      <p className="mt-1 text-[13px] text-[var(--muted)]">
+      <p className="mt-1 text-[14px] text-[var(--ink-muted)]">
         Silme kalıcıdır. Kurumsal hesapta başka üye varsa önce devir veya organizasyonu
         silmeniz gerekir.
       </p>

@@ -13,6 +13,7 @@ import (
 
 const (
 	defaultPort              = 8080
+	defaultAppURL            = "http://localhost:3000"
 	defaultLLMMaxTokens      = 600
 	defaultLLMTimeoutSecs    = 240
 	defaultLLMMaxConcurrency = 4
@@ -37,6 +38,7 @@ type Config struct {
 	LLMMaxConcurrency int
 	LLMDebugDump      bool
 	UploadDir         string
+	AppURL            string
 }
 
 // Load ortam değişkenlerini okur. Zorunlu bir değişken eksikse hata döner.
@@ -137,6 +139,7 @@ func Load() (Config, error) {
 		LLMMaxConcurrency: int(concurrency),
 		LLMDebugDump:      parseBool(os.Getenv("LLM_DEBUG_DUMP")),
 		UploadDir:         uploadDir(os.Getenv("UPLOAD_DIR")),
+		AppURL:            appURL(os.Getenv("APP_URL")),
 	}, nil
 }
 
@@ -144,6 +147,14 @@ func uploadDir(raw string) string {
 	raw = strings.TrimSpace(raw)
 	if raw == "" {
 		return "data/uploads"
+	}
+	return raw
+}
+
+func appURL(raw string) string {
+	raw = strings.TrimRight(strings.TrimSpace(raw), "/")
+	if raw == "" {
+		return defaultAppURL
 	}
 	return raw
 }

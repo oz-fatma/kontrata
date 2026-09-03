@@ -203,6 +203,13 @@ Bağlam: İki HuggingFace CPU ucu farklı ısınma ve gecikme gösterir. Yalnız
 Karar: `internal/llm/router.go` önce sağlıksız uçları eledikten sonra `aktifIstek` en az olanı seçer; eşitlikte son 10 çağrının ortalaması düşük olan kazanır. Üç ardışık soğuk-olmayan hata 60 sn sağlıksızlık işaretler. 503 soğuk başlangıç sayılmaz.
 Sonuç: Yük, o an meşgul olmayan uca kayar; ısınmakta olan uç yanlışlıkla cezalandırılmaz.
 
+## 25. Electron'da e-posta doğrulama kodu yapıştırılır
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Kayıt sonrası ekranda yalnızca «Girişe git» vardı. Tarayıcıda e-postadaki `/dogrula?token=` bağlantısı çalışır; Electron'da adres çubuğu olmadığı için açılamaz.
+Karar: Kayıt sonrası ekran ve `/dogrula` (sorgu token'ı yoksa veya geçersizse) ham kod ya da `?token=` içeren metin yapıştırma alanı sunar. `epostaDogrula` false dönerse başarı gösterilmez. `kontrata://` derin bağlantı bu aşamada yok.
+Sonuç: Masaüstünde doğrulama, tarayıcı bağlantısına bağlı olmadan tamamlanır.
+
 
 
 

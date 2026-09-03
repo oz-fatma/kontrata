@@ -62,9 +62,10 @@ type hfRequest struct {
 }
 
 type hfParameters struct {
-	MaxNewTokens   int  `json:"max_new_tokens"`
-	DoSample       bool `json:"do_sample"`
-	ReturnFullText bool `json:"return_full_text"`
+	MaxNewTokens   int      `json:"max_new_tokens"`
+	DoSample       bool     `json:"do_sample"`
+	Temperature    *float64 `json:"temperature,omitempty"`
+	ReturnFullText bool     `json:"return_full_text"`
 }
 
 type hfResponse struct {
@@ -117,13 +118,18 @@ func (c *HFEndpoint) Generate(ctx context.Context, systemPrompt, userPrompt stri
 	prompt := BuildChatPrompt(systemPrompt, userPrompt)
 	inChars := utf8.RuneCountInString(prompt)
 
+	params := hfParameters{
+		MaxNewTokens:   c.tokenLimit(),
+		DoSample:       false,
+		ReturnFullText: false,
+	}
+	if temp, ok := TemperatureFrom(ctx); ok {
+		params.DoSample = true
+		params.Temperature = &temp
+	}
 	body, err := json.Marshal(hfRequest{
-		Inputs: prompt,
-		Parameters: hfParameters{
-			MaxNewTokens:   c.tokenLimit(),
-			DoSample:       false,
-			ReturnFullText: false,
-		},
+		Inputs:     prompt,
+		Parameters: params,
 	})
 	if err != nil {
 		log.Printf("llm istek kodlanamadı: %v", err)

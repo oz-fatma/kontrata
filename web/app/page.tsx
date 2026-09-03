@@ -22,8 +22,8 @@ import {
 import { usePolling } from "@/lib/use-polling";
 import { AppShell } from "@/components/shell";
 import { ConfirmDialog } from "@/components/confirm-dialog";
+import { FileText } from "lucide-react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
-import { Spinner } from "@/components/spinner";
 import { StatusBadge } from "@/components/status-badge";
 
 type Row = SozlesmelerQuery["sozlesmeler"][number];
@@ -140,10 +140,10 @@ function ContractList() {
 
   return (
     <div>
-      <div className="mb-3 flex items-end justify-between gap-3">
+      <div className="mb-[var(--space-card-gap)] flex items-end justify-between gap-4">
         <div>
           <h1>Sözleşmeler</h1>
-          <p className="text-[12px] text-[var(--muted)]">
+          <p className="meta-text mt-1 tabular-nums">
             {org?.ad ?? "Bireysel hesap"}
             {rows ? ` · ${rows.length} kayıt` : ""}
           </p>
@@ -176,7 +176,7 @@ function ContractList() {
         ) : null}
       </div>
 
-      <div className="mb-3 flex flex-wrap gap-2">
+      <div className="mb-[var(--space-card-gap)] flex flex-wrap gap-3">
         <div className="min-w-[12rem] flex-1">
           <label htmlFor="arama" className="sr-only">
             Ara
@@ -215,20 +215,21 @@ function ContractList() {
       {rows === null && !error ? <LoadingState /> : null}
       {rows && filtered.length === 0 ? (
         <EmptyState
+          icon={FileText}
           title="Sözleşme yok"
           detail="Yüklenen sözleşmeler burada listelenir."
         />
       ) : null}
       {rows && filtered.length > 0 ? (
-        <div className="overflow-x-auto rounded-card border-[0.5px] border-[var(--line)]">
-          <table className="w-full text-left text-[13px]">
-            <thead className="border-b-[0.5px] border-[var(--line)] text-[12px] text-[var(--muted)]">
+        <div className="card overflow-x-auto">
+          <table className="w-full text-left text-[14px]">
+            <thead className="border-b-[0.5px] border-[var(--border)] bg-[var(--surface-subtle)] text-[12px] text-[var(--ink-muted)]">
               <tr>
-                <th className="px-3 py-2 font-medium">Dosya</th>
-                <th className="px-3 py-2 font-medium">Dönem</th>
-                <th className="px-3 py-2 font-medium">Bulgu</th>
-                <th className="px-3 py-2 font-medium">Durum</th>
-                {canWrite ? <th className="px-3 py-2 font-medium sr-only">İşlem</th> : null}
+                <th className="px-4 py-3 font-medium">Dosya</th>
+                <th className="px-4 py-3 font-medium">Dönem</th>
+                <th className="px-4 py-3 font-medium">Bulgu</th>
+                <th className="px-4 py-3 font-medium">Durum</th>
+                {canWrite ? <th className="px-4 py-3 font-medium sr-only">İşlem</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -273,35 +274,36 @@ const ContractRow = memo(function ContractRow({
   const processing = isExtractPending(row.durum);
   return (
     <tr
-      className="cursor-pointer border-b-[0.5px] border-[var(--line)] last:border-0 hover:bg-[var(--subtle)]"
+      className="cursor-pointer border-b-[0.5px] border-[var(--border)] last:border-0 transition-colors hover:bg-[var(--surface-subtle)]"
       onClick={() => onOpen(row.id)}
     >
-      <td className="px-3 py-2">
-        <div className="font-medium">{row.dosyaAdi || "Adsız dosya"}</div>
-        <div className="text-[12px] text-[var(--muted)]">
+      <td className="min-h-14 px-4 py-3 align-middle">
+        <div className="font-medium text-[var(--ink)]">{row.dosyaAdi || "Adsız dosya"}</div>
+        <div className="meta-text tabular-nums">
           {row.meta?.acenteAdi || row.meta?.otelAdi || "Operatör yok"}
           {" · "}
           {formatDateTime(row.olusturmaTarihi)}
         </div>
       </td>
-      <td className="px-3 py-2">
+      <td className="min-h-14 px-4 py-3 align-middle tabular-nums">
         {processing ? "—" : formatPeriod(row.donem?.baslangic, row.donem?.bitis)}
       </td>
-      <td className="px-3 py-2">
+      <td className="min-h-14 px-4 py-3 align-middle">
         {processing ? (
           "—"
         ) : (
           <FindingCount findings={row.bulgular} />
         )}
       </td>
-      <td className="px-3 py-2">
-        <span className="inline-flex items-center gap-1.5">
-          {processing ? <Spinner /> : null}
-          <StatusBadge label={statusLabel(row.durum)} tone={statusTone(row.durum)} />
-        </span>
+      <td className="min-h-14 px-4 py-3 align-middle">
+        <StatusBadge
+          label={statusLabel(row.durum)}
+          tone={statusTone(row.durum)}
+          durum={row.durum}
+        />
       </td>
       {canWrite ? (
-        <td className="px-3 py-2">
+        <td className="min-h-14 px-4 py-3 align-middle">
           <button
             type="button"
             className="btn btn-danger"
@@ -323,6 +325,6 @@ function FindingCount({ findings }: { findings: Row["bulgular"] }) {
       ? "var(--red)"
       : cell.tone === "yellow"
         ? "var(--yellow)"
-        : "var(--muted)";
+        : "var(--ink-muted)";
   return <span style={{ color }}>{cell.text}</span>;
 }

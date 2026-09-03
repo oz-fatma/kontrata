@@ -49,7 +49,7 @@ function ResetRequest() {
   }
 
   return (
-    <AuthLayout title="Şifre sıfırla">
+    <AuthLayout>
       {done ? (
         <p className="text-[13px]">
           E-posta kayıtlıysa sıfırlama bağlantısı gönderildi.
@@ -100,7 +100,7 @@ function ResetConfirm({ token }: { token: string }) {
   }
 
   return (
-    <AuthLayout title="Yeni şifre">
+    <AuthLayout>
       {done ? (
         <div>
           <p className="text-[13px]">Şifreniz güncellendi.</p>

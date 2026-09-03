@@ -34,6 +34,9 @@ func TestSYSTEM_PROMPTHasExampleJSON(t *testing.T) {
 	if !strings.Contains(SYSTEM_PROMPT, "meta alanı yalnızca en üstte bir kez yazılır") {
 		t.Fatal("meta tek kök uyarısı yok")
 	}
+	if !strings.Contains(SYSTEM_PROMPT, "Metin İngilizce olabilir; çıktı alan adları ve değerleri şemadaki Türkçe biçimde kalır.") {
+		t.Fatal("İngilizce metin notu yok")
+	}
 }
 
 func TestSYSTEM_PROMPTMatchesMLCopies(t *testing.T) {

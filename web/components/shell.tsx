@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/lib/auth";
+import { BrandLogo } from "./brand-logo";
 import { LoadingState } from "./states";
 
 export function AppShell({ children }: { children: React.ReactNode }) {
@@ -35,13 +36,11 @@ export function AppShell({ children }: { children: React.ReactNode }) {
   }
   return (
     <div className="min-h-screen">
-      <header className="border-b-[0.5px] border-[var(--line)]">
-        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-2">
-          <Link href="/" className="text-[15px] font-medium">
-            Kontrata
-          </Link>
-          <div className="flex items-center gap-3">
-            <nav className="flex items-center gap-3 text-[13px]">
+      <header className="border-b-[0.5px] border-[var(--border)] bg-[var(--surface)]">
+        <div className="mx-auto flex max-w-[1400px] items-center justify-between px-6 py-3">
+          <BrandLogo />
+          <div className="flex items-center gap-4">
+            <nav className="flex items-center gap-4 text-[14px]">
               {nav.map((item) => {
                 const active =
                   item.href === "/"
@@ -52,7 +51,9 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                     key={item.href}
                     href={item.href}
                     className={
-                      active ? "font-medium" : "text-[var(--muted)] hover:text-[var(--fg)]"
+                      active
+                        ? "font-semibold text-[var(--accent)]"
+                        : "font-medium text-[var(--ink-muted)] hover:text-[var(--ink)]"
                     }
                   >
                     {item.label}
@@ -60,31 +61,25 @@ export function AppShell({ children }: { children: React.ReactNode }) {
                 );
               })}
             </nav>
-            <span className="cursor-default text-[12px] text-[var(--muted)]">
-              {org?.ad ?? user.eposta}
-            </span>
+            <span className="meta-text cursor-default">{org?.ad ?? user.eposta}</span>
             <button type="button" className="btn" onClick={() => void logout()}>
               Çıkış
             </button>
           </div>
         </div>
       </header>
-      <main className="mx-auto max-w-[1400px] px-6 py-5">{children}</main>
+      <main className="mx-auto max-w-[1400px] px-6 py-[var(--space-section)]">{children}</main>
     </div>
   );
 }
 
-export function AuthLayout({
-  title,
-  children,
-}: {
-  title: string;
-  children: React.ReactNode;
-}) {
+export function AuthLayout({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex min-h-screen items-center justify-center px-6">
-      <div className="w-full max-w-sm rounded-card border-[0.5px] border-[var(--line)] p-5">
-        <h1 className="mb-4 text-[15px] font-medium">{title}</h1>
+    <div className="flex min-h-screen items-center justify-center px-6 py-10">
+      <div className="card w-full max-w-sm p-[var(--space-card)]">
+        <div className="mb-6 flex justify-center">
+          <BrandLogo href="/giris/" />
+        </div>
         {children}
       </div>
     </div>

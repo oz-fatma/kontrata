@@ -70,11 +70,11 @@ içindeki ayrı raporda tutulur.
 
 ## Colab fine-tune
 
-`train_colab.ipynb` Google Colab T4 (veya üzeri) GPU içindir. Yerelde çalıştırmayın.
+`train_colab.ipynb` Google Colab **L4** GPU içindir (eğitim ~11 dk, 4 epoch). Yerelde çalıştırmayın.
 
 1. `python generate.py --seed 42` ile `data/train.jsonl` ve `data/val.jsonl` üretin
    (veya defterde `VERI_KAYNAGI = "github"` bırakıp klon + üretim yaptırın).
-2. Colab'da Runtime → Change runtime type → GPU.
+2. Colab'da Runtime → Change runtime type → **L4 GPU**.
 3. 🔑 Secrets'a `HF_TOKEN` ekleyin (Hugging Face yazma yetkisi). Jeton deftere
    yapıştırılmaz; `userdata.get("HF_TOKEN")` okur.
 4. Defteri açıp hücreleri sırayla çalıştırın:
@@ -84,7 +84,7 @@ içindeki ayrı raporda tutulur.
 | 1 | Paket kurulumu, `nvidia-smi`, HF oturumu |
 | 2 | jsonl yükleme (`files.upload`) veya GitHub klonu + `generate.py`; sohbet formatı |
 | 3 | `Qwen/Qwen2.5-1.5B-Instruct`, 4-bit nf4 + double quant, LoRA r=16 α=32 |
-| 4 | SFTTrainer, 3 epoch, batch 4 × grad acc 4, lr 2e-4 cosine, `max_seq_length` 2048; epoch sonu val kaybı ve süre |
+| 4 | SFTTrainer, 4 epoch, batch 4 × grad acc 4, lr 2e-4 cosine; epoch sonu val kaybı (4. epoch: 0.290) ve süre (~11 dk) |
 | 5 | val'den 20 örnek: geçerli JSON, şema uyumu, alan doğruluğu |
 | 6 | Adapter `oz-fatma/kontrata-qwen-lora-v1`; birleşik `oz-fatma/kontrata-qwen-merged-v1` |
 

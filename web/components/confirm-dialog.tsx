@@ -28,13 +28,13 @@ export function ConfirmDialog({
         aria-modal="true"
         aria-labelledby="onay-baslik"
         aria-describedby="onay-metin"
-        className="w-full max-w-sm rounded-card border-[0.5px] border-[var(--line)] bg-[var(--bg)] p-4"
+        className="card w-full max-w-sm p-[var(--space-card)]"
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="onay-baslik" className="mb-2">
           {title}
         </h2>
-        <p id="onay-metin" className="mb-4 text-[13px] text-[var(--muted)]">
+        <p id="onay-metin" className="meta-text mb-4">
           {message}
         </p>
         <div className="flex justify-end gap-2">

@@ -15,7 +15,11 @@ import (
 	"github.com/oz-fatma/kontrata/backend/internal/mask"
 )
 
-const parseError = "model çıktısı JSON olarak çözülemedi"
+const (
+	parseError              = "model çıktısı JSON olarak çözülemedi"
+	maxCorrectionRounds     = 2
+	correctionTemperature   = 0.2
+)
 
 // Reader PDF sayfa metinlerinden şemaya uygun JSON çıkarır.
 type Reader struct {
@@ -34,7 +38,8 @@ func (r *Reader) systemPrompt() string {
 }
 
 // Extract sayfaları birleştirir, modeli çağırır, onarır, doğrular.
-// Şema hatasında bir düzeltme turu daha çalışır.
+// Şema hatasında en fazla iki düzeltme turu daha çalışır; ikinci turda
+// sıcaklık artırılır.
 func (r *Reader) Extract(ctx context.Context, pages []string) (*ExtractResult, error) {
 	start := time.Now()
 	out := &ExtractResult{Data: map[string]any{}}
@@ -55,14 +60,23 @@ func (r *Reader) Extract(ctx context.Context, pages []string) (*ExtractResult, e
 	r.dumpExchange(masked.Text, raw)
 
 	data, repairs, errs := decodeAndCheck(raw)
-	if len(errs) > 0 {
-		out.RetryCount = 1
-		corr := correctionPrompt(masked.Text, errs)
-		raw2, err := r.LLM.Generate(ctx, sys, corr)
-		if err == nil {
-			r.dumpExchange(corr, raw2)
-			data, repairs, errs = decodeAndCheck(raw2)
+	for round := 1; round <= maxCorrectionRounds && len(errs) > 0; round++ {
+		out.RetryCount = round
+		corr := correctionPrompt(masked.Text, errs, round)
+		callCtx := ctx
+		if round == maxCorrectionRounds {
+			callCtx = llm.WithTemperature(ctx, correctionTemperature)
+			log.Printf("cikarma duzeltme tur=%d sicaklik=%.1f", round, correctionTemperature)
+		} else {
+			log.Printf("cikarma duzeltme tur=%d", round)
 		}
+		raw2, genErr := r.LLM.Generate(callCtx, sys, corr)
+		if genErr != nil {
+			log.Printf("cikarma duzeltme model hatasi tur=%d: %v", round, genErr)
+			break
+		}
+		r.dumpExchange(corr, raw2)
+		data, repairs, errs = decodeAndCheck(raw2)
 	}
 
 	attachMeta(data, repairs, pages)
@@ -135,7 +149,7 @@ func decodeAndCheck(raw string) (map[string]any, []string, []string) {
 	return data, repairs, extract.Validate(data)
 }
 
-func correctionPrompt(contract string, errs []string) string {
+func correctionPrompt(contract string, errs []string, round int) string {
 	var b strings.Builder
 	b.WriteString(contract)
 	b.WriteString("\n\nÖnceki çıktı şema hataları:\n")
@@ -144,7 +158,11 @@ func correctionPrompt(contract string, errs []string) string {
 		b.WriteString(e)
 		b.WriteByte('\n')
 	}
-	b.WriteString("Düzeltilmiş tek JSON nesnesi üret. Açıklama yazma.")
+	if round >= maxCorrectionRounds {
+		b.WriteString("SADECE tek JSON nesnesi döndür, markdown yok, açıklama yok.")
+	} else {
+		b.WriteString("Düzeltilmiş tek JSON nesnesi üret. Açıklama yazma.")
+	}
 	return b.String()
 }
 

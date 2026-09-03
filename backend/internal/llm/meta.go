@@ -7,6 +7,7 @@ import (
 
 type metaKey struct{}
 type attemptKey struct{}
+type temperatureKey struct{}
 
 const (
 	AgentReader  = "OKUYUCU"
@@ -36,6 +37,23 @@ func WithMeta(ctx context.Context, m Meta) context.Context {
 func MetaFrom(ctx context.Context) (Meta, bool) {
 	m, ok := ctx.Value(metaKey{}).(Meta)
 	return m, ok
+}
+
+// WithTemperature üretim sıcaklığını bağlama yazar. Sıfır veya negatif yok sayılır.
+func WithTemperature(ctx context.Context, t float64) context.Context {
+	if t <= 0 {
+		return ctx
+	}
+	return context.WithValue(ctx, temperatureKey{}, t)
+}
+
+// TemperatureFrom bağlamdaki sıcaklığı okur.
+func TemperatureFrom(ctx context.Context) (float64, bool) {
+	t, ok := ctx.Value(temperatureKey{}).(float64)
+	if !ok || t <= 0 {
+		return 0, false
+	}
+	return t, true
 }
 
 // Attempt tek bir HTTP denemesinin özetidir. Gövde içermez.

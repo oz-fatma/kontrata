@@ -40,6 +40,8 @@ Alan kuralları:
 - release: gun (tam sayı), kapsam (isim_listesi|kontenjan_iadesi|her_ikisi|belirtilmemis)
 - stop_sale: dizi, yoksa []
 
+Metin İngilizce olabilir; çıktı alan adları ve değerleri şemadaki Türkçe biçimde kalır.
+
 Tek JSON nesnesi. Bittiğinde dur.
 meta alanı yalnızca en üstte bir kez yazılır. Diğer alanların içine meta bilgisi (yetkili_mahkeme, para_birimi vb.) yazma.
 """

@@ -61,10 +61,10 @@ function MembersBody() {
   }
 
   return (
-    <div>
-      <div className="mb-4">
+    <div className="flex flex-col gap-[var(--space-section)]">
+      <div>
         <h1>Üyeler</h1>
-        <p className="text-[12px] text-[var(--muted)]">
+        <p className="meta-text mt-1 tabular-nums">
           {org.ad}
           {members ? ` · ${members.length} kişi` : ""}
         </p>
@@ -79,12 +79,12 @@ function MembersBody() {
         <EmptyState title="Üye yok" />
       ) : null}
       {members && members.length > 0 ? (
-        <ul className="divide-y divide-[var(--line)] rounded-card border-[0.5px] border-[var(--line)]">
+        <ul className="card list-panel divide-y divide-[var(--border)] overflow-hidden">
           {members.map((member) => (
-            <li key={member.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2">
+            <li key={member.id} className="flex flex-wrap items-center justify-between gap-2 text-[14px]">
               <div>
-                <p className="text-[13px] font-medium">{member.eposta}</p>
-                <p className="text-[12px] text-[var(--muted)]">{roleLabel(member.rol)}</p>
+                <p className="font-medium text-[var(--ink)]">{member.eposta}</p>
+                <p className="meta-text">{roleLabel(member.rol)}</p>
               </div>
               {canManageMembers && member.id !== userId && member.rol !== Rol.Sahip ? (
                 <div className="flex flex-wrap items-center gap-2">
@@ -146,7 +146,7 @@ function InviteForm({ onInvited }: { onInvited: () => void }) {
 
   return (
     <form
-      className="mb-4 flex flex-col gap-2 rounded-card border-[0.5px] border-[var(--line)] p-3 sm:flex-row sm:items-end"
+      className="card mb-[var(--space-card-gap)] flex flex-col gap-3 p-[var(--space-card)] sm:flex-row sm:items-end"
       onSubmit={form.handleSubmit(async (values) => {
         setError(null);
         setMessage(null);

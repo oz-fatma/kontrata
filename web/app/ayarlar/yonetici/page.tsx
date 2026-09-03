@@ -116,13 +116,13 @@ function AdminBody() {
   }
 
   return (
-    <div className="flex flex-col gap-8">
+    <div className="flex flex-col gap-[var(--space-section)]">
       <div>
         <h1>Yönetici</h1>
-        <p className="text-[12px] text-[var(--muted)]">{org.ad}</p>
+        <p className="meta-text mt-1">{org.ad}</p>
       </div>
 
-      <p className="rounded-card border-[0.5px] border-[var(--line)] bg-[var(--yellow-bg)] px-3 py-2 text-[13px] text-[var(--yellow-ink)]">
+      <p className="card bg-[var(--yellow-bg)] px-[var(--space-card)] py-3 text-[13px] text-[var(--yellow-ink)]">
         Prompt değişiklikleri tüm yeni çıkarımları etkiler. Kişisel veri maskelemesi
         prompt metninden bağımsız olarak her zaman çalışır.
       </p>
@@ -190,17 +190,17 @@ function AdminBody() {
           <EmptyState title="Kayıtlı sürüm yok" detail="Kod varsayılanı kullanılıyor." />
         ) : null}
         {history && history.length > 0 ? (
-          <ul className="divide-y divide-[var(--line)] rounded-card border-[0.5px] border-[var(--line)]">
+          <ul className="card list-panel divide-y divide-[var(--border)] overflow-hidden">
             {history.map((row) => (
-              <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 px-3 py-2 text-[13px]">
+              <li key={row.id} className="flex flex-wrap items-center justify-between gap-2 text-[14px]">
                 <div>
-                  <p className="font-medium">
+                  <p className="font-medium text-[var(--ink)]">
                     Sürüm {row.surum}
                     {row.aktif ? (
-                      <span className="ml-2 text-[12px] font-normal text-[var(--green)]">aktif</span>
+                      <span className="ml-2 meta-text font-normal text-[var(--green)]">aktif</span>
                     ) : null}
                   </p>
-                  <p className="text-[12px] text-[var(--muted)]">
+                  <p className="meta-text tabular-nums">
                     {formatDateTime(row.olusturmaTarihi)}
                     {" · "}
                     {row.olusturanKullaniciId === userId
@@ -339,26 +339,26 @@ function MetricsPanel({
       <section>
         <h2 className="mb-2">Son 24 saat</h2>
         {m ? (
-          <dl className="grid max-w-xl grid-cols-2 gap-3 text-[13px] sm:grid-cols-3">
+          <dl className="card grid max-w-xl grid-cols-2 gap-4 p-[var(--space-card)] text-[14px] sm:grid-cols-3">
             <div>
-              <dt className="text-[var(--muted)]">Toplam çağrı</dt>
-              <dd className="font-medium">{m.toplamCagri}</dd>
+              <dt className="meta-text">Toplam çağrı</dt>
+              <dd className="mt-0.5 font-medium tabular-nums text-[var(--ink)]">{m.toplamCagri}</dd>
             </div>
             <div>
-              <dt className="text-[var(--muted)]">Başarılı</dt>
-              <dd className="font-medium">{m.basariliCagri}</dd>
+              <dt className="meta-text">Başarılı</dt>
+              <dd className="mt-0.5 font-medium tabular-nums text-[var(--ink)]">{m.basariliCagri}</dd>
             </div>
             <div>
-              <dt className="text-[var(--muted)]">Başarısız</dt>
-              <dd className="font-medium">{m.basarisizCagri}</dd>
+              <dt className="meta-text">Başarısız</dt>
+              <dd className="mt-0.5 font-medium tabular-nums text-[var(--ink)]">{m.basarisizCagri}</dd>
             </div>
             <div>
-              <dt className="text-[var(--muted)]">Ortalama süre</dt>
-              <dd className="font-medium">{ms(m.ortalamaSureMs)}</dd>
+              <dt className="meta-text">Ortalama süre</dt>
+              <dd className="mt-0.5 font-medium tabular-nums text-[var(--ink)]">{ms(m.ortalamaSureMs)}</dd>
             </div>
             <div>
-              <dt className="text-[var(--muted)]">p95 süre</dt>
-              <dd className="font-medium">{ms(m.p95SureMs)}</dd>
+              <dt className="meta-text">p95 süre</dt>
+              <dd className="mt-0.5 font-medium tabular-nums text-[var(--ink)]">{ms(m.p95SureMs)}</dd>
             </div>
           </dl>
         ) : (
@@ -369,56 +369,60 @@ function MetricsPanel({
       <section>
         <h2 className="mb-2">Agent</h2>
         {m && m.agentBazinda.length > 0 ? (
-          <table className="w-full max-w-xl text-left text-[13px]">
-            <thead>
-              <tr className="text-[var(--muted)]">
-                <th className="py-1 font-normal">Agent</th>
-                <th className="py-1 font-normal">Çağrı</th>
-                <th className="py-1 font-normal">Ort. süre</th>
-                <th className="py-1 font-normal">Başarı</th>
-              </tr>
-            </thead>
-            <tbody>
-              {m.agentBazinda.map((row) => (
-                <tr key={row.agent} className="border-t border-[var(--line)]">
-                  <td className="py-1">{row.agent === "DENETCI" ? "Denetçi" : "Okuyucu"}</td>
-                  <td className="py-1">{row.cagri}</td>
-                  <td className="py-1">{ms(row.ortalamaSureMs)}</td>
-                  <td className="py-1">{pct(row.basariOrani)}</td>
+          <div className="card max-w-xl overflow-x-auto">
+            <table className="data-table w-full text-left text-[14px]">
+              <thead>
+                <tr>
+                  <th className="font-medium">Agent</th>
+                  <th className="font-medium">Çağrı</th>
+                  <th className="font-medium">Ort. süre</th>
+                  <th className="font-medium">Başarı</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {m.agentBazinda.map((row) => (
+                  <tr key={row.agent}>
+                    <td>{row.agent === "DENETCI" ? "Denetçi" : "Okuyucu"}</td>
+                    <td className="tabular-nums">{row.cagri}</td>
+                    <td className="tabular-nums">{ms(row.ortalamaSureMs)}</td>
+                    <td className="tabular-nums">{pct(row.basariOrani)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <p className="text-[13px] text-[var(--muted)]">Kayıt yok.</p>
+          <p className="text-[14px] text-[var(--ink-muted)]">Kayıt yok.</p>
         )}
       </section>
 
       <section>
         <h2 className="mb-2">Uç</h2>
         {m && m.ucBazinda.length > 0 ? (
-          <table className="w-full max-w-xl text-left text-[13px]">
-            <thead>
-              <tr className="text-[var(--muted)]">
-                <th className="py-1 font-normal">Uç</th>
-                <th className="py-1 font-normal">Çağrı</th>
-                <th className="py-1 font-normal">Ort. süre</th>
-                <th className="py-1 font-normal">Başarı</th>
-              </tr>
-            </thead>
-            <tbody>
-              {m.ucBazinda.map((row) => (
-                <tr key={row.ucAdi} className="border-t border-[var(--line)]">
-                  <td className="py-1">{row.ucAdi}</td>
-                  <td className="py-1">{row.cagri}</td>
-                  <td className="py-1">{ms(row.ortalamaSureMs)}</td>
-                  <td className="py-1">{pct(row.basariOrani)}</td>
+          <div className="card max-w-xl overflow-x-auto">
+            <table className="data-table w-full text-left text-[14px]">
+              <thead>
+                <tr>
+                  <th className="font-medium">Uç</th>
+                  <th className="font-medium">Çağrı</th>
+                  <th className="font-medium">Ort. süre</th>
+                  <th className="font-medium">Başarı</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {m.ucBazinda.map((row) => (
+                  <tr key={row.ucAdi}>
+                    <td>{row.ucAdi}</td>
+                    <td className="tabular-nums">{row.cagri}</td>
+                    <td className="tabular-nums">{ms(row.ortalamaSureMs)}</td>
+                    <td className="tabular-nums">{pct(row.basariOrani)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : (
-          <p className="text-[13px] text-[var(--muted)]">Kayıt yok.</p>
+          <p className="text-[14px] text-[var(--ink-muted)]">Kayıt yok.</p>
         )}
       </section>
 
@@ -440,10 +444,13 @@ function MetricsPanel({
       <section>
         <h2 className="mb-2">Son çağrılar</h2>
         {calls && calls.length > 0 ? (
-          <ul className="divide-y divide-[var(--line)] rounded-card border-[0.5px] border-[var(--line)]">
+          <ul className="card list-panel divide-y divide-[var(--border)] overflow-hidden">
             {calls.map((row, i) => (
-              <li key={`${row.baslangic}-${i}`} className="flex flex-wrap justify-between gap-2 px-3 py-2 text-[13px]">
-                <span>
+              <li
+                key={`${row.baslangic}-${i}`}
+                className="flex flex-wrap items-center justify-between gap-2 text-[14px]"
+              >
+                <span className="tabular-nums text-[var(--ink)]">
                   {row.agent === "DENETCI" ? "Denetçi" : "Okuyucu"} · {row.ucAdi} · {row.sureMs} ms
                 </span>
                 <span className={row.basarili ? "text-[var(--green)]" : "text-[var(--red)]"}>
@@ -453,7 +460,7 @@ function MetricsPanel({
             ))}
           </ul>
         ) : (
-          <p className="text-[13px] text-[var(--muted)]">Çağrı yok.</p>
+          <p className="text-[14px] text-[var(--ink-muted)]">Çağrı yok.</p>
         )}
       </section>
     </div>

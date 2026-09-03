@@ -1,50 +1,104 @@
 @import "tailwindcss";
 
 :root {
-  --bg: #ffffff;
-  --fg: #1a1a1a;
-  --muted: #6b6b6b;
-  --line: #e6e6e6;
-  --subtle: #f4f4f4;
-  --yellow: #c9a227;
+  /* Marka tokenleri */
+  --ink: #0f1729;
+  --ink-muted: #5b6472;
+  --surface: #ffffff;
+  --surface-subtle: #f7f8fa;
+  --border: #e2e5ea;
+  --accent: #1b2a4a;
+  --accent-hover: #152038;
+
+  /* Durum renkleri (mevcut mantık) */
+  --danger: #c0362c;
+  --red: var(--danger);
+  --red-bg: #f8e8e6;
+  --warning: #c9a227;
+  --yellow: var(--warning);
   --yellow-ink: #7a640f;
   --yellow-bg: #fbf6d9;
-  --red: #c0362c;
-  --red-bg: #f8e8e6;
-  --green: #2f7d4a;
+  --success: #2f7d4a;
+  --green: var(--success);
   --green-bg: #e8f3ec;
   --blue: #2b6cb0;
   --blue-bg: #e8f0fa;
-  --radius-card: 12px;
+
+  /* Geriye dönük alias */
+  --fg: var(--ink);
+  --muted: var(--ink-muted);
+  --bg: var(--surface);
+  --subtle: var(--surface-subtle);
+  --line: var(--border);
+
+  --radius-card: 8px;
   --radius-control: 8px;
+
+  /* Boşluk ölçeği (4px taban) */
+  --space-card: 20px;
+  --space-card-gap: 16px;
+  --space-section: 40px;
 }
 
 @theme inline {
-  --color-bg: var(--bg);
-  --color-fg: var(--fg);
-  --radius-card: 12px;
+  --color-bg: var(--surface);
+  --color-fg: var(--ink);
+  --radius-card: 8px;
   --radius-control: 8px;
 }
 
 html {
-  background: var(--bg);
-  color: var(--fg);
+  background: var(--surface-subtle);
+  color: var(--ink);
 }
 
 body {
-  background: var(--bg);
-  color: var(--fg);
-  font-family: ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  background: var(--surface-subtle);
+  color: var(--ink);
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
   font-size: 14px;
   font-weight: 400;
-  line-height: 1.45;
+  line-height: 1.5;
+  font-variant-numeric: tabular-nums;
 }
 
-h1,
-h2,
+h1 {
+  font-size: 22px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  line-height: 1.25;
+  color: var(--ink);
+}
+
+h2 {
+  font-size: 16px;
+  font-weight: 600;
+  line-height: 1.35;
+  color: var(--ink);
+}
+
 h3 {
-  font-size: 15px;
+  font-size: 14px;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--ink);
+}
+
+.meta-text {
+  font-size: 12px;
   font-weight: 500;
+  color: var(--ink-muted);
+  line-height: 1.4;
+}
+
+.tabular-nums {
+  font-variant-numeric: tabular-nums;
+}
+
+.card {
+  border: 0.5px solid var(--border);
+  border-radius: var(--radius-card);
+  background: var(--surface);
 }
 
 .btn {
@@ -52,18 +106,24 @@ h3 {
   align-items: center;
   justify-content: center;
   gap: 0.35rem;
-  border: 0.5px solid var(--line);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-control);
-  background: var(--bg);
-  padding: 0.4rem 0.75rem;
-  font-size: 13px;
-  font-weight: 400;
-  color: var(--fg);
+  background: var(--surface);
+  padding: 0.45rem 0.85rem;
+  font-size: 14px;
+  font-weight: 500;
+  color: var(--ink);
   cursor: pointer;
+  transition: background-color 120ms ease, border-color 120ms ease;
 }
 
 .btn:hover {
-  background: var(--subtle);
+  background: var(--surface-subtle);
+}
+
+.btn:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .btn:disabled {
@@ -72,47 +132,76 @@ h3 {
 }
 
 .btn-primary {
-  border-color: var(--fg);
-  background: var(--bg);
-  color: var(--fg);
+  border-color: var(--accent);
+  background: var(--accent);
+  color: #ffffff;
 }
 
 .btn-primary:hover {
-  background: var(--subtle);
+  background: var(--accent-hover);
+  border-color: var(--accent-hover);
+}
+
+.btn-primary:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
 }
 
 .btn-danger {
-  border-color: var(--red);
-  background: var(--bg);
-  color: var(--red);
+  border-color: var(--danger);
+  background: transparent;
+  color: var(--danger);
 }
 
 .btn-danger:hover {
-  background: var(--subtle);
+  background: var(--red-bg);
 }
 
 input,
 select,
 textarea {
   width: 100%;
-  border: 0.5px solid var(--line);
+  border: 0.5px solid var(--border);
   border-radius: var(--radius-control);
-  background: var(--bg);
-  padding: 0.45rem 0.65rem;
+  background: var(--surface);
+  padding: 0.5rem 0.65rem;
   font-size: 14px;
   font-weight: 400;
-  color: var(--fg);
+  line-height: 1.5;
+  color: var(--ink);
 }
 
-input:focus,
-select:focus,
-textarea:focus {
-  outline: 1px solid var(--blue);
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid var(--accent);
   outline-offset: 0;
 }
 
+a:focus-visible,
+button:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+
 .hairline {
-  border: 0.5px solid var(--line);
+  border: 0.5px solid var(--border);
+}
+
+.field-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.field-line {
+  padding-bottom: 8px;
+  border-bottom: 0.5px solid var(--border);
+}
+
+.field-line:last-child {
+  padding-bottom: 0;
+  border-bottom: none;
 }
 
 @keyframes spin {
@@ -121,13 +210,50 @@ textarea:focus {
   }
 }
 
+.list-panel > li {
+  min-height: 3.5rem;
+  padding: 0.75rem 1rem;
+  transition: background-color 120ms ease;
+}
+
+.list-panel > li:hover {
+  background: var(--surface-subtle);
+}
+
+.data-table thead {
+  border-bottom: 0.5px solid var(--border);
+  background: var(--surface-subtle);
+  font-size: 12px;
+  color: var(--ink-muted);
+}
+
+.data-table tbody tr {
+  border-bottom: 0.5px solid var(--border);
+  transition: background-color 120ms ease;
+}
+
+.data-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.data-table tbody tr:hover {
+  background: var(--surface-subtle);
+}
+
+.data-table th,
+.data-table td {
+  min-height: 3.5rem;
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+}
+
 .spinner {
   display: inline-block;
   width: 0.75rem;
   height: 0.75rem;
   flex-shrink: 0;
-  border: 1.5px solid var(--line);
-  border-top-color: var(--muted);
+  border: 1.5px solid var(--border);
+  border-top-color: var(--ink-muted);
   border-radius: 999px;
   animation: spin 0.7s linear infinite;
 }

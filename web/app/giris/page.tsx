@@ -43,7 +43,7 @@ function LoginForm() {
   }
 
   return (
-    <AuthLayout title="Giriş yap">
+    <AuthLayout>
       <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>
         {serverError ? <ErrorState message={serverError} /> : null}
         <Field id="eposta" label="E-posta" error={form.formState.errors.eposta?.message}>
@@ -64,7 +64,7 @@ function LoginForm() {
         >
           {form.formState.isSubmitting ? "Gönderiliyor…" : "Devam et"}
         </button>
-        <p className="text-[12px] text-[var(--muted)]">
+        <p className="meta-text">
           <Link href="/sifre-sifirla/" className="underline">
             Şifremi unuttum
           </Link>

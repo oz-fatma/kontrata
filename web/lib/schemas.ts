@@ -67,9 +67,16 @@ export const deleteAccountSchema = z.object({
   token: z.string().trim().min(1, "Onay kodu gerekli"),
 });
 
+export const verifyTokenSchema = z.object({
+  token: z.string().trim().min(1, "Doğrulama kodu gerekli"),
+});
+
 export type RegisterValues = z.infer<typeof registerSchema>;
 export type LoginValues = z.infer<typeof loginSchema>;
 export type MfaValues = z.infer<typeof mfaSchema>;
 export type ResetRequestValues = z.infer<typeof resetRequestSchema>;
 export type ResetPasswordValues = z.infer<typeof resetPasswordSchema>;
 export type InviteValues = z.infer<typeof inviteSchema>;
+export type DeviceNameValues = z.infer<typeof deviceNameSchema>;
+export type DeleteAccountValues = z.infer<typeof deleteAccountSchema>;
+export type VerifyTokenValues = z.infer<typeof verifyTokenSchema>;

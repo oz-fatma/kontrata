@@ -1,5 +1,6 @@
 "use client";
 
+import { FileText, Inbox, SearchX } from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import {
@@ -186,6 +187,7 @@ function ContractDetail() {
   if (!id) {
     return (
       <EmptyState
+        icon={SearchX}
         title="Sözleşme seçilmedi"
         detail="Listeden bir kayıt açın."
       />
@@ -194,6 +196,7 @@ function ContractDetail() {
   if (!row) {
     return (
       <EmptyState
+        icon={FileText}
         title="Sözleşme bulunamadı"
         detail="Kayıt silinmiş olabilir veya henüz yüklenmedi."
       />
@@ -205,22 +208,26 @@ function ContractDetail() {
 
   return (
     <div>
-      <div className="mb-4 flex items-start justify-between gap-3">
+      <div className="mb-[var(--space-card-gap)] flex items-start justify-between gap-4">
         <div>
           <h1>{row.dosyaAdi || "Adsız dosya"}</h1>
-          <p className="text-[12px] text-[var(--muted)]">
+          <p className="meta-text mt-1 tabular-nums">
             — sayfa · {formatDateTime(row.guncellemeTarihi)}
           </p>
         </div>
-        <StatusBadge label={statusLabel(row.durum)} tone={statusTone(row.durum)} />
+        <StatusBadge
+          label={statusLabel(row.durum)}
+          tone={statusTone(row.durum)}
+          durum={row.durum}
+        />
       </div>
 
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
 
-      <div className="grid gap-4 md:grid-cols-[1fr_16rem]">
-        <section className="rounded-card border-[0.5px] border-[var(--line)]">
+      <div className="grid gap-[var(--space-card-gap)] md:grid-cols-[1fr_16rem]">
+        <section className="card overflow-hidden">
           {processing ? (
-            <p className="px-3 py-6 text-[13px] text-[var(--muted)]">
+            <p className="px-[var(--space-card)] py-6 text-[14px] text-[var(--ink-muted)]">
               Sözleşme işleniyor. Çıkarım birkaç dakika sürebilir.
             </p>
           ) : (
@@ -232,18 +239,19 @@ function ContractDetail() {
                 lines={f.lines}
                 metas={row.cikarimMeta}
                 readOnly={!canEdit}
+                listStyle={f.listStyle}
                 onSave={canEdit ? saveField : undefined}
               />
             ))
           )}
         </section>
 
-        <aside className="bg-[var(--subtle)] px-3 py-3">
-          <h2 className="mb-2">Denetçi bulguları</h2>
+        <aside className="card px-[var(--space-card)] py-[var(--space-card)]">
+          <h2 className="mb-3">Denetçi bulguları</h2>
           {processing ? (
-            <p className="text-[13px] text-[var(--muted)]">Denetçi henüz çalışmadı.</p>
+            <p className="text-[14px] text-[var(--ink-muted)]">Denetçi henüz çalışmadı.</p>
           ) : findings.length === 0 ? (
-            <p className="text-[13px] text-[var(--muted)]">Bulgu yok</p>
+            <EmptyState compact icon={Inbox} title="Bulgu yok" detail="Denetçi uyarı üretmedi." />
           ) : (
             findings.map((f) => (
               <FindingCard
@@ -255,7 +263,7 @@ function ContractDetail() {
               />
             ))
           )}
-          <div className="mt-3 border-t-[0.5px] border-[var(--line)] pt-2 text-[12px] text-[var(--muted)]">
+          <div className="mt-4 border-t-[0.5px] border-[var(--border)] pt-3 meta-text tabular-nums">
             <p>{processing ? "—" : `${findings.length} bulgu`}</p>
             <p>
               Okuyucu süresi{" "}
@@ -274,7 +282,7 @@ function ContractDetail() {
         </aside>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
+      <div className="mt-[var(--space-card-gap)] flex flex-wrap gap-3">
         {canApprove ? (
           <button
             type="button"
@@ -305,7 +313,9 @@ function ContractDetail() {
   );
 }
 
-function fieldRows(row: Contract): { label: string; path: string; lines: string[] }[] {
+function fieldRows(
+  row: Contract,
+): { label: string; path: string; lines: string[]; listStyle?: boolean }[] {
   const kontenjan = (row.odaKontenjanlari ?? []).map(
     (k) => `${k.odaTipi}: ${k.adet}${k.aciklama ? ` (${k.aciklama})` : ""}`,
   );
@@ -350,10 +360,10 @@ function fieldRows(row: Contract): { label: string; path: string; lines: string[
     },
     { label: "İmza tarihi", path: "meta.imzaTarihi", lines: compact(row.meta?.imzaTarihi) },
     { label: "Dönem", path: "donem", lines: donem },
-    { label: "Oda kontenjanı", path: "odaKontenjanlari", lines: kontenjan },
-    { label: "Fiyatlar", path: "fiyatlar", lines: fiyat },
+    { label: "Oda kontenjanı", path: "odaKontenjanlari", lines: kontenjan, listStyle: true },
+    { label: "Fiyatlar", path: "fiyatlar", lines: fiyat, listStyle: true },
     { label: "Release", path: "release", lines: release },
-    { label: "Stop sale", path: "stopSale", lines: stop },
+    { label: "Stop sale", path: "stopSale", lines: stop, listStyle: true },
   ];
 }
 

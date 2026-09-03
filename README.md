@@ -54,9 +54,10 @@ gizlilik argümanıdır. Dağıtım maliyeti: kod imzası ve otomatik güncellem
 | Eğitim | 320 sentetik örnek (`ml/generate.py --seed 42`) |
 | Doğrulama | 80 sentetik örnek |
 | Dil | yaklaşık %50 Türkçe / %50 İngilizce |
-| Val kaybı | 0.290 |
-| Token doğruluğu | %92.5 |
-| Taban | `Qwen/Qwen2.5-1.5B-Instruct`, LoRA r=16, 3 epoch, Colab T4 |
+| Val kaybı | 0.290 (4. epoch) |
+| Token doğruluğu | %92.5 (4. epoch) |
+| Taban | `Qwen/Qwen2.5-1.5B-Instruct`, LoRA r=16, 4 epoch |
+| Donanım | Colab L4 GPU, ~11 dk |
 
 MEGEP Argos örneği eğitim kümesine **karışmaz**; modelin tek gerçek metni
 ezberlemesi istenmez. Ayrıntı: `ml/README.md`.

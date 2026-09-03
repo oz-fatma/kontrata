@@ -5,8 +5,10 @@ import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { EpostaDogrulaDocument } from "@/generated/graphql";
 import { gqlRequest, graphqlMessage } from "@/lib/client";
+import { verifyFailedMessage } from "@/lib/verify-token";
 import { AuthLayout } from "@/components/shell";
 import { ErrorState, LoadingState } from "@/components/states";
+import { VerifyTokenForm } from "@/components/verify-token-form";
 
 export default function VerifyPage() {
   return (
@@ -19,21 +21,28 @@ export default function VerifyPage() {
 function VerifyInner() {
   const params = useSearchParams();
   const token = params.get("token") ?? "";
-  const [state, setState] = useState<"loading" | "ok" | "error">("loading");
+  const [state, setState] = useState<"idle" | "loading" | "ok" | "error">(
+    token ? "loading" : "idle",
+  );
   const [message, setMessage] = useState("");
 
   useEffect(() => {
     if (!token) {
-      setState("error");
-      setMessage("Doğrulama kodu eksik.");
+      setState("idle");
       return;
     }
     let cancelled = false;
+    setState("loading");
     (async () => {
       try {
-        await gqlRequest(EpostaDogrulaDocument, { token });
+        const data = await gqlRequest(EpostaDogrulaDocument, { token });
         if (!cancelled) {
-          setState("ok");
+          if (data.epostaDogrula) {
+            setState("ok");
+          } else {
+            setState("error");
+            setMessage(verifyFailedMessage);
+          }
         }
       } catch (err) {
         if (!cancelled) {
@@ -48,7 +57,7 @@ function VerifyInner() {
   }, [token]);
 
   return (
-    <AuthLayout title="E-posta doğrulama">
+    <AuthLayout>
       {state === "loading" ? <LoadingState label="Doğrulanıyor" /> : null}
       {state === "ok" ? (
         <div>
@@ -58,12 +67,13 @@ function VerifyInner() {
           </Link>
         </div>
       ) : null}
+      {state === "idle" ? (
+        <VerifyTokenForm hint="E-postadaki doğrulama kodunu yapıştırın." />
+      ) : null}
       {state === "error" ? (
-        <div>
+        <div className="flex flex-col gap-4">
           <ErrorState message={message} />
-          <Link href="/giris/" className="btn mt-3 inline-flex">
-            Girişe dön
-          </Link>
+          <VerifyTokenForm hint="Kodu elle yapıştırıp yeniden deneyin." />
         </div>
       ) : null}
     </AuthLayout>
