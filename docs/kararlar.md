@@ -161,6 +161,14 @@ Bağlam: Okuyucu şemaya çevirir; çelişki, eksik madde ve belirsiz ifade ayr�
 Karar: Denetçi iki katmanlıdır. Altı kural Go'da deterministik çalışır (tarih çelişkisi, alt dönem taşması, fiyat–kontenjan uyuşmazlığı, boş stop-sale, makul olmayan release, zorunlu alan). Yoruma dayalı denetim ayrı sistem prompt'u ve 300 token ile LLM'dedir; kurallarla çakışan konular istenmez. LLM çıktısı ayrışmazsa veya model hata verirse kural bulguları yine yazılır; sözleşme HATA olmaz. Onay kullanıcıdadır: çıkarım başarılıysa durum her zaman INCELENMEYI_BEKLIYOR.
 Sonuç: Bulgular sözleşme kaydına ve GraphQL `bulgular` alanına yazılır.
 
+## 24. Sözleşme eylemleri ve kaynak PDF
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Detay ekranındaki Onayla, alan düzeltme, JSON indir ve Kaynağı aç düğmeleri bağlı değildi. PDF'i GraphQL üzerinden dönmek hem şemayı şişirir hem de tarayıcıda yeni sekmede açmayı zorlaştırır.
+Karar: Onay `sozlesmeOnayla` ile yalnızca `INCELENMEYI_BEKLIYOR` → `ONAYLANDI` (SAHIP/YONETICI). Alan düzeltme `sozlesmeAlanGuncelle` ile güveni 1.0 yapar, `elleDuzeltildi` işaretler, değeri denetim kaydına yazmaz ve Denetçi'yi yeniden çalıştırır. Kaynak PDF `GET /dosya/{id}` REST ucundan Authorization ile servis edilir; başka kiracının kaydı 404 döner.
+Sonuç: Onaylı kayıt salt okunur. Liste 3 sn aralıkla koşulsuz yenilenir; durdurma optimizasyonu sonra eklenebilir.
+
+
 
 
 

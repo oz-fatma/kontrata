@@ -15,7 +15,12 @@ import {
 const endpoint =
   process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:8080/graphql";
 
+export function apiRoot(): string {
+  return endpoint.replace(/\/graphql\/?$/i, "");
+}
+
 const client = new GraphQLClient(endpoint, {
+  fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }),
   headers: () => {
     const headers: Record<string, string> = {
       "Accept-Language": "tr",
@@ -196,7 +201,7 @@ async function multipartRequest<TResult, TVars extends object>(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(endpoint, { method: "POST", headers, body: form });
+  const res = await fetch(endpoint, { method: "POST", headers, body: form, cache: "no-store" });
   const json = (await res.json().catch(() => ({}))) as {
     data?: TResult;
     errors?: { message: string }[];
@@ -222,4 +227,40 @@ export async function restoreSession(): Promise<boolean> {
     return true;
   }
   return tryRefresh();
+}
+
+function authHeaders(accept?: string): Record<string, string> {
+  const headers: Record<string, string> = {
+    "X-Device-Id": getDeviceId(),
+  };
+  if (accept) {
+    headers.Accept = accept;
+  }
+  const token = getAccessToken();
+  if (token) {
+    headers.Authorization = `Bearer ${token}`;
+  }
+  return headers;
+}
+
+/** GET /dosya/{id} — 401 olursa jeton yenileyip bir kez dener. */
+export async function fetchContractFile(id: string): Promise<Blob> {
+  const url = `${apiRoot()}/dosya/${encodeURIComponent(id)}`;
+  let res = await fetch(url, { headers: authHeaders("application/pdf"), cache: "no-store" });
+  if (res.status === 401) {
+    const ok = await tryRefresh();
+    if (!ok) {
+      clearSession();
+      redirectToLogin();
+      throw new AuthExpiredError();
+    }
+    res = await fetch(url, { headers: authHeaders("application/pdf"), cache: "no-store" });
+  }
+  if (res.status === 404) {
+    throw new Error("Dosya bulunamadı");
+  }
+  if (!res.ok) {
+    throw new Error("Dosya açılamadı");
+  }
+  return res.blob();
 }

@@ -188,3 +188,9 @@ export function enumLabel(value: string | null | undefined): string {
   };
   return map[value] ?? value;
 }
+
+export function extractionJsonName(fileName: string | null | undefined): string {
+  const raw = (fileName || "sozlesme").trim();
+  const base = raw.replace(/\.[^.]+$/, "") || "sozlesme";
+  return `${base}-cikarim.json`;
+}

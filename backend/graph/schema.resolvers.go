@@ -27,6 +27,16 @@ func (r *mutationResolver) SozlesmeGuncelle(ctx context.Context, id string, gird
 	return r.Service.Update(ctx, id, girdi)
 }
 
+// SozlesmeOnayla is the resolver for the sozlesmeOnayla field.
+func (r *mutationResolver) SozlesmeOnayla(ctx context.Context, id string) (*model.Sozlesme, error) {
+	return r.Service.Approve(ctx, id)
+}
+
+// SozlesmeAlanGuncelle is the resolver for the sozlesmeAlanGuncelle field.
+func (r *mutationResolver) SozlesmeAlanGuncelle(ctx context.Context, id string, alanYolu string, deger interface{}) (*model.Sozlesme, error) {
+	return r.Service.UpdateField(ctx, id, alanYolu, deger)
+}
+
 // SozlesmeSil is the resolver for the sozlesmeSil field.
 func (r *mutationResolver) SozlesmeSil(ctx context.Context, id string) (bool, error) {
 	return r.Service.Delete(ctx, id)

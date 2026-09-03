@@ -27,8 +27,9 @@ Sentetik veri `%50` TR / `%50` EN, İngilizce şablonlar operatör kontratı dil
 çekildi. Modelin yeniden eğitilmesi bu hizalamayı kalıcı kılar.
 
 2026-09-03: üretim prompt'una isteğe bağlı `meta` (otel_adi, acente_adi,
-para_birimi, kur_esasi, yetkili_mahkeme, …) eklendi. Notebook ve
-`evaluate.py` aynı metni taşır; mevcut model yeniden eğitilmedi — meta
-opsiyonel olduğu için örnek çıktıdan öğrenmesi beklenir. Bir sonraki
-eğitim bu prompt'u kullanacak.
+para_birimi, kur_esasi, yetkili_mahkeme, sozlesme_tipi, sezon) eklendi.
+`sozlesme_tipi` ve `sezon` geçerli değerleri, `yetkili_mahkeme` için şehir
+adı kısıtı ve “meta yalnızca kökte bir kez” kuralı prompt'ta yazılıdır.
+Notebook ve `evaluate.py` aynı metni taşır; mevcut model yeniden
+eğitilmedi — meta opsiyonel olduğu için tarifi izlemesi beklenir.
 

@@ -21,6 +21,7 @@ import {
 } from "@/lib/format";
 import { usePolling } from "@/lib/use-polling";
 import { AppShell } from "@/components/shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { Spinner } from "@/components/spinner";
 import { StatusBadge } from "@/components/status-badge";
@@ -35,38 +36,6 @@ export default function HomePage() {
   );
 }
 
-function listRowKey(row: Row): string {
-  return [
-    row.id,
-    row.durum,
-    row.dosyaAdi ?? "",
-    row.olusturmaTarihi,
-    row.guncellemeTarihi,
-    row.meta?.acenteAdi ?? "",
-    row.meta?.otelAdi ?? "",
-    row.donem?.baslangic ?? "",
-    row.donem?.bitis ?? "",
-    (row.bulgular ?? []).map((f) => f.onem).join(","),
-  ].join("\0");
-}
-
-function reuseListRows(prev: Row[] | null, next: Row[]): Row[] {
-  if (!prev) {
-    return next;
-  }
-  if (
-    prev.length === next.length &&
-    prev.every((row, i) => row.id === next[i].id && listRowKey(row) === listRowKey(next[i]))
-  ) {
-    return prev;
-  }
-  const prevById = new Map(prev.map((row) => [row.id, row]));
-  return next.map((row) => {
-    const old = prevById.get(row.id);
-    return old && listRowKey(old) === listRowKey(row) ? old : row;
-  });
-}
-
 function ContractList() {
   const { org, canWrite } = useAuth();
   const router = useRouter();
@@ -76,6 +45,7 @@ function ContractList() {
   const [query, setQuery] = useState("");
   const [status, setStatus] = useState("all");
   const [busy, setBusy] = useState(false);
+  const [pendingDelete, setPendingDelete] = useState<Row | null>(null);
 
   const load = useCallback(
     async (opts?: { silent?: boolean }) => {
@@ -87,9 +57,8 @@ function ContractList() {
           limit: 100,
           offset: 0,
         });
-        setRows((prev) => reuseListRows(prev, data.sozlesmeler ?? []));
+        setRows(data.sozlesmeler ?? []);
       } catch (err) {
-        console.error("sozlesmeler sorgu hatasi", err);
         if (err instanceof AuthExpiredError) {
           router.replace("/giris/");
           return;
@@ -145,21 +114,29 @@ function ContractList() {
     }
   }
 
-  const onDelete = useCallback(
-    async (id: string, e: React.MouseEvent) => {
-      e.stopPropagation();
-      if (!window.confirm("Bu sözleşmeyi silmek istiyor musunuz?")) {
-        return;
-      }
-      try {
-        await gqlRequest(SozlesmeSilDocument, { id });
-        await load();
-      } catch (err) {
-        setError(graphqlMessage(err));
-      }
-    },
-    [load],
-  );
+  const onDelete = useCallback((id: string, e: React.MouseEvent) => {
+    e.stopPropagation();
+    const row = rows?.find((r) => r.id === id) ?? null;
+    setPendingDelete(row);
+  }, [rows]);
+
+  async function confirmDelete() {
+    if (!pendingDelete) {
+      return;
+    }
+    const id = pendingDelete.id;
+    setBusy(true);
+    setError(null);
+    try {
+      await gqlRequest(SozlesmeSilDocument, { id });
+      setPendingDelete(null);
+      await load();
+    } catch (err) {
+      setError(graphqlMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   return (
     <div>
@@ -257,7 +234,7 @@ function ContractList() {
             <tbody>
               {filtered.map((row) => (
                 <ContractRow
-                  key={row.id}
+                  key={`${row.id}:${row.durum}:${row.guncellemeTarihi}`}
                   row={row}
                   canWrite={canWrite}
                   onOpen={onOpen}
@@ -267,6 +244,16 @@ function ContractList() {
             </tbody>
           </table>
         </div>
+      ) : null}
+      {pendingDelete ? (
+        <ConfirmDialog
+          title="Sözleşmeyi sil"
+          message="Bu sözleşme ve yüklenen dosya kalıcı olarak silinecek"
+          confirmLabel="Sil"
+          busy={busy}
+          onCancel={() => setPendingDelete(null)}
+          onConfirm={() => void confirmDelete()}
+        />
       ) : null}
     </div>
   );

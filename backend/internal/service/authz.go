@@ -15,6 +15,7 @@ type authzOp int
 const (
 	opContractRead authzOp = iota
 	opContractWrite
+	opContractApprove
 	opContractDelete
 	opMemberView
 	opMemberManage
@@ -45,7 +46,7 @@ func (a actor) can(op authzOp) bool {
 	case repository.RoleOwner:
 		return true
 	case repository.RoleAdmin:
-		return op == opContractRead || op == opContractWrite || op == opMemberView
+		return op == opContractRead || op == opContractWrite || op == opContractApprove || op == opMemberView
 	case repository.RoleViewer:
 		return op == opContractRead
 	default:

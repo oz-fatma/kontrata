@@ -1,5 +1,6 @@
 scalar Time
 scalar Upload
+scalar JSON
 
 enum SozlesmeTipi {
   TAMAMEN_GARANTILI
@@ -88,6 +89,7 @@ type CikarimMeta {
   guven: Float
   kaynakSayfa: Int
   kaynakMadde: String
+  elleDuzeltildi: Boolean
 }
 
 type SozlesmeMeta {
@@ -201,6 +203,7 @@ input CikarimMetaGirdi {
   guven: Float
   kaynakSayfa: Int
   kaynakMadde: String
+  elleDuzeltildi: Boolean
 }
 
 input SozlesmeMetaGirdi {
@@ -382,6 +385,8 @@ type Mutation {
   sozlesmeYukle(dosya: Upload!): Sozlesme! @auth
   sozlesmeOlustur(girdi: SozlesmeGirdi!): Sozlesme! @auth
   sozlesmeGuncelle(id: ID!, girdi: SozlesmeGirdi!): Sozlesme! @auth
+  sozlesmeOnayla(id: ID!): Sozlesme! @auth
+  sozlesmeAlanGuncelle(id: ID!, alanYolu: String!, deger: JSON!): Sozlesme! @auth
   sozlesmeSil(id: ID!): Boolean! @auth
   kayitOl(eposta: String!, sifre: String!, hesapTipi: HesapTipi = BIREYSEL, organizasyonAdi: String): KayitSonucu!
   epostaDogrula(token: String!): Boolean!

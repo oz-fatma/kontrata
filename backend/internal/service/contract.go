@@ -22,12 +22,24 @@ const (
 	extractQueueSize = 16
 )
 
+var (
+	// ErrApprovedReadOnly onaylı sözleşmenin değiştirilmesini reddeder.
+	ErrApprovedReadOnly = errors.New("onaylı sözleşme düzenlenemez")
+	// ErrNotAwaitingReview onayın yalnızca INCELENMEYI_BEKLIYOR durumunda olduğunu söyler.
+	ErrNotAwaitingReview = errors.New("yalnızca incelenmeyi bekleyen sözleşme onaylanır")
+	// ErrUnknownField tanınmayan alan yoludur.
+	ErrUnknownField = errors.New("bilinmeyen alan")
+	// ErrInvalidFieldValue alan değerinin ayrıştırılamadığını söyler.
+	ErrInvalidFieldValue = errors.New("alan değeri okunamadı")
+)
+
 // ContractService sözleşme iş kurallarını taşır.
 type ContractService struct {
 	repo  *repository.ContractRepository
 	users *repository.UserRepository
 	files *filestore.Store
 	llm   llm.Client
+	audit *repository.AuditRepository
 	jobs  chan string
 	dump  string
 }
@@ -46,6 +58,11 @@ func (s *ContractService) AttachExtract(files *filestore.Store, client llm.Clien
 	s.files = files
 	s.llm = client
 	s.dump = dumpDir
+}
+
+// AttachAudit denetim kaydı deposunu bağlar.
+func (s *ContractService) AttachAudit(audit *repository.AuditRepository) {
+	s.audit = audit
 }
 
 func (s *ContractService) Create(ctx context.Context, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {
@@ -152,6 +169,9 @@ func (s *ContractService) Update(ctx context.Context, id string, girdi model.Soz
 	if !act.ownsContract(existing) {
 		return nil, repository.ErrNotFound
 	}
+	if existing.Status == string(model.SozlesmeDurumuOnaylandi) {
+		return nil, ErrApprovedReadOnly
+	}
 	doc := fromInput(girdi)
 	doc.ID = existing.ID
 	doc.UserID = existing.UserID
@@ -224,6 +244,97 @@ func (s *ContractService) Delete(ctx context.Context, id string) (bool, error) {
 	}
 	log.Printf("denetim: sozlesme silindi")
 	return true, nil
+}
+
+// Approve INCELENMEYI_BEKLIYOR sözleşmesini ONAYLANDI yapar.
+func (s *ContractService) Approve(ctx context.Context, id string) (*model.Sozlesme, error) {
+	act, err := s.actor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !act.can(opContractApprove) {
+		return nil, auth.ErrForbidden
+	}
+	doc, err := s.ownedContract(ctx, act, id)
+	if err != nil {
+		return nil, err
+	}
+	if doc.Status != string(model.SozlesmeDurumuIncelenmeyiBekliyor) {
+		return nil, ErrNotAwaitingReview
+	}
+	doc.Status = string(model.SozlesmeDurumuOnaylandi)
+	doc.UpdatedAt = time.Now().UTC()
+	if err := s.repo.Update(ctx, doc); err != nil {
+		log.Printf("sozlesme onaylama başarısız: %v", err)
+		return nil, err
+	}
+	s.writeAudit(ctx, act.user.ID, repository.EventContractApproved, "")
+	return toModel(doc), nil
+}
+
+// UpdateField tek bir çıkarılmış alanı yazar, güveni 1.0 yapar ve Denetçi'yi yeniden çalıştırır.
+func (s *ContractService) UpdateField(ctx context.Context, id, path string, value any) (*model.Sozlesme, error) {
+	act, err := s.actor(ctx)
+	if err != nil {
+		return nil, err
+	}
+	if !act.can(opContractWrite) {
+		return nil, auth.ErrForbidden
+	}
+	doc, err := s.ownedContract(ctx, act, id)
+	if err != nil {
+		return nil, err
+	}
+	if doc.Status == string(model.SozlesmeDurumuOnaylandi) {
+		return nil, ErrApprovedReadOnly
+	}
+	normalized, err := applyFieldValue(doc, path, value)
+	if err != nil {
+		return nil, err
+	}
+	markFieldManuallyFixed(doc, normalized)
+	pages, _ := s.readPages(doc.StoredFileID)
+	s.runAudit(ctx, doc, auditDataFromContract(doc), pages)
+	doc.UpdatedAt = time.Now().UTC()
+	if err := s.repo.Update(ctx, doc); err != nil {
+		log.Printf("sozlesme alan güncelleme başarısız: %v", err)
+		return nil, err
+	}
+	s.writeAudit(ctx, act.user.ID, repository.EventContractFieldUpdated, normalized)
+	return toModel(doc), nil
+}
+
+func (s *ContractService) ownedContract(ctx context.Context, act actor, id string) (*repository.Contract, error) {
+	doc, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		if errors.Is(err, repository.ErrNotFound) || errors.Is(err, repository.ErrInvalidID) {
+			return nil, err
+		}
+		log.Printf("sozlesme okuma başarısız: %v", err)
+		return nil, err
+	}
+	if !act.ownsContract(doc) {
+		return nil, repository.ErrNotFound
+	}
+	return doc, nil
+}
+
+func (s *ContractService) writeAudit(ctx context.Context, userID any, event, detail string) {
+	if s == nil || s.audit == nil {
+		return
+	}
+	meta := auth.MetaFrom(ctx)
+	rec := repository.AuditRecord{
+		UserID:     userID,
+		Event:      event,
+		IPAddress:  meta.IP,
+		UserAgent:  meta.UserAgent,
+		OccurredAt: time.Now().UTC(),
+		Detail:     detail,
+	}
+	if err := s.audit.Insert(ctx, &rec); err != nil {
+		log.Printf("denetim kaydı yazılamadı: %v", err)
+	}
 }
 
 // Upload PDF'i diske yazar, YUKLENDI kaydı oluşturur ve çıkarımı kuyruğa atar.

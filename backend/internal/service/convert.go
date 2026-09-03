@@ -110,7 +110,11 @@ func fromInput(g model.SozlesmeGirdi) repository.Contract {
 		if c == nil {
 			continue
 		}
-		doc.ExtractionMeta = append(doc.ExtractionMeta, repository.ExtractionMeta{FieldPath: c.AlanYolu, Confidence: c.Guven, SourcePage: c.KaynakSayfa, SourceClause: c.KaynakMadde})
+		item := repository.ExtractionMeta{FieldPath: c.AlanYolu, Confidence: c.Guven, SourcePage: c.KaynakSayfa, SourceClause: c.KaynakMadde}
+		if c.ElleDuzeltildi != nil {
+			item.ManuallyFixed = *c.ElleDuzeltildi
+		}
+		doc.ExtractionMeta = append(doc.ExtractionMeta, item)
 	}
 	return doc
 }
@@ -213,7 +217,10 @@ func toModel(doc *repository.Contract) *model.Sozlesme {
 	}
 	for i := range doc.ExtractionMeta {
 		c := doc.ExtractionMeta[i]
-		out.CikarimMeta = append(out.CikarimMeta, &model.CikarimMeta{AlanYolu: c.FieldPath, Guven: c.Confidence, KaynakSayfa: c.SourcePage, KaynakMadde: c.SourceClause})
+		fixed := c.ManuallyFixed
+		out.CikarimMeta = append(out.CikarimMeta, &model.CikarimMeta{
+			AlanYolu: c.FieldPath, Guven: c.Confidence, KaynakSayfa: c.SourcePage, KaynakMadde: c.SourceClause, ElleDuzeltildi: &fixed,
+		})
 	}
 	return out
 }

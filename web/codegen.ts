@@ -10,7 +10,7 @@ const config: CodegenConfig = {
         fragmentMasking: false,
       },
       config: {
-        scalars: { Time: "string", Upload: "File" },
+        scalars: { Time: "string", Upload: "File", JSON: "unknown" },
         skipTypename: true,
         documentMode: "documentNode",
       },

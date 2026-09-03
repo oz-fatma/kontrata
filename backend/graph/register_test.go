@@ -15,6 +15,7 @@ import (
 	"go.mongodb.org/mongo-driver/v2/bson"
 
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
+	"github.com/oz-fatma/kontrata/backend/internal/filestore"
 	"github.com/oz-fatma/kontrata/backend/internal/mongo"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 	"github.com/oz-fatma/kontrata/backend/internal/service"
@@ -93,6 +94,8 @@ type registerEnv struct {
 	devices  *repository.DeviceRepository
 	orgs     *repository.OrganizationRepository
 	db       *mongo.Client
+	sozSvc   *service.ContractService
+	files    *filestore.Store
 }
 
 func testParams() auth.Params {
@@ -178,16 +181,25 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 	}
 	authSvc := service.NewAuthService(users, tokens, mfa, sessions, devices, sozRepo, orgs, davets, denetim, mail, testParams(), signer, db)
 	sozSvc := service.NewContractService(sozRepo, users)
+	sozSvc.AttachAudit(denetim)
+	files, err := filestore.New(t.TempDir())
+	if err != nil {
+		t.Fatalf("dosya deposu: %v", err)
+	}
+	sozSvc.AttachExtract(files, nil, "")
 	srv := handler.New(NewExecutableSchema(Config{
 		Resolvers:  &Resolver{Service: sozSvc, Auth: authSvc},
 		Directives: DirectiveRoot{Auth: AuthDirective},
 	}))
 	srv.AddTransport(transport.POST{})
-	h := auth.RequestMiddleware(authSvc.BearerMiddleware(srv))
+	gql := auth.RequestMiddleware(authSvc.BearerMiddleware(srv))
+	mux := http.NewServeMux()
+	mux.Handle("GET /dosya/{id}", auth.RequestMiddleware(authSvc.BearerMiddleware(http.HandlerFunc(sozSvc.ServeFile))))
+	mux.Handle("/", gql)
 	return ctx, registerEnv{
-		h: h, c: graphqlClient(h, "", ""), users: users, tokens: tokens,
+		h: mux, c: graphqlClient(mux, "", ""), users: users, tokens: tokens,
 		mfa: mfa, sessions: sessions, soz: sozRepo, audit: denetim, mail: mail,
-		devices: devices, orgs: orgs, db: db,
+		devices: devices, orgs: orgs, db: db, sozSvc: sozSvc, files: files,
 	}
 }
 

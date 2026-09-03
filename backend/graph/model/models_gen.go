@@ -42,17 +42,19 @@ type Cihaz struct {
 }
 
 type CikarimMeta struct {
-	AlanYolu    string   `json:"alanYolu"`
-	Guven       *float64 `json:"guven,omitempty"`
-	KaynakSayfa *int32   `json:"kaynakSayfa,omitempty"`
-	KaynakMadde *string  `json:"kaynakMadde,omitempty"`
+	AlanYolu       string   `json:"alanYolu"`
+	Guven          *float64 `json:"guven,omitempty"`
+	KaynakSayfa    *int32   `json:"kaynakSayfa,omitempty"`
+	KaynakMadde    *string  `json:"kaynakMadde,omitempty"`
+	ElleDuzeltildi *bool    `json:"elleDuzeltildi,omitempty"`
 }
 
 type CikarimMetaGirdi struct {
-	AlanYolu    string   `json:"alanYolu"`
-	Guven       *float64 `json:"guven,omitempty"`
-	KaynakSayfa *int32   `json:"kaynakSayfa,omitempty"`
-	KaynakMadde *string  `json:"kaynakMadde,omitempty"`
+	AlanYolu       string   `json:"alanYolu"`
+	Guven          *float64 `json:"guven,omitempty"`
+	KaynakSayfa    *int32   `json:"kaynakSayfa,omitempty"`
+	KaynakMadde    *string  `json:"kaynakMadde,omitempty"`
+	ElleDuzeltildi *bool    `json:"elleDuzeltildi,omitempty"`
 }
 
 type CocukPolitikasi struct {

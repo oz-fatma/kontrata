@@ -196,6 +196,9 @@ models:
   Upload:
     model:
       - github.com/99designs/gqlgen/graphql.Upload
+  JSON:
+    model:
+      - github.com/99designs/gqlgen/graphql.Any
   Int:
     model:
       - github.com/99designs/gqlgen/graphql.Int32

@@ -34,6 +34,8 @@ const (
 	EventMemberRemoved          = "UYE_CIKAR"
 	EventRoleChanged            = "ROL_DEGISTIR"
 	EventOrganizationDeleted    = "ORGANIZASYON_SILINDI"
+	EventContractApproved       = "SOZLESME_ONAYLANDI"
+	EventContractFieldUpdated   = "SOZLESME_ALAN_GUNCELLENDI"
 )
 
 // UserDeleted denetim kaydında anonimleştirilmiş kullanıcı kimliğidir.

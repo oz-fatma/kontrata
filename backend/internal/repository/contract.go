@@ -146,10 +146,11 @@ type Payment struct {
 }
 
 type ExtractionMeta struct {
-	FieldPath    string   `bson:"alanYolu"`
-	Confidence   *float64 `bson:"guven,omitempty"`
-	SourcePage   *int32   `bson:"kaynakSayfa,omitempty"`
-	SourceClause *string  `bson:"kaynakMadde,omitempty"`
+	FieldPath     string   `bson:"alanYolu"`
+	Confidence    *float64 `bson:"guven,omitempty"`
+	SourcePage    *int32   `bson:"kaynakSayfa,omitempty"`
+	SourceClause  *string  `bson:"kaynakMadde,omitempty"`
+	ManuallyFixed bool     `bson:"elleDuzeltildi,omitempty"`
 }
 
 // ContractRepository sozlesmeler koleksiyonuna erişir.

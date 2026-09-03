@@ -76,6 +76,7 @@ query Sozlesme($id: ID!) {
       guven
       kaynakSayfa
       kaynakMadde
+      elleDuzeltildi
     }
     duzeltmeler
     semaHatalari
@@ -232,6 +233,80 @@ mutation SozlesmeYukle($dosya: Upload!) {
 
 mutation SozlesmeSil($id: ID!) {
   sozlesmeSil(id: $id)
+}
+
+mutation SozlesmeOnayla($id: ID!) {
+  sozlesmeOnayla(id: $id) {
+    id
+    durum
+  }
+}
+
+mutation SozlesmeAlanGuncelle($id: ID!, $alanYolu: String!, $deger: JSON!) {
+  sozlesmeAlanGuncelle(id: $id, alanYolu: $alanYolu, deger: $deger) {
+    id
+    durum
+    guncellemeTarihi
+    meta {
+      otelAdi
+      acenteAdi
+      sozlesmeTipi
+      sezon
+      paraBirimi
+      kurEsasi
+      yetkiliMahkeme
+      imzaTarihi
+    }
+    donem {
+      baslangic
+      bitis
+      altDonemler {
+        ad
+        baslangic
+        bitis
+      }
+    }
+    odaKontenjanlari {
+      odaTipi
+      adet
+      aciklama
+    }
+    fiyatlar {
+      odaTipi
+      pansiyon
+      tutar
+      birim
+      altDonemAd
+    }
+    release {
+      gun
+      kapsam
+      kaynakIfade
+    }
+    stopSale {
+      baslangic
+      bitis
+      kapsam
+      bildirimYontemi
+      kaynakIfade
+    }
+    cikarimMeta {
+      alanYolu
+      guven
+      kaynakSayfa
+      kaynakMadde
+      elleDuzeltildi
+    }
+    bulgular {
+      kod
+      baslik
+      aciklama
+      onem
+      kaynak
+      alanYolu
+    }
+    denetciSuresi
+  }
 }
 
 mutation SozlesmeGuncelle($id: ID!, $girdi: SozlesmeGirdi!) {

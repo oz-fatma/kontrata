@@ -20,10 +20,8 @@ export function usePolling(
     if (!enabled) {
       return;
     }
-    console.log("usePolling tetiklendi", { intervalMs });
     void fnRef.current();
     const id = window.setInterval(() => {
-      console.log("usePolling tik");
       void fnRef.current();
     }, intervalMs);
     return () => window.clearInterval(id);

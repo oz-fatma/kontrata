@@ -100,6 +100,7 @@ func main() {
 		log.Fatalf("yapılandırma yüklenemedi: %v", err)
 	}
 	sozlesmeler := service.NewContractService(repo, kullanicilar)
+	sozlesmeler.AttachAudit(denetim)
 	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, organizasyonlar, davetler, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
 
 	files, err := filestore.New(cfg.UploadDir)

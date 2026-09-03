@@ -46,7 +46,9 @@ func RegisterRoutes(r chi.Router, svc *service.ContractService, authSvc *service
 			errors.Is(e, auth.ErrInvalidName), errors.Is(e, auth.ErrForbidden), errors.Is(e, auth.ErrOrgNameRequired),
 			errors.Is(e, auth.ErrTransferOwnership),
 			errors.Is(e, filestore.ErrNotPDF), errors.Is(e, filestore.ErrTooLarge), errors.Is(e, filestore.ErrInvalidID),
-			errors.Is(e, llm.ErrUnavailable), errors.Is(e, llm.ErrColdStart):
+			errors.Is(e, llm.ErrUnavailable), errors.Is(e, llm.ErrColdStart),
+			errors.Is(e, service.ErrApprovedReadOnly), errors.Is(e, service.ErrNotAwaitingReview),
+			errors.Is(e, service.ErrUnknownField), errors.Is(e, service.ErrInvalidFieldValue):
 			err.Message = e.Error()
 		default:
 			err.Message = "işlem tamamlanamadı"
@@ -64,6 +66,9 @@ func RegisterRoutes(r chi.Router, svc *service.ContractService, authSvc *service
 		}
 		if enablePlayground {
 			r.Handle("/playground", playground.Handler("Kontrata", "/graphql"))
+		}
+		if svc != nil {
+			r.Get("/dosya/{id}", svc.ServeFile)
 		}
 		r.Handle("/graphql", srv)
 	})
