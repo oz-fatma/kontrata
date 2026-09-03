@@ -149,6 +149,9 @@ func toModel(doc *repository.Contract) *model.Sozlesme {
 		}
 		out.Donem = d
 	}
+	out.Duzeltmeler = append([]string{}, doc.Repairs...)
+	out.SemaHatalari = append([]string{}, doc.SchemaErrors...)
+	out.IslemSuresi = doc.ProcessingSeconds
 	for i := range doc.RoomAllotments {
 		o := doc.RoomAllotments[i]
 		out.OdaKontenjanlari = append(out.OdaKontenjanlari, &model.OdaKontenjani{OdaTipi: o.RoomType, Adet: o.Quantity, Aciklama: o.Description})

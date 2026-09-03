@@ -61,6 +61,9 @@ func Validate(data map[string]any) []string {
 	}
 	msgs := flattenErrors(ve)
 	log.Printf("sema dogrulama hata=%d", len(msgs))
+	for _, m := range msgs {
+		log.Printf("sema hatasi %s", m)
+	}
 	return msgs
 }
 
@@ -78,28 +81,34 @@ func flattenErrors(e *jsonschema.ValidationError) []string {
 
 func collectUnits(u jsonschema.OutputUnit, msgs *[]string) {
 	if u.Error != nil && len(u.Errors) == 0 {
-		loc := pointerToPath(u.InstanceLocation)
-		kw := u.KeywordLocation
-		if loc == "" {
-			loc = "(kök)"
-		}
-		msg := loc
-		if kw != "" {
-			msg = loc + " " + kw
-		}
-		*msgs = append(*msgs, msg)
+		loc := instancePath(u.InstanceLocation)
+		kw := keywordName(u.KeywordLocation)
+		*msgs = append(*msgs, "alan="+loc+" kisit="+kw)
 	}
 	for _, child := range u.Errors {
 		collectUnits(child, msgs)
 	}
 }
 
-func pointerToPath(p string) string {
+func instancePath(p string) string {
+	p = strings.TrimPrefix(p, "#")
 	p = strings.TrimPrefix(p, "/")
 	if p == "" {
-		return ""
+		return "(kök)"
 	}
-	return strings.ReplaceAll(p, "/", ".")
+	return p
+}
+
+func keywordName(kw string) string {
+	if i := strings.Index(kw, "#"); i >= 0 {
+		kw = kw[i+1:]
+	}
+	kw = strings.Trim(kw, "/")
+	if kw == "" {
+		return "bilinmiyor"
+	}
+	parts := strings.Split(kw, "/")
+	return parts[len(parts)-1]
 }
 
 // SchemaJSON gömülü kontrat şemasıdır. Test ve gömme doğrulaması için.

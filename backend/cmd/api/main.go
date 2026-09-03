@@ -9,6 +9,7 @@ import (
 	"net/http"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -18,6 +19,9 @@ import (
 	"github.com/oz-fatma/kontrata/backend/graph"
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
 	"github.com/oz-fatma/kontrata/backend/internal/config"
+	"github.com/oz-fatma/kontrata/backend/internal/extract"
+	"github.com/oz-fatma/kontrata/backend/internal/filestore"
+	"github.com/oz-fatma/kontrata/backend/internal/llm"
 	"github.com/oz-fatma/kontrata/backend/internal/mailer"
 	"github.com/oz-fatma/kontrata/backend/internal/mongo"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
@@ -98,6 +102,28 @@ func main() {
 	sozlesmeler := service.NewContractService(repo, kullanicilar)
 	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, organizasyonlar, davetler, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
 
+	files, err := filestore.New(cfg.UploadDir)
+	if err != nil {
+		log.Fatalf("yükleme dizini hazırlanamadı: %v", err)
+	}
+	var modelClient llm.Client
+	if cfg.LLMEndpointURL != "" {
+		modelClient = llm.NewHFEndpoint(cfg.LLMEndpointURL, cfg.LLMToken, cfg.LLMMaxTokens, cfg.LLMTimeout)
+	} else {
+		log.Printf("llm yapılandırılmadı; yüklenen sözleşmeler HATA durumuna geçer")
+	}
+	dumpDir := ""
+	if cfg.LLMDebugDump {
+		dumpDir = cfg.UploadDir
+		extract.DebugDump = true
+		log.Printf("llm debug dump açık; üretimde kullanma")
+	}
+	sozlesmeler.AttachExtract(files, modelClient, dumpDir)
+	authSvc.AttachFiles(files)
+
+	workerCtx, workerCancel := context.WithCancel(context.Background())
+	sozlesmeler.StartExtractWorker(workerCtx)
+
 	srv := newServer(cfg, db, sozlesmeler, authSvc)
 
 	go func() {
@@ -114,6 +140,7 @@ func main() {
 
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
+	workerCancel()
 	if err := srv.Shutdown(ctx); err != nil {
 		log.Fatalf("düzgün kapanış başarısız: %v", err)
 	}
@@ -146,6 +173,7 @@ func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.Contrac
 	r := chi.NewRouter()
 	r.Use(recoverPanic)
 	r.Use(logRequest)
+	r.Use(cors)
 	r.Get("/healthz", func(w http.ResponseWriter, r *http.Request) {
 		handleHealthz(w, r, db)
 	})
@@ -154,9 +182,9 @@ func newServer(cfg config.Config, db *mongo.Client, sozlesmeler *service.Contrac
 	return &http.Server{
 		Addr:              fmt.Sprintf(":%d", cfg.Port),
 		Handler:           r,
-		ReadTimeout:       10 * time.Second,
-		ReadHeaderTimeout: 5 * time.Second,
-		WriteTimeout:      10 * time.Second,
+		ReadTimeout:       60 * time.Second,
+		ReadHeaderTimeout: 10 * time.Second,
+		WriteTimeout:      60 * time.Second,
 		IdleTimeout:       60 * time.Second,
 	}
 }
@@ -220,6 +248,23 @@ func recoverPanic(next http.Handler) http.Handler {
 			log.Printf("panic kurtarıldı: %v", rec)
 			http.Error(w, "iç sunucu hatası", http.StatusInternalServerError)
 		}()
+		next.ServeHTTP(w, r)
+	})
+}
+
+func cors(next http.Handler) http.Handler {
+	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+		origin := strings.TrimSpace(r.Header.Get("Origin"))
+		if origin != "" {
+			w.Header().Set("Access-Control-Allow-Origin", origin)
+			w.Header().Set("Vary", "Origin")
+		}
+		w.Header().Set("Access-Control-Allow-Headers", "Authorization, Content-Type, X-Device-Id, Accept-Language")
+		w.Header().Set("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+		if r.Method == http.MethodOptions {
+			w.WriteHeader(http.StatusNoContent)
+			return
+		}
 		next.ServeHTTP(w, r)
 	})
 }

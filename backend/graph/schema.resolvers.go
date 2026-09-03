@@ -8,8 +8,14 @@ package graph
 import (
 	"context"
 
+	"github.com/99designs/gqlgen/graphql"
 	"github.com/oz-fatma/kontrata/backend/graph/model"
 )
+
+// SozlesmeYukle is the resolver for the sozlesmeYukle field.
+func (r *mutationResolver) SozlesmeYukle(ctx context.Context, dosya graphql.Upload) (*model.Sozlesme, error) {
+	return r.Service.Upload(ctx, dosya.Filename, dosya.File)
+}
 
 // SozlesmeOlustur is the resolver for the sozlesmeOlustur field.
 func (r *mutationResolver) SozlesmeOlustur(ctx context.Context, girdi model.SozlesmeGirdi) (*model.Sozlesme, error) {

@@ -17,6 +17,8 @@ var (
 	usThousands    = regexp.MustCompile(`^(\d{1,3}(?:,\d{3})+)(?:\.(\d+))?$`)
 	euDecimal      = regexp.MustCompile(`^(\d+),(\d{1,2})$`)
 	namedDate      = regexp.MustCompile(`(?i)^(\d{1,2})\s+([A-Za-zÇĞİÖŞÜçğıöşü]+)\s+(\d{4})$`)
+	firstInt       = regexp.MustCompile(`-?\d+`)
+	firstNumeric   = regexp.MustCompile(`-?\d+(?:[.,]\d+)?`)
 )
 
 var trMonths = map[string]time.Month{
@@ -452,26 +454,32 @@ func applyInt(obj map[string]any, key, path string, notes *[]string) {
 	if !ok || v == nil {
 		return
 	}
-	n, ok := toInt(v)
-	if !ok {
-		if s, isStr := v.(string); isStr {
-			if parsed, ok := parseLooseNumber(s); ok {
-				if i, ok := toInt(parsed); ok {
-					obj[key] = i
-					*notes = append(*notes, "sayı temizlendi: "+path)
-					return
-				}
-			}
+	if n, ok := toInt(v); ok {
+		if _, isInt := v.(int); isInt {
+			return
+		}
+		obj[key] = n
+		if _, isStr := v.(string); isStr {
+			*notes = append(*notes, "sayı temizlendi: "+path)
 		}
 		return
 	}
-	if _, isInt := v.(int); isInt {
-		return
+	if s, isStr := v.(string); isStr {
+		if parsed, ok := parseLooseNumber(s); ok {
+			if i, ok := toInt(parsed); ok {
+				obj[key] = i
+				*notes = append(*notes, "sayı temizlendi: "+path)
+				return
+			}
+		}
+		if i, ok := firstIntInText(s); ok {
+			obj[key] = i
+			*notes = append(*notes, "sayı temizlendi: "+path)
+			return
+		}
 	}
-	obj[key] = n
-	if _, isStr := v.(string); isStr {
-		*notes = append(*notes, "sayı temizlendi: "+path)
-	}
+	obj[key] = 0
+	*notes = append(*notes, path+" metinden çıkarıldı")
 }
 
 func applyNumber(obj map[string]any, key, path string, notes *[]string) {
@@ -485,6 +493,16 @@ func applyNumber(obj map[string]any, key, path string, notes *[]string) {
 			*notes = append(*notes, "sayı temizlendi: "+path)
 			return
 		}
+		if tok := firstNumeric.FindString(s); tok != "" {
+			if parsed, ok := parseLooseNumber(tok); ok {
+				obj[key] = parsed
+				*notes = append(*notes, "sayı temizlendi: "+path)
+				return
+			}
+		}
+		obj[key] = 0
+		*notes = append(*notes, path+" metinden çıkarıldı")
+		return
 	}
 	if n, ok := toFloat(v); ok {
 		switch v.(type) {
@@ -495,7 +513,19 @@ func applyNumber(obj map[string]any, key, path string, notes *[]string) {
 			obj[key] = n
 			*notes = append(*notes, "sayı temizlendi: "+path)
 		}
+		return
 	}
+	obj[key] = 0
+	*notes = append(*notes, path+" metinden çıkarıldı")
+}
+
+func firstIntInText(s string) (int, bool) {
+	m := firstInt.FindString(s)
+	if m == "" {
+		return 0, false
+	}
+	i, err := strconv.Atoi(m)
+	return i, err == nil
 }
 
 func toInt(v any) (int, bool) {

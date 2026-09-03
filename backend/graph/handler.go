@@ -14,6 +14,8 @@ import (
 	"github.com/vektah/gqlparser/v2/gqlerror"
 
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
+	"github.com/oz-fatma/kontrata/backend/internal/filestore"
+	"github.com/oz-fatma/kontrata/backend/internal/llm"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
 	"github.com/oz-fatma/kontrata/backend/internal/service"
 )
@@ -27,6 +29,10 @@ func RegisterRoutes(r chi.Router, svc *service.ContractService, authSvc *service
 	srv.AddTransport(transport.Options{})
 	srv.AddTransport(transport.GET{})
 	srv.AddTransport(transport.POST{})
+	srv.AddTransport(transport.MultipartForm{
+		MaxUploadSize: 32 << 20,
+		MaxMemory:     32 << 20,
+	})
 	srv.SetRecoverFunc(func(_ context.Context, rec any) error {
 		log.Printf("graphql panic kurtarıldı: %v", rec)
 		return errors.New("iç sunucu hatası")
@@ -38,7 +44,9 @@ func RegisterRoutes(r chi.Router, svc *service.ContractService, authSvc *service
 			errors.Is(e, auth.ErrPasswordTooShort), errors.Is(e, auth.ErrInvalidEmail),
 			errors.Is(e, auth.ErrUnauthorized), errors.Is(e, auth.ErrInvalidRefreshToken), errors.Is(e, auth.ErrMFAFailed),
 			errors.Is(e, auth.ErrInvalidName), errors.Is(e, auth.ErrForbidden), errors.Is(e, auth.ErrOrgNameRequired),
-			errors.Is(e, auth.ErrTransferOwnership):
+			errors.Is(e, auth.ErrTransferOwnership),
+			errors.Is(e, filestore.ErrNotPDF), errors.Is(e, filestore.ErrTooLarge), errors.Is(e, filestore.ErrInvalidID),
+			errors.Is(e, llm.ErrUnavailable), errors.Is(e, llm.ErrColdStart):
 			err.Message = e.Error()
 		default:
 			err.Message = "işlem tamamlanamadı"

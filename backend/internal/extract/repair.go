@@ -8,7 +8,12 @@ import (
 	"log"
 	"strings"
 	"unicode"
+	"unicode/utf8"
 )
+
+// DebugDump true ise onarılamayan çıktının kısa kesiti loglanır.
+// Yalnızca LLM_DEBUG_DUMP ile açılır; üretimde kapalı kalmalıdır.
+var DebugDump bool
 
 // ErrUnparseable JSON nesnesi çıkarılamadığında döner.
 var ErrUnparseable = errors.New("model çıktısı JSON olarak çözülemedi")
@@ -21,19 +26,119 @@ func RepairJSON(raw string) (map[string]any, error) {
 		return nil, ErrUnparseable
 	}
 	s = stripMarkdown(s)
+
+	span := objectSpan(s)
+	if obj, ok := decodeObject(span); ok {
+		return finishRepair(obj, 1)
+	}
+	fixed := dropExtraClosers(span)
+	if fixed != span {
+		if obj, ok := decodeObject(fixed); ok {
+			return finishRepair(obj, 1)
+		}
+	}
+
 	objs := collectObjects(s)
 	if len(objs) == 0 {
 		log.Printf("json ayrıştırılamadı neden=nesne_yok")
+		if DebugDump {
+			log.Printf("json kesit=%q", firstRunes(raw, 200))
+		}
 		return nil, ErrUnparseable
 	}
-	merged := mergeAll(objs)
+	return finishRepair(mergeAll(objs), len(objs))
+}
+
+func finishRepair(merged map[string]any, nobj int) (map[string]any, error) {
 	if len(merged) == 0 {
 		log.Printf("json ayrıştırılamadı neden=bos_nesne")
 		return nil, ErrUnparseable
 	}
 	normalizeJSONTypes(merged)
-	log.Printf("json onarıldı nesne=%d alan=%d", len(objs), len(merged))
+	log.Printf("json onarıldı nesne=%d alan=%d", nobj, len(merged))
 	return merged, nil
+}
+
+func objectSpan(s string) string {
+	i := strings.Index(s, "{")
+	j := strings.LastIndex(s, "}")
+	if i < 0 || j <= i {
+		return ""
+	}
+	return s[i : j+1]
+}
+
+func decodeObject(s string) (map[string]any, bool) {
+	if s == "" {
+		return nil, false
+	}
+	dec := json.NewDecoder(strings.NewReader(s))
+	dec.UseNumber()
+	var m map[string]any
+	if err := dec.Decode(&m); err != nil || m == nil {
+		return nil, false
+	}
+	rest := ""
+	if n := int(dec.InputOffset()); n >= 0 && n < len(s) {
+		rest = strings.TrimSpace(s[n:])
+	}
+	if rest != "" {
+		return nil, false
+	}
+	return m, true
+}
+
+// dropExtraClosers kök nesneyi erken kapatan veya derinliği eksiye
+// düşüren `}` karakterlerini siler. Dize içindeki parantezlere dokunmaz.
+func dropExtraClosers(s string) string {
+	if s == "" {
+		return s
+	}
+	var b strings.Builder
+	b.Grow(len(s))
+	depth := 0
+	inStr := false
+	esc := false
+	last := len(s) - 1
+	for i := 0; i < len(s); i++ {
+		c := s[i]
+		if inStr {
+			b.WriteByte(c)
+			if esc {
+				esc = false
+				continue
+			}
+			if c == '\\' {
+				esc = true
+				continue
+			}
+			if c == '"' {
+				inStr = false
+			}
+			continue
+		}
+		switch c {
+		case '"':
+			inStr = true
+			b.WriteByte(c)
+		case '{':
+			depth++
+			b.WriteByte(c)
+		case '}':
+			next := depth - 1
+			if next < 1 && i < last {
+				continue
+			}
+			if next < 0 {
+				continue
+			}
+			depth = next
+			b.WriteByte(c)
+		default:
+			b.WriteByte(c)
+		}
+	}
+	return b.String()
 }
 
 func stripMarkdown(s string) string {
@@ -387,4 +492,15 @@ func convertJSON(v any) any {
 	default:
 		return v
 	}
+}
+
+func firstRunes(s string, n int) string {
+	if n <= 0 || s == "" {
+		return ""
+	}
+	if utf8.RuneCountInString(s) <= n {
+		return s
+	}
+	runes := []rune(s)
+	return string(runes[:n])
 }

@@ -1,0 +1,246 @@
+#graphql
+
+query Sozlesmeler($limit: Int, $offset: Int) {
+  sozlesmeler(limit: $limit, offset: $offset) {
+    id
+    dosyaAdi
+    durum
+    olusturmaTarihi
+    guncellemeTarihi
+    meta {
+      otelAdi
+      acenteAdi
+    }
+    donem {
+      baslangic
+      bitis
+    }
+  }
+}
+
+query Sozlesme($id: ID!) {
+  sozlesme(id: $id) {
+    id
+    dosyaAdi
+    durum
+    olusturmaTarihi
+    guncellemeTarihi
+    meta {
+      otelAdi
+      acenteAdi
+      sozlesmeTipi
+      sezon
+      paraBirimi
+      kurEsasi
+      yetkiliMahkeme
+      imzaTarihi
+    }
+    donem {
+      baslangic
+      bitis
+      altDonemler {
+        ad
+        baslangic
+        bitis
+      }
+    }
+    odaKontenjanlari {
+      odaTipi
+      adet
+      aciklama
+    }
+    fiyatlar {
+      odaTipi
+      pansiyon
+      tutar
+      birim
+      altDonemAd
+    }
+    release {
+      gun
+      kapsam
+      kaynakIfade
+    }
+    stopSale {
+      baslangic
+      bitis
+      kapsam
+      bildirimYontemi
+      kaynakIfade
+    }
+    cikarimMeta {
+      alanYolu
+      guven
+      kaynakSayfa
+      kaynakMadde
+    }
+    duzeltmeler
+    semaHatalari
+    islemSuresi
+  }
+}
+
+query Oturumlarim {
+  oturumlarim {
+    id
+    olusturmaTarihi
+    sonKullanma
+    ipAdresi
+    kullaniciAjani
+    mevcutMu
+  }
+}
+
+query Cihazlarim {
+  cihazlarim {
+    id
+    ad
+    guvenilir
+    ilkGorulme
+    sonGorulme
+    ipAdresi
+    kullaniciAjani
+  }
+}
+
+query Organizasyonum {
+  organizasyonum {
+    id
+    ad
+    vergiNo
+    durum
+    olusturmaTarihi
+  }
+}
+
+query Uyeler {
+  uyeler {
+    id
+    eposta
+    rol
+    hesapTipi
+  }
+}
+
+mutation KayitOl(
+  $eposta: String!
+  $sifre: String!
+  $hesapTipi: HesapTipi
+  $organizasyonAdi: String
+) {
+  kayitOl(
+    eposta: $eposta
+    sifre: $sifre
+    hesapTipi: $hesapTipi
+    organizasyonAdi: $organizasyonAdi
+  ) {
+    basarili
+    mesaj
+  }
+}
+
+mutation EpostaDogrula($token: String!) {
+  epostaDogrula(token: $token)
+}
+
+mutation DogrulamaTekrarGonder($eposta: String!) {
+  dogrulamaTekrarGonder(eposta: $eposta)
+}
+
+mutation SifreSifirlamaIste($eposta: String!) {
+  sifreSifirlamaIste(eposta: $eposta)
+}
+
+mutation SifreSifirla($token: String!, $yeniSifre: String!) {
+  sifreSifirla(token: $token, yeniSifre: $yeniSifre)
+}
+
+mutation GirisYap($eposta: String!, $sifre: String!) {
+  girisYap(eposta: $eposta, sifre: $sifre) {
+    mfaGerekli
+    geciciToken
+  }
+}
+
+mutation MfaDogrula($geciciToken: String!, $kod: String!) {
+  mfaDogrula(geciciToken: $geciciToken, kod: $kod) {
+    erisimJetonu
+    yenilemeJetonu
+  }
+}
+
+mutation JetonYenile($yenilemeJetonu: String!) {
+  jetonYenile(yenilemeJetonu: $yenilemeJetonu) {
+    erisimJetonu
+    yenilemeJetonu
+  }
+}
+
+mutation CikisYap {
+  cikisYap
+}
+
+mutation TumOturumlariKapat {
+  tumOturumlariKapat
+}
+
+mutation CihazAdlandir($id: ID!, $ad: String!) {
+  cihazAdlandir(id: $id, ad: $ad) {
+    id
+    ad
+  }
+}
+
+mutation CihazKaldir($id: ID!) {
+  cihazKaldir(id: $id)
+}
+
+mutation CihazGuvenilirYap($id: ID!) {
+  cihazGuvenilirYap(id: $id) {
+    id
+    guvenilir
+  }
+}
+
+mutation HesapSilmeIste {
+  hesapSilmeIste
+}
+
+mutation HesapSil($token: String!) {
+  hesapSil(token: $token)
+}
+
+mutation SozlesmeYukle($dosya: Upload!) {
+  sozlesmeYukle(dosya: $dosya) {
+    id
+    dosyaAdi
+    durum
+  }
+}
+
+mutation SozlesmeSil($id: ID!) {
+  sozlesmeSil(id: $id)
+}
+
+mutation SozlesmeGuncelle($id: ID!, $girdi: SozlesmeGirdi!) {
+  sozlesmeGuncelle(id: $id, girdi: $girdi) {
+    id
+    durum
+  }
+}
+
+mutation UyeDavetEt($eposta: String!, $rol: Rol!) {
+  uyeDavetEt(eposta: $eposta, rol: $rol)
+}
+
+mutation UyeRolDegistir($kullaniciId: ID!, $rol: Rol!) {
+  uyeRolDegistir(kullaniciId: $kullaniciId, rol: $rol) {
+    id
+    eposta
+    rol
+  }
+}
+
+mutation UyeCikar($kullaniciId: ID!) {
+  uyeCikar(kullaniciId: $kullaniciId)
+}

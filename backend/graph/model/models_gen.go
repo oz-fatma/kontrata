@@ -214,6 +214,9 @@ type Sozlesme struct {
 	Overbooking      *Overbooking       `json:"overbooking,omitempty"`
 	Odeme            *Odeme             `json:"odeme,omitempty"`
 	CikarimMeta      []*CikarimMeta     `json:"cikarimMeta,omitempty"`
+	Duzeltmeler      []string           `json:"duzeltmeler,omitempty"`
+	SemaHatalari     []string           `json:"semaHatalari,omitempty"`
+	IslemSuresi      *float64           `json:"islemSuresi,omitempty"`
 }
 
 type SozlesmeGirdi struct {

@@ -16,16 +16,13 @@ Butce: Asama 11 5 -> 11 saat.
 Kesintiler: Asama 5 (5->4), Asama 9 (10->7), Asama 10 (6->5),
 Asama 12 (5->4).
 
-# Egitim / uretim prompt farki (zaman kalirsa)
+# Eğitim / üretim prompt farkı
 
-Model, egitimdeki SYSTEM_PROMPT ile uretimde kullanilan prompt farkli.
-Gercek PDF metinlerinde egitim promptu markdown tablo ciktisi
-tetikliyordu; ornek JSON iceren kisa prompt bunu duzeltti.
+Durum: çözüldü (2026-09-03).
 
-Dogru cozum: sentetik veriyi yeniden uretip egitim promptunu
-uretimdekiyle esitlemek ve modeli yeniden egitmek (~1.5 saat).
-Ayrica egitim verisine gercek PDF cikarimina benzeyen metinler
-eklenmeli (tablo hizalamasi, sayfa gecisleri).
+Eğitimdeki uzun SYSTEM_PROMPT gerçek PDF'lerde markdown tablo tetikliyordu.
+Üretim kısa örnek-JSON prompt'una geçti; `ml/train_colab.ipynb` hücre 2 ve
+`ml/evaluate.py` artık `backend/internal/agent` ile birebir aynı metni kullanır.
+Sentetik veri `%50` TR / `%50` EN, İngilizce şablonlar operatör kontratı diline
+çekildi. Modelin yeniden eğitilmesi bu hizalamayı kalıcı kılar.
 
-Mevcut durum kabul edilebilir: model degerleri dogru cikariyor,
-sorun yalnizca cikti bicimiydi ve prompt ile cozuldu.

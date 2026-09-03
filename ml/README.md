@@ -42,13 +42,14 @@ Her satır bir JSON nesnesidir:
 - `metin` — modele giden sözleşme düz yazısı (Türkçe veya İngilizce şablon).
 - `cikti` — `schema/kontrat.json` ile doğrulanmış altın etiket. Tarihler ISO-8601,
   sayılar ham sayı; biçim karışıklığı yalnızca `metin` içindedir.
-- `meta.sablon_no` — 1 madde madde, 2 tablo, 3 paragraf, 4 karışık, 5 ekler, 6 mektup.
-- `meta.dil` — `tr` veya `en` (hedef dağılım yaklaşık %60 / %40).
+- `meta.sablon_no` — Türkçe: 1 madde madde, 2 tablo, 3 paragraf, 4 karışık, 5 ekler, 6 mektup. İngilizce: 1 ARTICLE N sözleşmesi, 2 teyit yazısı, 3 schedule ekleri.
+- `meta.dil` — `tr` veya `en` (hedef dağılım yaklaşık %50 / %50).
 - `meta.eklenen_gurultu` — `eksik_alan:...`, `tarih_celiskisi:...`,
   `fiyat_oda_uyusmazligi`, `fazladan_madde`, `bicim_yapisik` (sayı ile para
   birimi bitişik, örn. `161GBP`). Boş liste gürültüsüz örnek demektir.
-  İngilizce metindeki oda tipi adları çevrilir (`standart` → `standard`);
-  `cikti.oda_tipi` şema değerinde kalır.
+  İngilizce metinde oda tipleri İngilizce yazılır (`standard`, `family`,
+  `suite`, `junior suite`, `penthouse`, `honeymoon`, `accessible`);
+  `cikti.oda_tipi` Türkçe şema değerinde kalır (`standart`, `aile`, `suit`, …).
 
 Kasıtlı gürültü şemayı bozmaz: eksik alan null veya anahtarın düşürülmesiyle
 gösterilir (Argos örneğindeki `donem.baslangic: null` gibi); tarih çelişkisi

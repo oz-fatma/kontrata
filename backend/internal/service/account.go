@@ -78,6 +78,7 @@ func (s *AuthService) DeleteAccount(ctx context.Context, token string) (bool, er
 		return false, repository.ErrUnavailable
 	}
 	var found bool
+	var fileIDs []string
 	err := s.db.WithTransaction(ctx, func(ctx context.Context) error {
 		doc, err := s.tokens.Consume(ctx, auth.HashToken(token), repository.PurposeAccountDelete, time.Now().UTC())
 		if err != nil {
@@ -87,68 +88,89 @@ func (s *AuthService) DeleteAccount(ctx context.Context, token string) (bool, er
 			return err
 		}
 		found = true
-		return s.purgeAccount(ctx, doc.UserID)
+		ids, err := s.purgeAccount(ctx, doc.UserID)
+		fileIDs = ids
+		return err
 	})
 	if err != nil {
 		log.Printf("hesap silinemedi: %v", err)
 		return false, err
 	}
+	if found {
+		s.removeStoredFiles(fileIDs)
+	}
 	return found, nil
 }
 
-func (s *AuthService) purgeAccount(ctx context.Context, kullaniciID bson.ObjectID) error {
+func (s *AuthService) purgeAccount(ctx context.Context, kullaniciID bson.ObjectID) ([]string, error) {
 	user, err := s.users.GetByID(ctx, kullaniciID)
 	if err != nil {
-		return err
+		return nil, err
 	}
 	if baska, err := s.ownerHasOtherMembers(ctx, user); err != nil {
-		return err
+		return nil, err
 	} else if baska {
-		return auth.ErrTransferOwnership
+		return nil, auth.ErrTransferOwnership
 	}
+	var fileIDs []string
 	if !user.OrganizationID.IsZero() {
 		n, err := s.users.CountByOrg(ctx, user.OrganizationID)
 		if err != nil {
-			return err
+			return nil, err
 		}
 		if user.Role == repository.RoleOwner || n <= 1 {
-			if err := s.deleteOrganization(ctx, user.OrganizationID); err != nil {
-				return err
+			ids, err := s.storedFilesByOrg(ctx, user.OrganizationID)
+			if err != nil {
+				return nil, err
+			}
+			fileIDs = ids
+			if err := s.deleteOrg(ctx, user.OrganizationID, false); err != nil {
+				return nil, err
 			}
 		} else if err := s.users.DetachOrg(ctx, kullaniciID); err != nil {
-			return err
+			return nil, err
 		}
-	} else if err := s.soz.DeleteByUser(ctx, kullaniciID); err != nil {
-		return err
+	} else {
+		ids, err := s.storedFilesByUser(ctx, kullaniciID)
+		if err != nil {
+			return nil, err
+		}
+		fileIDs = ids
+		if err := s.soz.DeleteByUser(ctx, kullaniciID); err != nil {
+			return nil, err
+		}
 	}
 	if err := s.tokens.DeleteByUser(ctx, kullaniciID); err != nil {
-		return err
+		return nil, err
 	}
 	if err := s.mfa.DeleteByUser(ctx, kullaniciID); err != nil {
-		return err
+		return nil, err
 	}
 	if err := s.sessions.DeleteByUser(ctx, kullaniciID); err != nil {
-		return err
+		return nil, err
 	}
 	if err := s.devices.DeleteByUser(ctx, kullaniciID); err != nil {
-		return err
+		return nil, err
 	}
 	if err := s.audit.AnonymizeByUser(ctx, kullaniciID); err != nil {
-		return err
+		return nil, err
 	}
 	if s.deleteFailAt == deleteStepUser {
-		return errDeleteProbe
+		return nil, errDeleteProbe
 	}
 	if err := s.users.Delete(ctx, kullaniciID); err != nil {
-		return err
+		return nil, err
 	}
-	return s.audit.Insert(ctx, &repository.AuditRecord{
+	if err := s.audit.Insert(ctx, &repository.AuditRecord{
 		UserID:     repository.UserDeleted,
 		Event:      repository.EventAccountDeleted,
 		IPAddress:  "",
 		UserAgent:  "",
 		OccurredAt: time.Now().UTC(),
-	})
+	}); err != nil {
+		return nil, err
+	}
+	return fileIDs, nil
 }
 
 // VerilerimiIndir kullanıcının dışa aktarılabilir verisini JSON döner. Hash ve token yok.

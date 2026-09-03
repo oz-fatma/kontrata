@@ -1,0 +1,1 @@
+{"donem": {"baslangic": "2026-04-01", "bitis": "2026-10-31", "alt_donemler": []}}, "oda_kontenjanlari": [{"oda_tipi": "standart", "adet": 170}], "fiyatlar": [{"oda_tipi": "standart", "tutar": 50, "birim": "oda_gecelik", "pansiyon": "belirtilmemis"}], "release": {"gun": 10, "kapsam": "isim_listesi"}}, "stop_sale":[]}

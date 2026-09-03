@@ -25,6 +25,10 @@ release/
 .env
 .env.local
 
+# Yerel yüklemeler (sözleşme PDF'leri tesiste kalır)
+backend/data/
+data/uploads/
+
 # Veri
 ml/data/*
 !ml/data/.gitkeep

@@ -105,4 +105,54 @@ Bağlam: Okuyucu LLM çıktısı markdown, yarım JSON veya şema dışı alan �
 Karar: `internal/extract` ham metni `RepairJSON` ile nesneye çevirir, `Normalize` şemaya çeker (enum, ISO tarih, sayı, `stop_sale` taşıma), `Validate` gömülü `kontrat.json` ile jsonschema doğrular. Gömme `ml/schema/kontrat.json` kopyasıdır; test kaynakla eşitliği kontrol eder. Sözleşme değeri loglanmaz.
 Sonuç: Aşama 7 model çağrısından önce çıktı sözleşmeye hazır bir Go katmanı var.
 
+## 16. Arayüz oturum jetonu (geçici)
+Tarih: 2026-09-02
+Durum: geçici
+Bağlam: Next.js arayüzü static export ile Electron'a gömülecek. Bu aşamada tarayıcıda çalışır; Electron güvenli deposu Aşama 10'da gelir.
+Karar: Erişim jetonu yalnızca bellek (modül değişkeni) tutulur. Yenileme jetonu `sessionStorage` anahtarı `kontrata.refresh`. 401 veya GraphQL `kimlik doğrulaması gerekli` yanıtında `jetonYenile` denenir; başarısızsa girişe yönlendirilir. Cihaz kimliği `localStorage` (`kontrata.device`) ile `X-Device-Id` başlığına yazılır. Tarayıcıdan API'ye istek için CORS, `Origin` yansıtır.
+Sonuç: Sekme kapanınca yenileme jetonu düşer. Aşama 10'da `sessionStorage` Electron güvenli deposuna taşınacak; CORS masaüstü paketinde gerekmeyebilir.
+
+## 17. PDF yerel diskte, çıkarım asenkron
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Okuyucu HuggingFace Inference Endpoint'e bağlanır; soğuk başlangıç 20–60 sn sürebilir. Sözleşme dosyası tesisten çıkmamalı, bulut depolama istenmez.
+Karar: `sozlesmeYukle` kaydı `YUKLENDI` ile hemen döner; çıkarım süreç içi kuyrukta `ISLENIYOR` → `INCELENMEYI_BEKLIYOR` veya `HATA`. PDF'ler `UPLOAD_DIR` altında UUID adıyla tutulur, orijinal ad veritabanındadır. Hesap ve organizasyon silinince dosyalar da silinir. Endpoint kök yola `inputs`/`generated_text` ile konuşur; Qwen sohbet şablonu zorunludur. Prompt ve çıktı loglanmaz.
+Sonuç: Kullanıcı yüklemede beklemez. Model ve dosya tesiste/yerel endpoint'te kalır.
+
+## 18. CPU Inference Endpoint
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: GPU endpoint maliyeti yüksek; Okuyucu çıkarımı kullanıcıyı bekletmez (karar 17). CPU üzerinde üretim 60–180 sn, soğuk başlangıçla birlikte 240 sn'ye yaklaşabilir. 1536 token limiti CPU'da süre aşımına yol açıyordu.
+Karar: HuggingFace Inference Endpoint CPU olarak tutulur. `max_new_tokens` varsayılan 768 (`LLM_MAX_TOKENS`), HTTP zaman aşımı 240 sn (`LLM_TIMEOUT_SECONDS`). Zaman aşımı yeniden denenmez; yalnızca 503 soğuk başlangıçta 8 deneme yapılır.
+Sonuç: Çıkarım 60–180 sn sürebilir. Bu yüzden iş asenkron kalır; kullanıcı yüklemede beklemez.
+
+## 19. Ham model çıktısı yalnızca yerel hata ayıklamada
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: İlk çıkarım turunda model 830 karakter üretip JSON nesnesi döndürmeyebiliyor; logda yalnızca `neden=nesne_yok` ve `hata=N` görünüyordu. Üretimde model çıktısı ve sözleşme metni loglanmaz (karar 17).
+Karar: `LLM_DEBUG_DUMP=true` iken ham model çıktısı `UPLOAD_DIR` altına `cikarma-{sozlesmeId}-{zaman}-{n}.txt` yazılır ve `nesne_yok` durumunda ilk 200 karakter loglanır. Varsayılan kapalıdır; üretimde açılmaz. Şema doğrulama hataları alan yolu ve kısıt adıyla loglanır, değerler yazılmaz.
+Sonuç: Yerelde modelin ne ürettiği incelenebilir; üretim günlüklerinde sözleşme içeriği yoktur.
+
+## 20. Çıkarım prompt'u eğitim metninden ayrıldı
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Eğitimdeki uzun SYSTEM_PROMPT (şema alan özeti) gerçek PDF metinlerinde markdown tablo çıktısı tetikliyordu; RepairJSON nesne bulamıyordu. Örnek JSON içeren kısa prompt modelin JSON üretmesini sağladı. Model bazen kök nesneyi erken kapatıp fazla `}` bırakıyor; ardışık-nesne birleştirme bunu çözemiyor. 768 token limiti çıktıya gerekenden uzundu.
+Karar: Okuyucu sistem prompt'u eğitimdeki metinden bağımsızdır; örnek çıktı ve kısa alan kuralları vardır. RepairJSON önce ilk `{` ile son `}` arasını dener, dengesiz kapanış parantezlerini atar, olmazsa mevcut ardışık-nesne birleştirmeye düşer. `max_new_tokens` varsayılanı 600 (`LLM_MAX_TOKENS`).
+Sonuç: Gerçek PDF'te JSON üretimi düzelir; erken kapanmış nesneler onarılır; çıkarım süresi kısalır.
+
+## 21. Static export için sorgu parametreli detay
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Next.js `output: 'export'` Electron paketlemesi için zorunlu. Dinamik rota `/sozlesme/[id]` derleme zamanında bilinmeyen kimlikler kullanıyor; `generateStaticParams` placeholder'ı gerçek id ile açılınca sayfa çöküyordu.
+Karar: Sözleşme detayı `/sozlesme/?id=` sorgu parametresiyle açılır. `/dogrula` ve `/sifre-sifirla` token'ı zaten sorgu ile alıyordu; yeni dinamik segment eklenmez.
+Sonuç: `next build` statik HTML üretir. Derleme zamanında sözleşme listesi gerekmez.
+
+## 22. Eğitim ve üretim prompt'u hizalandı
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Karar 20 üretim prompt'unu eğitimden ayırmıştı. İngilizce sözleşmelerde çıkarım zayıf kalıyordu; sentetik küme %60 Türkçe idi ve İngilizce şablonlar TR çevirisi gibi duruyordu.
+Karar: `SYSTEM_PROMPT` eğitim defteri, `evaluate.py` ve Okuyucu agent'ta aynıdır. `generate.py` dil oranı %50/%50; İngilizce metinde oda tipleri İngilizce, `cikti` Türkçe kalır.
+Sonuç: Yeniden eğitim bu hizalamayı modele taşır.
+
+
 

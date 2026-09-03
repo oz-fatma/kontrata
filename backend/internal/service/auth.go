@@ -15,6 +15,7 @@ import (
 
 	"github.com/oz-fatma/kontrata/backend/graph/model"
 	"github.com/oz-fatma/kontrata/backend/internal/auth"
+	"github.com/oz-fatma/kontrata/backend/internal/filestore"
 	"github.com/oz-fatma/kontrata/backend/internal/mailer"
 	appmongo "github.com/oz-fatma/kontrata/backend/internal/mongo"
 	"github.com/oz-fatma/kontrata/backend/internal/repository"
@@ -48,6 +49,7 @@ type AuthService struct {
 	deleteLimiter *resendLimiter
 	loginGuard    *loginGuard
 	deleteFailAt  string
+	files         *filestore.Store
 }
 
 func NewAuthService(
@@ -92,6 +94,11 @@ func NewAuthService(
 		deleteLimiter: newResendLimiter(defaultResendEvery),
 		loginGuard:    newLoginGuard(),
 	}
+}
+
+// AttachFiles hesap ve organizasyon silinince PDF'leri de kaldırır.
+func (s *AuthService) AttachFiles(files *filestore.Store) {
+	s.files = files
 }
 
 // KayitOl yeni hesap açar veya mevcut e-posta için aynı yanıtı döner.

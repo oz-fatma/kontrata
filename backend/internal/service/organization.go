@@ -332,6 +332,18 @@ func (s *AuthService) DeleteOrganization(ctx context.Context) (bool, error) {
 }
 
 func (s *AuthService) deleteOrganization(ctx context.Context, orgID bson.ObjectID) error {
+	return s.deleteOrg(ctx, orgID, true)
+}
+
+func (s *AuthService) deleteOrg(ctx context.Context, orgID bson.ObjectID, removeFiles bool) error {
+	var ids []string
+	if removeFiles {
+		var err error
+		ids, err = s.storedFilesByOrg(ctx, orgID)
+		if err != nil {
+			return err
+		}
+	}
 	if err := s.soz.DeleteByOrg(ctx, orgID); err != nil {
 		return err
 	}
@@ -344,7 +356,35 @@ func (s *AuthService) deleteOrganization(ctx context.Context, orgID bson.ObjectI
 	if err := s.orgs.Delete(ctx, orgID); err != nil && !errors.Is(err, repository.ErrNotFound) {
 		return err
 	}
+	if removeFiles {
+		s.removeStoredFiles(ids)
+	}
 	return nil
+}
+
+func (s *AuthService) storedFilesByUser(ctx context.Context, userID bson.ObjectID) ([]string, error) {
+	docs, err := s.soz.ListByUser(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+	return storedFileIDs(docs), nil
+}
+
+func (s *AuthService) storedFilesByOrg(ctx context.Context, orgID bson.ObjectID) ([]string, error) {
+	docs, err := s.soz.ListByOrg(ctx, orgID)
+	if err != nil {
+		return nil, err
+	}
+	return storedFileIDs(docs), nil
+}
+
+func (s *AuthService) removeStoredFiles(ids []string) {
+	if s.files == nil || len(ids) == 0 {
+		return
+	}
+	if err := s.files.RemoveAll(ids); err != nil {
+		log.Printf("sozlesme dosyaları silinemedi: %v", err)
+	}
 }
 
 func (s *AuthService) ownerHasOtherMembers(ctx context.Context, user *repository.User) (bool, error) {

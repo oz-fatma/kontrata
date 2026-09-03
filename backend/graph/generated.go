@@ -120,6 +120,7 @@ type ComplexityRoot struct {
 		SozlesmeGuncelle      func(childComplexity int, id string, girdi model.SozlesmeGirdi) int
 		SozlesmeOlustur       func(childComplexity int, girdi model.SozlesmeGirdi) int
 		SozlesmeSil           func(childComplexity int, id string) int
+		SozlesmeYukle         func(childComplexity int, dosya graphql.Upload) int
 		TumOturumlariKapat    func(childComplexity int) int
 		UyeCikar              func(childComplexity int, kullaniciID string) int
 		UyeDavetEt            func(childComplexity int, eposta string, rol model.Rol) int
@@ -192,10 +193,12 @@ type ComplexityRoot struct {
 		Donem            func(childComplexity int) int
 		DosyaAdi         func(childComplexity int) int
 		Durum            func(childComplexity int) int
+		Duzeltmeler      func(childComplexity int) int
 		Fiyatlar         func(childComplexity int) int
 		GuncellemeTarihi func(childComplexity int) int
 		ID               func(childComplexity int) int
 		IptalKosullari   func(childComplexity int) int
+		IslemSuresi      func(childComplexity int) int
 		Meta             func(childComplexity int) int
 		NoShow           func(childComplexity int) int
 		OdaKontenjanlari func(childComplexity int) int
@@ -203,6 +206,7 @@ type ComplexityRoot struct {
 		OlusturmaTarihi  func(childComplexity int) int
 		Overbooking      func(childComplexity int) int
 		Release          func(childComplexity int) int
+		SemaHatalari     func(childComplexity int) int
 		StopSale         func(childComplexity int) int
 	}
 
@@ -238,6 +242,7 @@ type ComplexityRoot struct {
 // region    ************************** generated!.gotpl **************************
 
 type MutationResolver interface {
+	SozlesmeYukle(ctx context.Context, dosya graphql.Upload) (*model.Sozlesme, error)
 	SozlesmeOlustur(ctx context.Context, girdi model.SozlesmeGirdi) (*model.Sozlesme, error)
 	SozlesmeGuncelle(ctx context.Context, id string, girdi model.SozlesmeGirdi) (*model.Sozlesme, error)
 	SozlesmeSil(ctx context.Context, id string) (bool, error)
@@ -697,6 +702,17 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Mutation.SozlesmeSil(childComplexity, args["id"].(string)), true
+	case "Mutation.sozlesmeYukle":
+		if e.ComplexityRoot.Mutation.SozlesmeYukle == nil {
+			break
+		}
+
+		args, err := ec.field_Mutation_sozlesmeYukle_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Mutation.SozlesmeYukle(childComplexity, args["dosya"].(graphql.Upload)), true
 	case "Mutation.tumOturumlariKapat":
 		if e.ComplexityRoot.Mutation.TumOturumlariKapat == nil {
 			break
@@ -985,6 +1001,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Sozlesme.Durum(childComplexity), true
+	case "Sozlesme.duzeltmeler":
+		if e.ComplexityRoot.Sozlesme.Duzeltmeler == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Sozlesme.Duzeltmeler(childComplexity), true
 	case "Sozlesme.fiyatlar":
 		if e.ComplexityRoot.Sozlesme.Fiyatlar == nil {
 			break
@@ -1009,6 +1031,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Sozlesme.IptalKosullari(childComplexity), true
+	case "Sozlesme.islemSuresi":
+		if e.ComplexityRoot.Sozlesme.IslemSuresi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Sozlesme.IslemSuresi(childComplexity), true
 	case "Sozlesme.meta":
 		if e.ComplexityRoot.Sozlesme.Meta == nil {
 			break
@@ -1051,6 +1079,12 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.Sozlesme.Release(childComplexity), true
+	case "Sozlesme.semaHatalari":
+		if e.ComplexityRoot.Sozlesme.SemaHatalari == nil {
+			break
+		}
+
+		return e.ComplexityRoot.Sozlesme.SemaHatalari(childComplexity), true
 	case "Sozlesme.stopSale":
 		if e.ComplexityRoot.Sozlesme.StopSale == nil {
 			break
@@ -1537,6 +1571,12 @@ func (ec *executionContext) childFields_Sozlesme(ctx context.Context, field grap
 		return ec.fieldContext_Sozlesme_odeme(ctx, field)
 	case "cikarimMeta":
 		return ec.fieldContext_Sozlesme_cikarimMeta(ctx, field)
+	case "duzeltmeler":
+		return ec.fieldContext_Sozlesme_duzeltmeler(ctx, field)
+	case "semaHatalari":
+		return ec.fieldContext_Sozlesme_semaHatalari(ctx, field)
+	case "islemSuresi":
+		return ec.fieldContext_Sozlesme_islemSuresi(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type Sozlesme", field.Name)
 }
@@ -2002,6 +2042,20 @@ func (ec *executionContext) field_Mutation_sozlesmeSil_args(ctx context.Context,
 		return nil, err
 	}
 	args["id"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Mutation_sozlesmeYukle_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "dosya",
+		func(ctx context.Context, v any) (graphql.Upload, error) {
+			return ec.unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["dosya"] = arg0
 	return args, nil
 }
 
@@ -2962,6 +3016,63 @@ func (ec *executionContext) _KayitSonucu_mesaj(ctx context.Context, field graphq
 }
 func (ec *executionContext) fieldContext_KayitSonucu_mesaj(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("KayitSonucu", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Mutation_sozlesmeYukle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Mutation_sozlesmeYukle(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Mutation().SozlesmeYukle(ctx, fc.Args["dosya"].(graphql.Upload))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.Sozlesme
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.Sozlesme) graphql.Marshaler {
+			return ec.marshalNSozlesme2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐSozlesme(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Mutation_sozlesmeYukle(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Mutation",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_Sozlesme(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Mutation_sozlesmeYukle_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
 }
 
 func (ec *executionContext) _Mutation_sozlesmeOlustur(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -5562,6 +5673,75 @@ func (ec *executionContext) fieldContext_Sozlesme_cikarimMeta(_ context.Context,
 		},
 	}
 	return fc, nil
+}
+
+func (ec *executionContext) _Sozlesme_duzeltmeler(ctx context.Context, field graphql.CollectedField, obj *model.Sozlesme) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Sozlesme_duzeltmeler(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Duzeltmeler, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalOString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Sozlesme_duzeltmeler(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Sozlesme", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Sozlesme_semaHatalari(ctx context.Context, field graphql.CollectedField, obj *model.Sozlesme) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Sozlesme_semaHatalari(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SemaHatalari, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []string) graphql.Marshaler {
+			return ec.marshalOString2ᚕstringᚄ(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Sozlesme_semaHatalari(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Sozlesme", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _Sozlesme_islemSuresi(ctx context.Context, field graphql.CollectedField, obj *model.Sozlesme) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Sozlesme_islemSuresi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.IslemSuresi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v *float64) graphql.Marshaler {
+			return ec.marshalOFloat2ᚖfloat64(ctx, selections, v)
+		},
+		true,
+		false,
+	)
+}
+func (ec *executionContext) fieldContext_Sozlesme_islemSuresi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("Sozlesme", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
 func (ec *executionContext) _SozlesmeMeta_otelAdi(ctx context.Context, field graphql.CollectedField, obj *model.SozlesmeMeta) (ret graphql.Marshaler) {
@@ -8272,6 +8452,13 @@ func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet)
 		switch field.Name {
 		case "__typename":
 			out.Values[i] = graphql.MarshalString("Mutation")
+		case "sozlesmeYukle":
+			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
+				return ec._Mutation_sozlesmeYukle(ctx, field)
+			})
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
 		case "sozlesmeOlustur":
 			out.Values[i] = ec.OperationContext.RootResolverMiddleware(innerCtx, func(ctx context.Context) (res graphql.Marshaler) {
 				return ec._Mutation_sozlesmeOlustur(ctx, field)
@@ -9151,6 +9338,21 @@ func (ec *executionContext) _Sozlesme(ctx context.Context, sel ast.SelectionSet,
 			}
 		case "cikarimMeta":
 			out.Values[i] = ec._Sozlesme_cikarimMeta(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "duzeltmeler":
+			out.Values[i] = ec._Sozlesme_duzeltmeler(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "semaHatalari":
+			out.Values[i] = ec._Sozlesme_semaHatalari(ctx, field, obj)
+			if out.Values[i] == graphql.RequiredNull {
+				out.Invalids++
+			}
+		case "islemSuresi":
+			out.Values[i] = ec._Sozlesme_islemSuresi(ctx, field, obj)
 			if out.Values[i] == graphql.RequiredNull {
 				out.Invalids++
 			}
@@ -10177,6 +10379,22 @@ func (ec *executionContext) marshalNTime2timeᚐTime(ctx context.Context, sel as
 	return res
 }
 
+func (ec *executionContext) unmarshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, v any) (graphql.Upload, error) {
+	res, err := graphql.UnmarshalUpload(v)
+	return res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalNUpload2githubᚗcomᚋ99designsᚋgqlgenᚋgraphqlᚐUpload(ctx context.Context, sel ast.SelectionSet, v graphql.Upload) graphql.Marshaler {
+	_ = sel
+	res := graphql.MarshalUpload(v)
+	if res == graphql.Null {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+	}
+	return res
+}
+
 func (ec *executionContext) marshalNUye2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐUye(ctx context.Context, sel ast.SelectionSet, v model.Uye) graphql.Marshaler {
 	return ec._Uye(ctx, sel, &v)
 }
@@ -11036,6 +11254,41 @@ func (ec *executionContext) unmarshalOStopSaleAraligiGirdi2ᚕᚖgithubᚗcomᚋ
 		}
 	}
 	return res, nil
+}
+
+func (ec *executionContext) unmarshalOString2ᚕstringᚄ(ctx context.Context, v any) ([]string, error) {
+	if v == nil {
+		return nil, nil
+	}
+	vSlice := graphql.CoerceList(v)
+	var err error
+	res := make([]string, len(vSlice))
+	for i := range vSlice {
+		ctx := graphql.WithPathContext(ctx, graphql.NewPathWithIndex(i))
+		res[i], err = ec.unmarshalNString2string(ctx, vSlice[i])
+		if err != nil {
+			return nil, err
+		}
+	}
+	return res, nil
+}
+
+func (ec *executionContext) marshalOString2ᚕstringᚄ(ctx context.Context, sel ast.SelectionSet, v []string) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	ret := make(graphql.Array, len(v))
+	for i := range v {
+		ret[i] = ec.marshalNString2string(ctx, sel, v[i])
+	}
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
 }
 
 func (ec *executionContext) unmarshalOString2ᚖstring(ctx context.Context, v any) (*string, error) {

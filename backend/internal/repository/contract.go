@@ -46,6 +46,10 @@ type Contract struct {
 	Overbooking       *Overbooking       `bson:"overbooking,omitempty"`
 	Payment           *Payment           `bson:"odeme,omitempty"`
 	ExtractionMeta    []ExtractionMeta   `bson:"cikarimMeta,omitempty"`
+	StoredFileID      string             `bson:"saklananDosyaId,omitempty"`
+	Repairs           []string           `bson:"duzeltmeler,omitempty"`
+	SchemaErrors      []string           `bson:"semaHatalari,omitempty"`
+	ProcessingSeconds *float64           `bson:"islemSuresi,omitempty"`
 }
 
 type ContractMeta struct {

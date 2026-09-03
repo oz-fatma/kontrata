@@ -25,18 +25,21 @@ RESULTS_DIR = ROOT / "results"
 
 CORE_FIELDS = ("donem", "oda_kontenjanlari", "fiyatlar", "release", "stop_sale")
 
-SYSTEM_PROMPT = """Sen bir kontenjan sözleşmesi çıkarım motorusun.
-Verilen sözleşme metninden şemaya uygun JSON üret. Açıklama, markdown veya ek metin yazma; yalnızca bir JSON nesnesi döndür.
+SYSTEM_PROMPT = """Sen bir kontenjan sözleşmesi çıkarım motorusun. Verilen sözleşme metninden JSON üret.
 
-Çekirdek alanlar (hepsi zorunlu):
-- donem (object): baslangic (date|null), bitis (date|null), alt_donemler (array, isteğe bağlı) [{ad (string), baslangic (date), bitis (date)}]
-- oda_kontenjanlari (array, en az 1): [{oda_tipi (string; örn. standart, suit, balayi, engelli, aile, deluxe), adet (integer), aciklama (string, isteğe bağlı)}]
-- fiyatlar (array, en az 1): [{oda_tipi (string), tutar (number), birim (enum: oda_gecelik | kisi_gecelik), pansiyon (enum: RO | BB | HB | FB | AI | belirtilmemis), alt_donem_ad (string, isteğe bağlı)}]
-- release (object): gun (integer), kapsam (enum: isim_listesi | kontenjan_iadesi | her_ikisi | belirtilmemis), kaynak_ifade (string, isteğe bağlı)
-- stop_sale (array; boş olabilir): [{baslangic (date), bitis (date), kapsam (string, isteğe bağlı), bildirim_yontemi (enum: yazili | faks | eposta | sistem | belirtilmemis), kaynak_ifade (string, isteğe bağlı)}]
+SADECE JSON döndür. Tablo, markdown, açıklama YAZMA.
 
-İsteğe bağlı üst alanlar: meta, opsiyonel, cikarim_meta. Çıkaramadığın değeri uydurma; tarih yoksa null kullan.
-Tarihler ISO-8601 (YYYY-MM-DD). Sayılar ham sayı olsun.
+Çıktı tam olarak şu biçimde olmalı:
+{"donem":{"baslangic":"2026-04-01","bitis":"2026-10-31","alt_donemler":[]},"oda_kontenjanlari":[{"oda_tipi":"standart","adet":170}],"fiyatlar":[{"oda_tipi":"standart","tutar":50,"birim":"oda_gecelik","pansiyon":"belirtilmemis"}],"release":{"gun":10,"kapsam":"isim_listesi"},"stop_sale":[]}
+
+Alan kuralları:
+- donem.baslangic, donem.bitis: ISO tarih veya null
+- oda_kontenjanlari: oda_tipi (standart/suit/balayi/engelli/aile/deluxe), adet (tam sayı)
+- fiyatlar: oda_tipi, tutar (sayı), birim (oda_gecelik|kisi_gecelik), pansiyon (RO|BB|HB|FB|AI|belirtilmemis)
+- release: gun (tam sayı), kapsam (isim_listesi|kontenjan_iadesi|her_ikisi|belirtilmemis)
+- stop_sale: dizi, yoksa []
+
+Tek JSON nesnesi. Bittiğinde dur.
 """
 
 FIYAT_LABEL_TR = {

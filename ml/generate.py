@@ -76,7 +76,7 @@ ODA_TIPI_EN = {
     "standart": "standard",
     "suit": "suite",
     "aile": "family",
-    "deluxe": "deluxe",
+    "deluxe": "penthouse",
     "balayi": "honeymoon",
     "engelli": "accessible",
     "tek_kisilik": "single",
@@ -131,10 +131,19 @@ def fmt_sayi(n: int | float, bicim: str) -> str:
     return str(i)
 
 
-def metin_oda_tipi(ad: str, dil: str) -> str:
-    if dil == "en":
-        return ODA_TIPI_EN.get(ad, ad)
-    return ad
+def metin_oda_tipi(ad: str, dil: str, adet: int | None = None) -> str:
+    if dil != "en":
+        return ad
+    if ad == "suit" and adet is not None and int(adet) % 2 == 1:
+        return "junior suite"
+    return ODA_TIPI_EN.get(ad, ad)
+
+
+def kontenjan_adet(obj: dict, tip: str) -> int | None:
+    for k in obj.get("oda_kontenjanlari") or []:
+        if k.get("oda_tipi") == tip:
+            return k.get("adet")
+    return None
 
 
 def metin_kapsam(ad: str, dil: str) -> str:
@@ -283,8 +292,8 @@ def asama_a(rng: random.Random, fake: Faker, dil: str) -> dict:
         )
     else:
         kaynak = (
-            f"The Agent shall confirm the allotment status and submit the name list "
-            f"no later than {gun} days prior to guest arrival."
+            f"The release period is {gun} days prior to arrival. Name lists covering "
+            f"the allotment must reach the Hotel before that deadline."
         )
 
     donem = {"baslangic": iso(bas), "bitis": iso(bit)}
@@ -435,7 +444,7 @@ def kontenjan_tablo(obj: dict, dil: str, sayi_b: str) -> str:
     cizgi = "---------|-----" if dil == "tr" else "----------|----------"
     satir = [baslik, cizgi]
     for k in obj["oda_kontenjanlari"]:
-        ad = metin_oda_tipi(k["oda_tipi"], dil)
+        ad = metin_oda_tipi(k["oda_tipi"], dil, k.get("adet"))
         if k.get("aciklama"):
             ad = f"{ad} ({k['aciklama']})"
         satir.append(f"{ad} | {fmt_sayi(k['adet'], sayi_b)}")
@@ -446,7 +455,7 @@ def kontenjan_madde(obj: dict, dil: str, sayi_b: str) -> str:
     parca = []
     for k in obj["oda_kontenjanlari"]:
         extra = f" ({k['aciklama']})" if k.get("aciklama") else ""
-        parca.append(f"{fmt_sayi(k['adet'], sayi_b)} {metin_oda_tipi(k['oda_tipi'], dil)}{extra}")
+        parca.append(f"{fmt_sayi(k['adet'], sayi_b)} {metin_oda_tipi(k['oda_tipi'], dil, k.get('adet'))}{extra}")
     liste = ", ".join(parca)
     if dil == "tr":
         return f"Otel, acenteye şu oda kontenjanını tahsis eder: {liste}."
@@ -467,7 +476,9 @@ def fiyat_tablo(obj: dict, dil: str, sayi_b: str, yapisik: bool) -> str:
         birim = BIRIM_TR.get(f["birim"], f["birim"]) if dil == "tr" else BIRIM_EN.get(f["birim"], f["birim"])
         donem = f.get("alt_donem_ad") or "-"
         tutar = fmt_para(fmt_sayi(f["tutar"], sayi_b), para, yapisik)
-        satir.append(f"{metin_oda_tipi(f['oda_tipi'], dil)} | {p} | {tutar} | {birim} | {donem}")
+        satir.append(
+            f"{metin_oda_tipi(f['oda_tipi'], dil, kontenjan_adet(obj, f['oda_tipi']))} | {p} | {tutar} | {birim} | {donem}"
+        )
     return "\n".join(satir)
 
 
@@ -478,7 +489,7 @@ def fiyat_paragraf(obj: dict, dil: str, sayi_b: str, yapisik: bool) -> str:
         tutar = fmt_para(fmt_sayi(f["tutar"], sayi_b), para, yapisik)
         birim = BIRIM_TR.get(f["birim"], f["birim"]) if dil == "tr" else BIRIM_EN.get(f["birim"], f["birim"])
         p = f.get("pansiyon")
-        oda = metin_oda_tipi(f["oda_tipi"], dil)
+        oda = metin_oda_tipi(f["oda_tipi"], dil, kontenjan_adet(obj, f["oda_tipi"]))
         if dil == "tr":
             pan = f", {PANSIYON_AD_TR.get(p, p)}" if p and p != "belirtilmemis" else ""
             donem = f" ({f['alt_donem_ad']})" if f.get("alt_donem_ad") else ""
@@ -489,7 +500,8 @@ def fiyat_paragraf(obj: dict, dil: str, sayi_b: str, yapisik: bool) -> str:
             cumleler.append(f"{oda}{pan}{donem} at {tutar} {birim}")
     if dil == "tr":
         return "Fiyatlar: " + "; ".join(cumleler) + "."
-    return "Rates: " + "; ".join(cumleler) + "."
+    unit = BIRIM_EN.get(obj["fiyatlar"][0]["birim"], "per room per night") if obj.get("fiyatlar") else "per room per night"
+    return f"Rates are {unit}. " + "; ".join(cumleler) + "."
 
 
 def release_cumle(obj: dict, dil: str) -> str:
@@ -503,7 +515,8 @@ def release_cumle(obj: dict, dil: str) -> str:
             f"{gun} gün önce belirler ve isim listesi ile birlikte otele bildirir."
         )
     return (
-        f"The Agent shall submit the name list no later than {gun} days prior to arrival."
+        f"The release period is {gun} days prior to arrival. Unsold allotment reverts "
+        f"to the Hotel unless covered by a name list."
     )
 
 
@@ -523,8 +536,8 @@ def stop_sale_metin(obj: dict, dil: str, tarih_b: str) -> str:
             "veya e-posta ile yapılır:\n" + "\n".join(f"- {x}" for x in satirlar)
         )
     return (
-        "The Hotel may apply stop-sale in the following periods; notice shall be given "
-        "in writing or by e-mail:\n" + "\n".join(f"- {x}" for x in satirlar)
+        "Stop-sale periods (the Hotel may close sales on the dates below; notice in "
+        "writing or by e-mail):\n" + "\n".join(f"- {x}" for x in satirlar)
     )
 
 
@@ -703,6 +716,113 @@ def sablon_mektup(obj: dict, dil: str, tarih_b: str, sayi_b: str, yapisik: bool)
     )
 
 
+def _en_rate_unit(obj: dict) -> str:
+    if obj.get("fiyatlar"):
+        return BIRIM_EN.get(obj["fiyatlar"][0]["birim"], "per room per night")
+    return "per room per night"
+
+
+def sablon_en_articles(obj: dict, dil: str, tarih_b: str, sayi_b: str, yapisik: bool) -> str:
+    """Tour-operator allotment agreement: ARTICLE N / The Hotel allocates."""
+    otel, acente = otel_acente(obj, "en")
+    para = (obj.get("meta") or {}).get("para_birimi") or "EUR"
+    n = 1
+    parcalar = [
+        f"ALLOTMENT AGREEMENT\nbetween {acente} (the Agent) and {otel} (the Hotel)\n",
+        "The Parties agree the allotment of rooms, the release period, contracted rates and stop-sale periods as follows.\n",
+    ]
+    donem = donem_cumle(obj, "en", tarih_b)
+    if donem:
+        parcalar.append(f"ARTICLE {n} — CONTRACT PERIOD\n{donem}")
+        alt = alt_donem_metin(obj, "en", tarih_b)
+        if alt:
+            parcalar.append(alt)
+        n += 1
+    satirlar = []
+    for k in obj["oda_kontenjanlari"]:
+        extra = f" ({k['aciklama']})" if k.get("aciklama") else ""
+        satirlar.append(
+            f"- {fmt_sayi(k['adet'], sayi_b)} {metin_oda_tipi(k['oda_tipi'], 'en', k.get('adet'))} rooms{extra}"
+        )
+    parcalar.append(
+        f"ARTICLE {n} — ALLOTMENT\nThe Hotel allocates the following rooms to the Agent:\n"
+        + "\n".join(satirlar)
+    )
+    n += 1
+    parcalar.append(f"ARTICLE {n} — RELEASE PERIOD\n{release_cumle(obj, 'en')}")
+    n += 1
+    parcalar.append(
+        f"ARTICLE {n} — RATES\nRates are {_en_rate_unit(obj)}. All rates are quoted in {para}.\n"
+        + fiyat_tablo(obj, "en", sayi_b, yapisik)
+    )
+    n += 1
+    ss = stop_sale_metin(obj, "en", tarih_b)
+    if ss:
+        parcalar.append(f"ARTICLE {n} — STOP-SALE PERIODS\n{ss}")
+    return "\n\n".join(parcalar) + "\n"
+
+
+def sablon_en_confirmation(obj: dict, dil: str, tarih_b: str, sayi_b: str, yapisik: bool) -> str:
+    """Commercial allotment and rate confirmation (operator circular)."""
+    otel, acente = otel_acente(obj, "en")
+    para = (obj.get("meta") or {}).get("para_birimi") or "EUR"
+    donem = donem_cumle(obj, "en", tarih_b)
+    parcalar = [
+        "CONFIDENTIAL — ALLOTMENT AND RATE CONFIRMATION\n",
+        f"Hotel: {otel}\nTour operator: {acente}\nCurrency: {para}\n",
+    ]
+    if donem:
+        parcalar.append(f"Season / validity: {donem}")
+        alt = alt_donem_metin(obj, "en", tarih_b)
+        if alt:
+            parcalar.append(alt)
+    parcalar.append(
+        "1. Inventory commitment\nThe Hotel allocates the inventory below. These rooms are held for the Agent until the release period lapses.\n"
+        + kontenjan_tablo(obj, "en", sayi_b)
+    )
+    parcalar.append(
+        f"2. Selling rates\nRates are {_en_rate_unit(obj)} unless a line states otherwise.\n"
+        + fiyat_paragraf(obj, "en", sayi_b, yapisik)
+    )
+    parcalar.append(f"3. Release period\n{release_cumle(obj, 'en')}")
+    ss = stop_sale_metin(obj, "en", tarih_b)
+    if ss:
+        parcalar.append("4. Stop-sale periods\n" + ss)
+    parcalar.append("Please sign and return one copy of this confirmation.")
+    return "\n\n".join(parcalar) + "\n"
+
+
+def sablon_en_schedules(obj: dict, dil: str, tarih_b: str, sayi_b: str, yapisik: bool) -> str:
+    """Contracting schedules: room categories, rates, release and stop-sale periods."""
+    otel, acente = otel_acente(obj, "en")
+    donem = donem_cumle(obj, "en", tarih_b) or "as stated in the main agreement"
+    gun = obj["release"]["gun"]
+    parcalar = [
+        f"CONTRACTING SCHEDULES — {otel} / {acente}\nValidity: {donem}\n",
+        "SCHEDULE A — ROOM ALLOTMENT\nRoom category | Units committed\n----------------|------------------",
+    ]
+    for k in obj["oda_kontenjanlari"]:
+        extra = f" ({k['aciklama']})" if k.get("aciklama") else ""
+        parcalar.append(
+            f"{metin_oda_tipi(k['oda_tipi'], 'en', k.get('adet'))}{extra} | {fmt_sayi(k['adet'], sayi_b)}"
+        )
+    parcalar.append(
+        "\nSCHEDULE B — RATES\nRates are per room per night unless a row is marked per person per night.\n"
+        + fiyat_tablo(obj, "en", sayi_b, yapisik)
+    )
+    parcalar.append(
+        f"\nSCHEDULE C — RELEASE PERIOD AND STOP-SALE PERIODS\n"
+        f"Release period: {gun} days before check-in. {release_cumle(obj, 'en')}"
+    )
+    ss = stop_sale_metin(obj, "en", tarih_b)
+    if ss:
+        parcalar.append(ss)
+    alt = alt_donem_metin(obj, "en", tarih_b)
+    if alt:
+        parcalar.append("\nSeasonal rate periods (for Schedule B):\n" + alt)
+    return "\n".join(parcalar) + "\n"
+
+
 SABLONLAR = {
     1: sablon_maddeli,
     2: sablon_tablo,
@@ -712,10 +832,15 @@ SABLONLAR = {
     6: sablon_mektup,
 }
 
+SABLONLAR_EN = {
+    1: sablon_en_articles,
+    2: sablon_en_confirmation,
+    3: sablon_en_schedules,
+}
+
 
 def bir_ornek(rng: random.Random, seed: int, indeks: int) -> dict:
-    dil = "tr" if rng.random() < 0.6 else "en"
-    sablon_no = rng.randint(1, 6)
+    dil = "tr" if rng.random() < 0.5 else "en"
     fake = Faker("tr_TR" if dil == "tr" else "en_GB")
     fake.seed_instance(seed * 10007 + indeks * 17)
     obj = asama_a(rng, fake, dil)
@@ -736,7 +861,12 @@ def bir_ornek(rng: random.Random, seed: int, indeks: int) -> dict:
     yapisik = rng.random() < 0.10
     if yapisik:
         gurultu.append("bicim_yapisik")
-    metin = SABLONLAR[sablon_no](obj, dil, tarih_b, sayi_b, yapisik)
+    if dil == "tr":
+        sablon_no = rng.randint(1, 6)
+        metin = SABLONLAR[sablon_no](obj, dil, tarih_b, sayi_b, yapisik)
+    else:
+        sablon_no = rng.randint(1, 3)
+        metin = SABLONLAR_EN[sablon_no](obj, dil, tarih_b, sayi_b, yapisik)
 
     if rng.random() < 0.20:
         metin = metin.rstrip() + "\n" + fazladan_maddeler(obj, dil, sayi_b)
