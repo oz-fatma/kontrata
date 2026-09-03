@@ -1,10 +1,10 @@
 # Kontrata arayüz
 
-Next.js 15 (App Router) static export. Electron kabuğuna Aşama 10'da gömülecek.
+Next.js 15 (App Router) static export. Electron kabuğu paketlenmiş çıktıyı `web/out` dizininden yükler (`desktop/README.md`).
 
 ## Çalıştırma
 
-API'nin `http://localhost:8080/graphql` adresinde ayakta olması gerekir.
+Tarayıcıda geliştirme için API'nin `http://localhost:8080/graphql` adresinde ayakta olması gerekir.
 
 ```bash
 cd web
@@ -13,6 +13,8 @@ npm install
 npm run codegen
 npm run dev
 ```
+
+Electron `npm run dev` ile açıldığında arayüz yine `localhost:3000` yükler; GraphQL istekleri preload üzerinden `http://127.0.0.1:17890` adresine gider.
 
 Üretim derlemesi `out/` dizinine statik dosya üretir:
 
@@ -29,4 +31,4 @@ npm run build
 
 ## Oturum
 
-Erişim jetonu bellekte, yenileme jetonu `sessionStorage` içindedir (geçici; Aşama 10'da Electron güvenli deposuna taşınır).
+Erişim jetonu bellektedir. Yenileme jetonu tarayıcıda `sessionStorage`, Electron'da `safeStorage` (preload IPC) ile saklanır.

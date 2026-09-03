@@ -1,0 +1,66 @@
+{
+  "name": "kontrata-desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Kontrata masaüstü kabuğu",
+  "main": "out/main.js",
+  "scripts": {
+    "dev": "npm run build && node scripts/dev.js",
+    "build": "tsc && node scripts/copy-static.js",
+    "package:mac": "npm run build && electron-builder --mac",
+    "package:win": "npm run build && electron-builder --win"
+  },
+  "dependencies": {},
+  "devDependencies": {
+    "@types/node": "^20.17.0",
+    "electron": "^35.0.0",
+    "electron-builder": "^26.0.0",
+    "typescript": "^5.7.0"
+  },
+  "build": {
+    "appId": "com.ozfatma.kontrata",
+    "productName": "Kontrata",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "out/**/*"
+    ],
+    "extraResources": [
+      {
+        "from": "resources/web",
+        "to": "web"
+      },
+      {
+        "from": "resources/bin",
+        "to": "."
+      }
+    ],
+    "asar": true,
+    "beforePack": "./scripts/before-pack.js",
+    "mac": {
+      "target": [
+        {
+          "target": "dmg",
+          "arch": ["arm64", "x64"]
+        }
+      ],
+      "category": "public.app-category.business",
+      "identity": null,
+      "gatekeeperAssess": false
+    },
+    "win": {
+      "target": [
+        {
+          "target": "nsis",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "nsis": {
+      "oneClick": false,
+      "allowToChangeInstallationDirectory": true
+    },
+    "publish": null
+  }
+}

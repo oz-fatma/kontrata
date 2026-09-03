@@ -105,12 +105,12 @@ Bağlam: Okuyucu LLM çıktısı markdown, yarım JSON veya şema dışı alan �
 Karar: `internal/extract` ham metni `RepairJSON` ile nesneye çevirir, `Normalize` şemaya çeker (enum, ISO tarih, sayı, `stop_sale` taşıma), `Validate` gömülü `kontrat.json` ile jsonschema doğrular. Gömme `ml/schema/kontrat.json` kopyasıdır; test kaynakla eşitliği kontrol eder. Sözleşme değeri loglanmaz.
 Sonuç: Aşama 7 model çağrısından önce çıktı sözleşmeye hazır bir Go katmanı var.
 
-## 16. Arayüz oturum jetonu (geçici)
+## 16. Arayüz oturum jetonu
 Tarih: 2026-09-02
-Durum: geçici
-Bağlam: Next.js arayüzü static export ile Electron'a gömülecek. Bu aşamada tarayıcıda çalışır; Electron güvenli deposu Aşama 10'da gelir.
-Karar: Erişim jetonu yalnızca bellek (modül değişkeni) tutulur. Yenileme jetonu `sessionStorage` anahtarı `kontrata.refresh`. 401 veya GraphQL `kimlik doğrulaması gerekli` yanıtında `jetonYenile` denenir; başarısızsa girişe yönlendirilir. Cihaz kimliği `localStorage` (`kontrata.device`) ile `X-Device-Id` başlığına yazılır. Tarayıcıdan API'ye istek için CORS, `Origin` yansıtır.
-Sonuç: Sekme kapanınca yenileme jetonu düşer. Aşama 10'da `sessionStorage` Electron güvenli deposuna taşınacak; CORS masaüstü paketinde gerekmeyebilir.
+Durum: kabul edildi
+Bağlam: Next.js arayüzü static export ile Electron'a gömülür. Aşama 9'da yenileme jetonu `sessionStorage`'daydı; Aşama 10 masaüstü kabuğunu ekledi.
+Karar: Erişim jetonu yalnızca bellek (modül değişkeni) tutulur. Masaüstünde yenileme jetonu preload üzerinden `safeStorage` ile şifrelenip `userData/refresh.bin` dosyasına yazılır; renderer Node API'sine erişmez. Tarayıcıda geliştirmede `sessionStorage` anahtarı `kontrata.refresh` kalır. 401 veya GraphQL `kimlik doğrulaması gerekli` yanıtında `jetonYenile` denenir; başarısızsa girişe yönlendirilir. Cihaz kimliği `localStorage` (`kontrata.device`) ile `X-Device-Id` başlığına yazılır. Tarayıcıdan API'ye istek için CORS, `Origin` yansıtır.
+Sonuç: Electron'da oturum uygulama kapanıp açılınca da durur. Tarayıcı sekmesi kapanınca jeton düşer. CORS masaüstü paketinde `kontrata://` kökeni için de yansıtılır.
 
 ## 17. PDF yerel diskte, çıkarım asenkron
 Tarih: 2026-09-03
@@ -174,6 +174,13 @@ Durum: kabul edildi
 Bağlam: `backend/uploads/` bir commit'te yanlışlıkla versiyonlandı, sonraki commit'te takip dışına alındı. Sözleşme dosyası tesiste kalır; sürüme girmemelidir.
 Karar: Dizin `.gitignore` içindedir. Geçmişte kalan dosyalar test verisidir (sentetik sözleşmeler), gerçek müşteri verisi değildir. Git geçmişi bu yüzden yeniden yazılmaz.
 Sonuç: Yeni yüklemeler commit'e düşmez. Geçmiş blob'lar sentetik/test çıktısıdır.
+
+## 26. Electron kabuk, imzasız paket, gömülü API
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Sözleşme verisi tesisten çıkmaz; arayüz masaüstü kabuğunda, Go API aynı makinede alt süreçtir. Next.js static export mutlak yolları (`/giris/`) ham `file://` altında kırılır. Kod imzalama sertifikası uzun ve ücretlidir. Otomatik güncelleme ayrı bir dağıtım altyapısı ister.
+Karar: Paketlenmiş arayüz `kontrata://app/` özel şemasıyla `resources/web` dizininden okunur (ağ yok). Geliştirmede `NODE_ENV=development` iken `http://localhost:3000` yüklenir. API `backend/bin` ikilisinden spawn edilir, `/healthz` 200 olana kadar (30 sn) beklenir, kapanışta SIGTERM ve 5 sn sonra SIGKILL. Kullanıcı verisi `app.getPath('userData')`; MongoDB, LLM uç noktası ve jeton ilk açılışta istenir, `safeStorage` ile saklanır. `JWT_SECRET` burada üretilir. `contextIsolation` açık, `nodeIntegration` kapalı. Paketler imzasızdır (`mac.identity` boş); otomatik güncelleme yoktur. Platform ikilileri `make build-darwin` / `make build-windows` ile üretilir.
+Sonuç: Windows NSIS (x64) ve macOS dmg (arm64 + x64) üretilebilir. Gatekeeper/SmartScreen uyarısı beklenir. Mongo ve model uç noktası kullanıcı ortamındadır.
 
 
 

@@ -39,6 +39,14 @@ make run
 
 Sağlık denetimi: `GET http://localhost:8080/healthz`. Mongo erişilemezse süreç yine de dinler; uç `503` ve `"status":"degraded"` döner.
 
+Masaüstü kabuğu (API'yi kendisi `:17890` üzerinde açar): `desktop/README.md`.
+
 ## Mimari
 
+Go API GraphQL sunar; Next.js static export Electron içinde yüklenir. Sözleşme dosyaları ve Mongo bağlantısı kullanıcı makinesinde kalır.
+
 ## Bilinen sınırlamalar
+
+- Masaüstü paketleri kod imzalı değildir; macOS Gatekeeper ve Windows SmartScreen uyarı verir.
+- Otomatik güncelleme yoktur; yeni sürüm elle kurulur.
+- Uygulama MongoDB gömmez. Yerel geliştirme için `docker compose up -d` (replica set `rs0`) kullanılır; tesiste kendi Mongo'nuz gerekir.

@@ -19,6 +19,10 @@ ml/.venv/
 # Electron
 desktop/dist/
 desktop/out/
+desktop/resources/web/**
+!desktop/resources/web/.gitkeep
+desktop/resources/bin/**
+!desktop/resources/bin/.gitkeep
 release/
 
 # Ortam

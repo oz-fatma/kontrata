@@ -7,32 +7,39 @@ import {
   getAccessToken,
   getDeviceId,
   getRefreshToken,
+  hydrateRefreshToken,
   isPublicPath,
   setAccessToken,
   setRefreshToken,
 } from "./session";
 
-const endpoint =
-  process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:8080/graphql";
-
-export function apiRoot(): string {
-  return endpoint.replace(/\/graphql\/?$/i, "");
+function graphqlUrl(): string {
+  if (typeof window !== "undefined" && window.kontrata?.apiBase) {
+    return `${window.kontrata.apiBase.replace(/\/$/, "")}/graphql`;
+  }
+  return process.env.NEXT_PUBLIC_GRAPHQL_URL ?? "http://localhost:8080/graphql";
 }
 
-const client = new GraphQLClient(endpoint, {
-  fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }),
-  headers: () => {
-    const headers: Record<string, string> = {
-      "Accept-Language": "tr",
-      "X-Device-Id": getDeviceId(),
-    };
-    const token = getAccessToken();
-    if (token) {
-      headers.Authorization = `Bearer ${token}`;
-    }
-    return headers;
-  },
-});
+export function apiRoot(): string {
+  return graphqlUrl().replace(/\/graphql\/?$/i, "");
+}
+
+function graphqlClient(): GraphQLClient {
+  return new GraphQLClient(graphqlUrl(), {
+    fetch: (url, init) => fetch(url, { ...init, cache: "no-store" }),
+    headers: () => {
+      const headers: Record<string, string> = {
+        "Accept-Language": "tr",
+        "X-Device-Id": getDeviceId(),
+      };
+      const token = getAccessToken();
+      if (token) {
+        headers.Authorization = `Bearer ${token}`;
+      }
+      return headers;
+    },
+  });
+}
 
 export class AuthExpiredError extends Error {
   constructor() {
@@ -103,7 +110,7 @@ async function tryRefresh(): Promise<boolean> {
     const savedAccess = getAccessToken();
     setAccessToken(null);
     try {
-      const data = await client.request({
+      const data = await graphqlClient().request({
         document: JetonYenileDocument,
         variables: { yenilemeJetonu: refresh },
       });
@@ -149,7 +156,7 @@ async function requestOnce<TResult, TVars extends object>(
   if (containsFile(variables)) {
     return multipartRequest(document, variables ?? ({} as TVars));
   }
-  return client.request<TResult>(document as never, variables as never);
+  return graphqlClient().request<TResult>(document as never, variables as never);
 }
 
 function containsFile(value: unknown): boolean {
@@ -201,7 +208,7 @@ async function multipartRequest<TResult, TVars extends object>(
     headers.Authorization = `Bearer ${token}`;
   }
 
-  const res = await fetch(endpoint, { method: "POST", headers, body: form, cache: "no-store" });
+  const res = await fetch(graphqlUrl(), { method: "POST", headers, body: form, cache: "no-store" });
   const json = (await res.json().catch(() => ({}))) as {
     data?: TResult;
     errors?: { message: string }[];
@@ -223,6 +230,7 @@ async function multipartRequest<TResult, TVars extends object>(
 }
 
 export async function restoreSession(): Promise<boolean> {
+  await hydrateRefreshToken();
   if (getAccessToken()) {
     return true;
   }

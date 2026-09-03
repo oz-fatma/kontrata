@@ -26,6 +26,13 @@ make build
 
 Sürümü açık vermek için: `make build VERSION=0.1.0`
 
+Electron paketlemesi platform başına ayrı ikili ister:
+
+```sh
+make build-darwin    # bin/api-darwin-arm64, bin/api-darwin-amd64
+make build-windows   # bin/api-windows-amd64.exe
+```
+
 ## Uçlar
 
 | Metot | Yol | Açıklama |

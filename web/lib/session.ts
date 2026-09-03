@@ -3,6 +3,37 @@ const DEVICE_KEY = "kontrata.device";
 
 let accessToken: string | null = null;
 let pendingPassword: string | null = null;
+let memoryRefresh: string | null = null;
+let hydrated = false;
+let hydratePromise: Promise<void> | null = null;
+let persistChain: Promise<void> = Promise.resolve();
+
+function electronApi(): Window["kontrata"] | undefined {
+  if (typeof window === "undefined") {
+    return undefined;
+  }
+  return window.kontrata;
+}
+
+export async function hydrateRefreshToken(): Promise<void> {
+  if (hydrated) {
+    return;
+  }
+  if (hydratePromise) {
+    await hydratePromise;
+    return;
+  }
+  hydratePromise = (async () => {
+    const api = electronApi();
+    if (api?.getRefreshToken) {
+      memoryRefresh = await api.getRefreshToken();
+    } else if (typeof window !== "undefined") {
+      memoryRefresh = sessionStorage.getItem(REFRESH_KEY);
+    }
+    hydrated = true;
+  })();
+  await hydratePromise;
+}
 
 export function getAccessToken(): string | null {
   return accessToken;
@@ -16,11 +47,22 @@ export function getRefreshToken(): string | null {
   if (typeof window === "undefined") {
     return null;
   }
+  if (electronApi()?.getRefreshToken) {
+    return memoryRefresh;
+  }
   return sessionStorage.getItem(REFRESH_KEY);
 }
 
 export function setRefreshToken(token: string | null): void {
   if (typeof window === "undefined") {
+    return;
+  }
+  memoryRefresh = token;
+  const api = electronApi();
+  if (api?.setRefreshToken) {
+    persistChain = persistChain.then(() => api.setRefreshToken(token)).catch(() => {
+      /* depo yazımı başarısız; bellek kopyası durur */
+    });
     return;
   }
   if (token) {
