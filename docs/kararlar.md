@@ -168,6 +168,13 @@ Bağlam: Detay ekranındaki Onayla, alan düzeltme, JSON indir ve Kaynağı aç 
 Karar: Onay `sozlesmeOnayla` ile yalnızca `INCELENMEYI_BEKLIYOR` → `ONAYLANDI` (SAHIP/YONETICI). Alan düzeltme `sozlesmeAlanGuncelle` ile güveni 1.0 yapar, `elleDuzeltildi` işaretler, değeri denetim kaydına yazmaz ve Denetçi'yi yeniden çalıştırır. Kaynak PDF `GET /dosya/{id}` REST ucundan Authorization ile servis edilir; başka kiracının kaydı 404 döner.
 Sonuç: Onaylı kayıt salt okunur. Liste 3 sn aralıkla koşulsuz yenilenir; durdurma optimizasyonu sonra eklenebilir.
 
+## 25. Yükleme dizini sürüme girmez
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: `backend/uploads/` bir commit'te yanlışlıkla versiyonlandı, sonraki commit'te takip dışına alındı. Sözleşme dosyası tesiste kalır; sürüme girmemelidir.
+Karar: Dizin `.gitignore` içindedir. Geçmişte kalan dosyalar test verisidir (sentetik sözleşmeler), gerçek müşteri verisi değildir. Git geçmişi bu yüzden yeniden yazılmaz.
+Sonuç: Yeni yüklemeler commit'e düşmez. Geçmiş blob'lar sentetik/test çıktısıdır.
+
 
 
 

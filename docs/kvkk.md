@@ -62,3 +62,10 @@ edilmez.
 
 Uygulama günlüğüne (stdout) e-posta, şifre, jeton, MFA kodu, IP veya sözleşme
 gövdesi yazılmaz.
+
+## Yerel yükleme dizini
+
+Yüklenen PDF'ler ve çıkarım dökümleri `backend/uploads/` (veya `UPLOAD_DIR`)
+altında durur; dizin sürüme girmez. Bir commit'te yanlışlıkla versiyonlandı,
+sonraki commit'te takip dışına alındı. Geçmişte kalan dosyalar test verisidir
+(sentetik sözleşmeler); gerçek müşteri verisi değildir.
