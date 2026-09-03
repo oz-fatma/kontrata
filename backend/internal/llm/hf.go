@@ -89,16 +89,23 @@ func NewHFEndpoint(endpointURL, token string, maxTokens int, timeout time.Durati
 	}
 }
 
-// LimitTokens HuggingFace istemcisinin kopyasını verilen token üst sınırıyla döner.
-// Diğer Client uygulamaları olduğu gibi bırakılır.
+// LimitTokens HuggingFace veya yönlendirici istemcisinin token üst sınırını ayarlar.
 func LimitTokens(c Client, n int) Client {
-	hf, ok := c.(*HFEndpoint)
-	if !ok || hf == nil || n <= 0 {
+	if c == nil || n <= 0 {
 		return c
 	}
-	cp := *hf
-	cp.MaxNewTokens = n
-	return &cp
+	switch t := c.(type) {
+	case *HFEndpoint:
+		cp := *t
+		cp.MaxNewTokens = n
+		return &cp
+	case *Router:
+		return &limitedRouter{r: t, n: n}
+	case *limitedRouter:
+		return &limitedRouter{r: t.r, n: n}
+	default:
+		return c
+	}
 }
 
 // Generate sohbet şablonunu kurar, endpoint'e gönderir ve üretilen metni döner.
@@ -125,28 +132,43 @@ func (c *HFEndpoint) Generate(ctx context.Context, systemPrompt, userPrompt stri
 
 	start := time.Now()
 	nCold := 0
+	attempt := 0
 	var lastKind string
 	for {
+		attempt++
+		t0 := time.Now()
 		text, kind, retry, err := c.doOnce(ctx, body)
 		lastKind = kind
+		outChars := utf8.RuneCountInString(text)
+		tipi, cold := hataTipiFromKind(kind)
+		emitAttempt(ctx, Attempt{
+			Number:    attempt,
+			Start:     t0,
+			End:       time.Now(),
+			InChars:   inChars,
+			OutChars:  outChars,
+			Success:   err == nil,
+			ErrorType: tipi,
+			Cold:      cold,
+		})
 		if err == nil {
-			log.Printf("llm tamam gecikme=%s karakter_giris=%d karakter_cikis=%d", time.Since(start), inChars, utf8.RuneCountInString(text))
+			log.Printf("llm tamam gecikme=%s karakter_giris=%d karakter_cikis=%d", time.Since(start), inChars, outChars)
 			return text, nil
 		}
 		if retry != retryCold {
 			log.Printf("llm hata gecikme=%s karakter_giris=%d hata=%s", time.Since(start), inChars, kind)
-			return "", ErrUnavailable
+			return "", wrapCallError(kind, ErrUnavailable)
 		}
 		nCold++
 		if nCold >= maxColdAttempts {
 			log.Printf("llm endpoint uyanmadı gecikme=%s deneme=%d", time.Since(start), nCold)
-			return "", ErrColdStart
+			return "", wrapCallError(kind, ErrColdStart)
 		}
 		wait := coldStartWaits[nCold-1]
 		log.Printf("llm endpoint uyanıyor deneme=%d/%d bekleme=%s", nCold, maxColdAttempts, wait)
 		if err := c.sleep(ctx, wait); err != nil {
 			log.Printf("llm iptal gecikme=%s karakter_giris=%d hata=%s", time.Since(start), inChars, lastKind)
-			return "", ErrUnavailable
+			return "", wrapCallError(lastKind, ErrUnavailable)
 		}
 	}
 }

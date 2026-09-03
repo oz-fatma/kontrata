@@ -35,22 +35,25 @@ var (
 
 // ContractService sözleşme iş kurallarını taşır.
 type ContractService struct {
-	repo     *repository.ContractRepository
-	users    *repository.UserRepository
-	files    *filestore.Store
-	llm      llm.Client
-	audit    *repository.AuditRepository
-	jobs     chan string
-	dump     string
-	prompts  *repository.PromptVersionRepository
-	settings *repository.OrgSettingsRepository
+	repo               *repository.ContractRepository
+	users              *repository.UserRepository
+	files              *filestore.Store
+	llm                llm.Client
+	audit              *repository.AuditRepository
+	jobs               chan string
+	dump               string
+	prompts            *repository.PromptVersionRepository
+	settings           *repository.OrgSettingsRepository
+	extractConcurrency int
+	extractFn          func(string)
 }
 
 func NewContractService(repo *repository.ContractRepository, users *repository.UserRepository) *ContractService {
 	return &ContractService{
-		repo:  repo,
-		users: users,
-		jobs:  make(chan string, extractQueueSize),
+		repo:               repo,
+		users:              users,
+		jobs:               make(chan string, extractQueueSize),
+		extractConcurrency: 4,
 	}
 }
 
@@ -60,6 +63,17 @@ func (s *ContractService) AttachExtract(files *filestore.Store, client llm.Clien
 	s.files = files
 	s.llm = client
 	s.dump = dumpDir
+}
+
+// SetExtractConcurrency eşzamanlı çıkarım üst sınırını ayarlar.
+func (s *ContractService) SetExtractConcurrency(n int) {
+	if s == nil {
+		return
+	}
+	if n < 1 {
+		n = 4
+	}
+	s.extractConcurrency = n
 }
 
 // AttachAudit denetim kaydı deposunu bağlar.

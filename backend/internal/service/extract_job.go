@@ -34,16 +34,30 @@ func (s *ContractService) StartExtractWorker(ctx context.Context) {
 	if s == nil || s.jobs == nil {
 		return
 	}
-	go func() {
-		for {
-			select {
-			case <-ctx.Done():
-				return
-			case id := <-s.jobs:
-				s.runExtract(id)
+	n := s.extractConcurrency
+	if n < 1 {
+		n = 4
+	}
+	for i := 0; i < n; i++ {
+		go func() {
+			for {
+				select {
+				case <-ctx.Done():
+					return
+				case id := <-s.jobs:
+					s.doExtract(id)
+				}
 			}
-		}
-	}()
+		}()
+	}
+}
+
+func (s *ContractService) doExtract(id string) {
+	if s.extractFn != nil {
+		s.extractFn(id)
+		return
+	}
+	s.runExtract(id)
 }
 
 func (s *ContractService) runExtract(id string) {
@@ -72,6 +86,12 @@ func (s *ContractService) runExtract(id string) {
 	}
 	log.Printf("cikarma basladi sayfa=%d", len(pages))
 
+	ctx = llm.WithMeta(ctx, llm.Meta{
+		OrgID:         doc.OrganizationID.Hex(),
+		ContractID:    doc.ID.Hex(),
+		Agent:         llm.AgentReader,
+		PromptVersion: cfg.ReaderVersion,
+	})
 	reader := &agent.Reader{
 		LLM:          llm.LimitTokens(s.llm, cfg.MaxToken),
 		DumpDir:      s.dump,
@@ -131,6 +151,11 @@ func (s *ContractService) runAudit(ctx context.Context, doc *repository.Contract
 	if cfg.MaxToken > 0 && cfg.MaxToken < auditorMax {
 		auditorMax = cfg.MaxToken
 	}
+	ctx = llm.WithMeta(ctx, llm.Meta{
+		OrgID:      doc.OrganizationID.Hex(),
+		ContractID: doc.ID.Hex(),
+		Agent:      llm.AgentAuditor,
+	})
 	a := &agent.Auditor{
 		LLM:           llm.LimitTokens(s.llm, auditorMax),
 		SystemPrompt:  cfg.AuditorPrompt,

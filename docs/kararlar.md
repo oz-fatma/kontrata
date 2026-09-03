@@ -189,6 +189,21 @@ Bağlam: Yönetici Okuyucu/Denetçi davranışını kod dağıtmadan değiştirm
 Karar: Prompt sürümleri `prompt_surumleri` koleksiyonunda organizasyon ve tip (OKUYUCU/DENETCI) başına tutulur; yalnızca bir aktif sürüm vardır, eskiler silinmez. Ayarlar (`denetciRiskEsigi`, `maxToken`) `ayarlar` belgesindedir. GraphQL uçları `@auth` ve yalnızca SAHIP. Organizasyon sürümü yoksa koddaki varsayılan kullanılır; kullanılan Okuyucu sürüm numarası sözleşmeye `promptSurumu` yazılır. `ayarlar` belgesi yoksa ilk okumada varsayılan değerlerle oluşturulur (`guncellemeTarihi` Time! boş kalmaz). Sözleşme metni LLM'e gitmeden önce `internal/mask` e-posta, telefon ve TCKN benzeri desenleri örter; bu katman kapatılamaz. Denetim kaydı tip/sürüm/değişen ayar adını tutar, prompt metnini tutmaz. GraphQL ErrorPresenter bilinmeyen hataları üretimde «işlem tamamlanamadı» yapar; `GRAPHQL_PLAYGROUND=true` iken gqlgen metni korunur. Arayüz geliştirmede (`NODE_ENV=development`) sunucu mesajını gösterir.
 Sonuç: Tesis sahibi çıkarımı ayarlayabilir; kişisel veri maskelemesi yöneticiye bağlı değildir. Boş yönetici paneli hata değildir.
 
+## 28. LLMOps izlemesi tesiste kalır
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: Çıkarım gecikmesi, uç sağlığı ve hata türü ölçülmeli. Langfuse ve benzeri SaaS izleme, sözleşme işinin tesisten çıkmaması ilkesine aykırı ek altyapı ve bağımlılık getirir. İstenen metrik kümesi sınırlıdır (süre, başarı, uç, agent, hata tipi).
+Karar: `llm_cagrilari` koleksiyonu kendi kodumuzla tutulur. Prompt ve model çıktısı yazılmaz. Kayıt 90 gün TTL ile silinir. İzleme yazımı başarısız olsa da çıkarım devam eder. GraphQL `llmMetrikleri` / `llmCagrilari` yalnızca SAHIP.
+Sonuç: Ölçüm tesiste kalır. Üçüncü parti LLMOps yok.
+
+## 29. Yönlendirme ölçütü aktif istek sayısı
+Tarih: 2026-09-03
+Durum: kabul edildi
+Bağlam: İki HuggingFace CPU ucu farklı ısınma ve gecikme gösterir. Yalnızca ortalama gecikme soğuk başlangıcı cezalandırır; round-robin uçların anlık yükünü yok sayar.
+Karar: `internal/llm/router.go` önce sağlıksız uçları eledikten sonra `aktifIstek` en az olanı seçer; eşitlikte son 10 çağrının ortalaması düşük olan kazanır. Üç ardışık soğuk-olmayan hata 60 sn sağlıksızlık işaretler. 503 soğuk başlangıç sayılmaz.
+Sonuç: Yük, o an meşgul olmayan uca kayar; ısınmakta olan uç yanlışlıkla cezalandırılmaz.
+
+
 
 
 

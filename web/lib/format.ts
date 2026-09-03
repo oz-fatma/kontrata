@@ -61,7 +61,7 @@ export function formatPeriod(
 export function statusLabel(durum: ContractStatus): string {
   switch (durum) {
     case SozlesmeDurumu.Yuklendi:
-      return "Yüklendi";
+      return "Sırada";
     case SozlesmeDurumu.Isleniyor:
       return "İşleniyor";
     case SozlesmeDurumu.IncelenmeyiBekliyor:

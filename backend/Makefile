@@ -1,4 +1,13 @@
-.PHONY: run build build-darwin build-windows test test-akis test-org lint tidy generate verify
+.PHONY: run build build-darwin build-windows test test-akis test-org lint tidy generate verify loadtest loadtest-giris
+
+VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
+SOZLESME ?= ../testdata/sozlesmeler/argos-megep.pdf
+ESZAMANLI ?= 5
+TEKRAR ?= 2
+API ?= http://localhost:8080
+TOKEN ?=
+MFA ?=
+ERISIM ?=
 
 VERSION ?= $(shell git describe --tags --always --dirty 2>/dev/null || echo dev)
 
@@ -45,3 +54,14 @@ verify:
 	git diff --exit-code go.mod go.sum
 	go vet ./...
 	@$(load_dotenv); go test ./...
+
+loadtest-giris:
+	@$(load_dotenv); go run ./cmd/loadtest --giris --api=$(API)
+
+loadtest:
+	@$(load_dotenv); \
+	set -- --api=$(API) --sozlesme="$(SOZLESME)" --eszamanli=$(ESZAMANLI) --tekrar=$(TEKRAR); \
+	if [ -n "$(ERISIM)" ]; then set -- "$$@" --erisim-jetonu="$(ERISIM)"; fi; \
+	if [ -n "$(TOKEN)" ]; then set -- "$$@" --gecici-token="$(TOKEN)"; fi; \
+	if [ -n "$(MFA)" ]; then set -- "$$@" --mfa-kod="$(MFA)"; fi; \
+	go run ./cmd/loadtest "$$@"

@@ -366,6 +366,44 @@ query Ayarlar {
   }
 }
 
+query LlmMetrikleri($sonSaat: Int) {
+  llmMetrikleri(sonSaat: $sonSaat) {
+    toplamCagri
+    basariliCagri
+    basarisizCagri
+    ortalamaSureMs
+    p95SureMs
+    agentBazinda {
+      agent
+      cagri
+      ortalamaSureMs
+      basariOrani
+    }
+    ucBazinda {
+      ucAdi
+      cagri
+      ortalamaSureMs
+      basariOrani
+    }
+    hataDagilimi {
+      hataTipi
+      adet
+    }
+  }
+}
+
+query LlmCagrilari($limit: Int) {
+  llmCagrilari(limit: $limit) {
+    agent
+    ucAdi
+    sureMs
+    basarili
+    hataTipi
+    denemeNo
+    baslangic
+  }
+}
+
 mutation PromptGuncelle($tip: PromptTipi!, $icerik: String!) {
   promptGuncelle(tip: $tip, icerik: $icerik) {
     id

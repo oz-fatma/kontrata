@@ -200,7 +200,7 @@ function ContractList() {
             onChange={(e) => setStatus(e.target.value)}
           >
             <option value="all">Tüm durumlar</option>
-            <option value={SozlesmeDurumu.Yuklendi}>Yüklendi</option>
+            <option value={SozlesmeDurumu.Yuklendi}>Sırada</option>
             <option value={SozlesmeDurumu.Isleniyor}>İşleniyor</option>
             <option value={SozlesmeDurumu.IncelenmeyiBekliyor}>
               İncelenmeyi bekliyor

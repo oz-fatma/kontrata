@@ -5,10 +5,14 @@ import {
   AktifPromptDocument,
   AyarlarDocument,
   AyarlariGuncelleDocument,
+  LlmCagrilariDocument,
+  LlmMetrikleriDocument,
   PromptGuncelleDocument,
   PromptSurumeDonDocument,
   PromptSurumleriDocument,
   UyelerDocument,
+  type LlmCagrilariQuery,
+  type LlmMetrikleriQuery,
   type PromptSurumleriQuery,
 } from "@/generated/graphql";
 import { PromptTipi } from "@/lib/enums";
@@ -20,10 +24,14 @@ import { EmptyState, ErrorState, Field, LoadingState } from "@/components/states
 
 type PromptKind = (typeof PromptTipi)[keyof typeof PromptTipi];
 type PromptRow = PromptSurumleriQuery["promptSurumleri"][number];
+type PanelTab = PromptKind | "METRIKLER";
+type Metrics = LlmMetrikleriQuery["llmMetrikleri"];
+type CallRow = LlmCagrilariQuery["llmCagrilari"][number];
 
-const tabs: { id: PromptKind; label: string }[] = [
+const tabs: { id: PanelTab; label: string }[] = [
   { id: PromptTipi.Okuyucu, label: "Okuyucu" },
   { id: PromptTipi.Denetci, label: "Denetçi" },
+  { id: "METRIKLER", label: "Metrikler" },
 ];
 
 export default function AdminSettingsPage() {
@@ -36,7 +44,7 @@ export default function AdminSettingsPage() {
 
 function AdminBody() {
   const { org, isOwner, userId } = useAuth();
-  const [tab, setTab] = useState<PromptKind>(PromptTipi.Okuyucu);
+  const [tab, setTab] = useState<PanelTab>(PromptTipi.Okuyucu);
   const [draft, setDraft] = useState("");
   const [history, setHistory] = useState<PromptRow[] | null>(null);
   const [risk, setRisk] = useState("0.75");
@@ -44,10 +52,21 @@ function AdminBody() {
   const [emails, setEmails] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [metrics, setMetrics] = useState<Metrics | null>(null);
+  const [calls, setCalls] = useState<CallRow[] | null>(null);
 
   const load = useCallback(async () => {
     setError(null);
     try {
+      if (tab === "METRIKLER") {
+        const [m, c] = await Promise.all([
+          gqlRequest(LlmMetrikleriDocument, { sonSaat: 24 }),
+          gqlRequest(LlmCagrilariDocument, { limit: 20 }),
+        ]);
+        setMetrics(m.llmMetrikleri);
+        setCalls(c.llmCagrilari);
+        return;
+      }
       const [aktif, liste, ayar, uyeler] = await Promise.all([
         gqlRequest(AktifPromptDocument, { tip: tab }),
         gqlRequest(PromptSurumleriDocument, { tip: tab }),
@@ -68,7 +87,12 @@ function AdminBody() {
         return;
       }
       setError(graphqlMessage(err));
-      setHistory([]);
+      if (tab === "METRIKLER") {
+        setMetrics(null);
+        setCalls([]);
+      } else {
+        setHistory([]);
+      }
     }
   }, [tab]);
 
@@ -118,6 +142,10 @@ function AdminBody() {
         ))}
       </div>
 
+      {tab === "METRIKLER" ? (
+        <MetricsPanel metrics={metrics} calls={calls} />
+      ) : (
+        <>
       <section>
         <h2 className="mb-2">Aktif prompt</h2>
         {history === null ? <LoadingState /> : (
@@ -140,7 +168,7 @@ function AdminBody() {
                 setBusy(true);
                 setError(null);
                 try {
-                  await gqlRequest(PromptGuncelleDocument, { tip: tab, icerik: draft });
+                  await gqlRequest(PromptGuncelleDocument, { tip: tab as PromptKind, icerik: draft });
                   await load();
                 } catch (err) {
                   setError(graphqlMessage(err));
@@ -263,6 +291,170 @@ function AdminBody() {
             Ayarları kaydet
           </button>
         </form>
+      </section>
+        </>
+      )}
+    </div>
+  );
+}
+
+function pct(n: number): string {
+  return `%${Math.round(n * 100)}`;
+}
+
+function ms(n: number): string {
+  return `${Math.round(n)} ms`;
+}
+
+function hataLabel(tip: string): string {
+  switch (tip) {
+    case "zaman_asimi":
+      return "zaman aşımı";
+    case "http_5xx":
+      return "HTTP 5xx";
+    case "http_4xx":
+      return "HTTP 4xx";
+    case "ayristirma":
+      return "ayrıştırma";
+    case "yok":
+      return "yok";
+    default:
+      return tip;
+  }
+}
+
+function MetricsPanel({
+  metrics,
+  calls,
+}: {
+  metrics: Metrics | null;
+  calls: CallRow[] | null;
+}) {
+  if (metrics === null && calls === null) {
+    return <LoadingState />;
+  }
+  const m = metrics;
+  return (
+    <div className="flex flex-col gap-8">
+      <section>
+        <h2 className="mb-2">Son 24 saat</h2>
+        {m ? (
+          <dl className="grid max-w-xl grid-cols-2 gap-3 text-[13px] sm:grid-cols-3">
+            <div>
+              <dt className="text-[var(--muted)]">Toplam çağrı</dt>
+              <dd className="font-medium">{m.toplamCagri}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Başarılı</dt>
+              <dd className="font-medium">{m.basariliCagri}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Başarısız</dt>
+              <dd className="font-medium">{m.basarisizCagri}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">Ortalama süre</dt>
+              <dd className="font-medium">{ms(m.ortalamaSureMs)}</dd>
+            </div>
+            <div>
+              <dt className="text-[var(--muted)]">p95 süre</dt>
+              <dd className="font-medium">{ms(m.p95SureMs)}</dd>
+            </div>
+          </dl>
+        ) : (
+          <EmptyState title="Metrik yok" detail="Henüz LLM çağrısı kaydı yok." />
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2">Agent</h2>
+        {m && m.agentBazinda.length > 0 ? (
+          <table className="w-full max-w-xl text-left text-[13px]">
+            <thead>
+              <tr className="text-[var(--muted)]">
+                <th className="py-1 font-normal">Agent</th>
+                <th className="py-1 font-normal">Çağrı</th>
+                <th className="py-1 font-normal">Ort. süre</th>
+                <th className="py-1 font-normal">Başarı</th>
+              </tr>
+            </thead>
+            <tbody>
+              {m.agentBazinda.map((row) => (
+                <tr key={row.agent} className="border-t border-[var(--line)]">
+                  <td className="py-1">{row.agent === "DENETCI" ? "Denetçi" : "Okuyucu"}</td>
+                  <td className="py-1">{row.cagri}</td>
+                  <td className="py-1">{ms(row.ortalamaSureMs)}</td>
+                  <td className="py-1">{pct(row.basariOrani)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-[13px] text-[var(--muted)]">Kayıt yok.</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2">Uç</h2>
+        {m && m.ucBazinda.length > 0 ? (
+          <table className="w-full max-w-xl text-left text-[13px]">
+            <thead>
+              <tr className="text-[var(--muted)]">
+                <th className="py-1 font-normal">Uç</th>
+                <th className="py-1 font-normal">Çağrı</th>
+                <th className="py-1 font-normal">Ort. süre</th>
+                <th className="py-1 font-normal">Başarı</th>
+              </tr>
+            </thead>
+            <tbody>
+              {m.ucBazinda.map((row) => (
+                <tr key={row.ucAdi} className="border-t border-[var(--line)]">
+                  <td className="py-1">{row.ucAdi}</td>
+                  <td className="py-1">{row.cagri}</td>
+                  <td className="py-1">{ms(row.ortalamaSureMs)}</td>
+                  <td className="py-1">{pct(row.basariOrani)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        ) : (
+          <p className="text-[13px] text-[var(--muted)]">Kayıt yok.</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2">Hata dağılımı</h2>
+        {m && m.hataDagilimi.length > 0 ? (
+          <ul className="text-[13px]">
+            {m.hataDagilimi.map((row) => (
+              <li key={row.hataTipi}>
+                {hataLabel(row.hataTipi)}: {row.adet}
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-[var(--muted)]">Hata yok.</p>
+        )}
+      </section>
+
+      <section>
+        <h2 className="mb-2">Son çağrılar</h2>
+        {calls && calls.length > 0 ? (
+          <ul className="divide-y divide-[var(--line)] rounded-card border-[0.5px] border-[var(--line)]">
+            {calls.map((row, i) => (
+              <li key={`${row.baslangic}-${i}`} className="flex flex-wrap justify-between gap-2 px-3 py-2 text-[13px]">
+                <span>
+                  {row.agent === "DENETCI" ? "Denetçi" : "Okuyucu"} · {row.ucAdi} · {row.sureMs} ms
+                </span>
+                <span className={row.basarili ? "text-[var(--green)]" : "text-[var(--red)]"}>
+                  {row.basarili ? "başarılı" : hataLabel(row.hataTipi)}
+                </span>
+              </li>
+            ))}
+          </ul>
+        ) : (
+          <p className="text-[13px] text-[var(--muted)]">Çağrı yok.</p>
+        )}
       </section>
     </div>
   );

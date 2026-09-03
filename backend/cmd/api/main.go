@@ -57,6 +57,7 @@ func main() {
 	denetim := repository.NewAuditRepository(db)
 	promptlar := repository.NewPromptVersionRepository(db)
 	ayarlarRepo := repository.NewOrgSettingsRepository(db)
+	llmCagrilari := repository.NewLLMCallRepository(db)
 	if err != nil {
 		log.Printf("%v; sunucu degraded başlıyor", err)
 		repo = repository.NewContractRepository(nil)
@@ -70,6 +71,7 @@ func main() {
 		denetim = repository.NewAuditRepository(nil)
 		promptlar = repository.NewPromptVersionRepository(nil)
 		ayarlarRepo = repository.NewOrgSettingsRepository(nil)
+		llmCagrilari = repository.NewLLMCallRepository(nil)
 	} else {
 		log.Printf("veritabanına bağlanıldı")
 		idxCtx, idxCancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -85,6 +87,7 @@ func main() {
 			denetim.EnsureIndexes,
 			promptlar.EnsureIndexes,
 			ayarlarRepo.EnsureIndexes,
+			llmCagrilari.EnsureIndexes,
 		} {
 			if err := ensure(idxCtx); err != nil {
 				log.Printf("indeksler oluşturulamadı: %v", err)
@@ -110,14 +113,15 @@ func main() {
 	sozlesmeler.AttachOrgLLM(promptlar, ayarlarRepo)
 	authSvc := service.NewAuthService(kullanicilar, tokenlar, mfaKodlari, oturumlar, cihazlar, repo, organizasyonlar, davetler, denetim, mailer.New(cfg.Mailer, cfg.SMTP), cfg.Argon2, signer, db)
 	authSvc.AttachOrgLLM(promptlar, ayarlarRepo)
+	authSvc.AttachLLMCalls(llmCagrilari)
 
 	files, err := filestore.New(cfg.UploadDir)
 	if err != nil {
 		log.Fatalf("yükleme dizini hazırlanamadı: %v", err)
 	}
 	var modelClient llm.Client
-	if cfg.LLMEndpointURL != "" {
-		modelClient = llm.NewHFEndpoint(cfg.LLMEndpointURL, cfg.LLMToken, cfg.LLMMaxTokens, cfg.LLMTimeout)
+	if eps := llmEndpoints(cfg); len(eps) > 0 {
+		modelClient = llm.NewRouter(eps, service.NewLLMRecorder(llmCagrilari))
 	} else {
 		log.Printf("llm yapılandırılmadı; yüklenen sözleşmeler HATA durumuna geçer")
 	}
@@ -128,6 +132,7 @@ func main() {
 		log.Printf("llm debug dump açık; üretimde kullanma")
 	}
 	sozlesmeler.AttachExtract(files, modelClient, dumpDir)
+	sozlesmeler.SetExtractConcurrency(cfg.LLMMaxConcurrency)
 	authSvc.AttachFiles(files)
 
 	workerCtx, workerCancel := context.WithCancel(context.Background())
@@ -160,6 +165,23 @@ func main() {
 		log.Printf("veritabanı bağlantısı kapatılamadı: %v", err)
 	}
 	log.Printf("sunucu durdu")
+}
+
+func llmEndpoints(cfg config.Config) []llm.NamedClient {
+	var eps []llm.NamedClient
+	if cfg.LLMEndpointURL != "" {
+		eps = append(eps, llm.NamedClient{
+			Name:   llm.EndpointUC1,
+			Client: llm.NewHFEndpoint(cfg.LLMEndpointURL, cfg.LLMToken, cfg.LLMMaxTokens, cfg.LLMTimeout),
+		})
+	}
+	if cfg.LLMEndpointURL2 != "" {
+		eps = append(eps, llm.NamedClient{
+			Name:   llm.EndpointUC2,
+			Client: llm.NewHFEndpoint(cfg.LLMEndpointURL2, cfg.LLMToken2, cfg.LLMMaxTokens, cfg.LLMTimeout),
+		})
+	}
+	return eps
 }
 
 func backfillSozlesmeOrg(ctx context.Context, users *repository.UserRepository, soz *repository.ContractRepository) error {

@@ -360,6 +360,46 @@ type Ayarlar {
   guncelleyenKullaniciId: ID
 }
 
+type LlmAgentMetrik {
+  agent: PromptTipi!
+  cagri: Int!
+  ortalamaSureMs: Float!
+  basariOrani: Float!
+}
+
+type LlmUcMetrik {
+  ucAdi: String!
+  cagri: Int!
+  ortalamaSureMs: Float!
+  basariOrani: Float!
+}
+
+type LlmHataAdet {
+  hataTipi: String!
+  adet: Int!
+}
+
+type LlmCagri {
+  agent: PromptTipi!
+  ucAdi: String!
+  sureMs: Int!
+  basarili: Boolean!
+  hataTipi: String!
+  denemeNo: Int!
+  baslangic: Time!
+}
+
+type LlmMetrik {
+  toplamCagri: Int!
+  basariliCagri: Int!
+  basarisizCagri: Int!
+  ortalamaSureMs: Float!
+  p95SureMs: Float!
+  agentBazinda: [LlmAgentMetrik!]!
+  ucBazinda: [LlmUcMetrik!]!
+  hataDagilimi: [LlmHataAdet!]!
+}
+
 type Query {
 	sozlesmeler(limit: Int, offset: Int): [Sozlesme!]! @auth
   sozlesme(id: ID!): Sozlesme @auth
@@ -371,6 +411,8 @@ type Query {
   promptSurumleri(tip: PromptTipi!): [PromptSurumu!]! @auth
   aktifPrompt(tip: PromptTipi!): PromptSurumu! @auth
   ayarlar: Ayarlar! @auth
+  llmMetrikleri(sonSaat: Int, baslangic: Time): LlmMetrik! @auth
+  llmCagrilari(limit: Int): [LlmCagri!]! @auth
 }
 
 type KayitSonucu {

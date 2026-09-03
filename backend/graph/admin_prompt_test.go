@@ -38,6 +38,18 @@ func TestPromptAdminFlow(t *testing.T) {
 	sahipAccess, _ := loginSessionDevice(t, env, sahipEposta, testPassword, cihaz)
 	cSahip := env.withDevice(sahipAccess, cihaz)
 
+	var met struct {
+		LlmMetrikleri struct {
+			ToplamCagri    int32
+			OrtalamaSureMs float64
+			P95SureMs      float64
+		}
+	}
+	cSahip.MustPost(`query { llmMetrikleri { toplamCagri ortalamaSureMs p95SureMs } }`, &met)
+	if met.LlmMetrikleri.ToplamCagri != 0 {
+		t.Fatalf("boş metrik = %+v", met.LlmMetrikleri)
+	}
+
 	var aktif struct {
 		AktifPrompt struct {
 			ID                   string
@@ -203,6 +215,11 @@ func TestPromptAdminFlow(t *testing.T) {
 		new(struct{ PromptGuncelle struct{ ID string } }), client.Var("t", "OKUYUCU"), client.Var("i", "yasak"))
 	if err == nil || !strings.Contains(err.Error(), "yetkiniz yok") {
 		t.Fatalf("yönetici prompt güncellemeli değildi: %v", err)
+	}
+	err = cYonetici.Post(`query { llmMetrikleri { toplamCagri } }`,
+		new(struct{ LlmMetrikleri struct{ ToplamCagri int32 } }))
+	if err == nil || !strings.Contains(err.Error(), "yetkiniz yok") {
+		t.Fatalf("yönetici metrik görmemeli: %v", err)
 	}
 
 	sahip, err := env.users.GetByEmail(ctx, sahipEposta)

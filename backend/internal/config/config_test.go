@@ -13,7 +13,8 @@ var loadEnvKeys = []string{
 	"MAILER", "GRAPHQL_PLAYGROUND",
 	"SMTP_PORT", "SMTP_HOST", "SMTP_USER", "SMTP_PASSWORD", "SMTP_FROM",
 	"ARGON2_TIME", "ARGON2_MEMORY", "ARGON2_THREADS",
-	"LLM_ENDPOINT_URL", "LLM_TOKEN", "LLM_MAX_TOKENS", "LLM_TIMEOUT_SECONDS", "LLM_DEBUG_DUMP", "UPLOAD_DIR",
+	"LLM_ENDPOINT_URL", "LLM_TOKEN", "LLM_ENDPOINT_URL_2", "LLM_TOKEN_2",
+	"LLM_MAX_TOKENS", "LLM_TIMEOUT_SECONDS", "LLM_MAX_CONCURRENCY", "LLM_DEBUG_DUMP", "UPLOAD_DIR",
 }
 
 func isolateEnv(t *testing.T) {
@@ -56,6 +57,9 @@ func TestLoad_DefaultPort(t *testing.T) {
 	if cfg.LLMDebugDump {
 		t.Fatal("LLMDebugDump varsayılan kapalı olmalı")
 	}
+	if cfg.LLMMaxConcurrency != 4 {
+		t.Fatalf("LLMMaxConcurrency = %d", cfg.LLMMaxConcurrency)
+	}
 }
 
 func TestLoad_LLMDebugDump(t *testing.T) {
@@ -83,6 +87,7 @@ func TestLoad_DoesNotLogSecrets(t *testing.T) {
 	t.Setenv("SMTP_FROM", "gizli@ornek.test")
 	t.Setenv("JWT_SECRET", "super-secret-jwt-key-value")
 	t.Setenv("LLM_TOKEN", "hf-gizli-token")
+	t.Setenv("LLM_TOKEN_2", "hf-gizli-token-2")
 	t.Setenv("LLM_ENDPOINT_URL", "https://example.endpoints.huggingface.cloud")
 	t.Setenv("UPLOAD_DIR", "data/uploads")
 
@@ -91,7 +96,7 @@ func TestLoad_DoesNotLogSecrets(t *testing.T) {
 		t.Fatalf("beklenmeyen hata: %v", err)
 	}
 	s := cfg.String()
-	for _, secret := range []string{"gizli", "smtp-gizli", "gizli@ornek.test", "super-secret-jwt-key-value", "hf-gizli-token"} {
+	for _, secret := range []string{"gizli", "smtp-gizli", "gizli@ornek.test", "super-secret-jwt-key-value", "hf-gizli-token", "hf-gizli-token-2"} {
 		if strings.Contains(s, secret) {
 			t.Fatalf("özet sır sızdırıyor")
 		}

@@ -130,6 +130,46 @@ type KayitSonucu struct {
 	Mesaj    string `json:"mesaj"`
 }
 
+type LlmAgentMetrik struct {
+	Agent          PromptTipi `json:"agent"`
+	Cagri          int32      `json:"cagri"`
+	OrtalamaSureMs float64    `json:"ortalamaSureMs"`
+	BasariOrani    float64    `json:"basariOrani"`
+}
+
+type LlmCagri struct {
+	Agent     PromptTipi `json:"agent"`
+	UcAdi     string     `json:"ucAdi"`
+	SureMs    int32      `json:"sureMs"`
+	Basarili  bool       `json:"basarili"`
+	HataTipi  string     `json:"hataTipi"`
+	DenemeNo  int32      `json:"denemeNo"`
+	Baslangic time.Time  `json:"baslangic"`
+}
+
+type LlmHataAdet struct {
+	HataTipi string `json:"hataTipi"`
+	Adet     int32  `json:"adet"`
+}
+
+type LlmMetrik struct {
+	ToplamCagri    int32             `json:"toplamCagri"`
+	BasariliCagri  int32             `json:"basariliCagri"`
+	BasarisizCagri int32             `json:"basarisizCagri"`
+	OrtalamaSureMs float64           `json:"ortalamaSureMs"`
+	P95SureMs      float64           `json:"p95SureMs"`
+	AgentBazinda   []*LlmAgentMetrik `json:"agentBazinda"`
+	UcBazinda      []*LlmUcMetrik    `json:"ucBazinda"`
+	HataDagilimi   []*LlmHataAdet    `json:"hataDagilimi"`
+}
+
+type LlmUcMetrik struct {
+	UcAdi          string  `json:"ucAdi"`
+	Cagri          int32   `json:"cagri"`
+	OrtalamaSureMs float64 `json:"ortalamaSureMs"`
+	BasariOrani    float64 `json:"basariOrani"`
+}
+
 type Mutation struct {
 }
 

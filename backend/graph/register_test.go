@@ -169,10 +169,12 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 	davets := repository.NewInviteRepository(db)
 	promptlar := repository.NewPromptVersionRepository(db)
 	ayarlarRepo := repository.NewOrgSettingsRepository(db)
+	llmCagrilari := repository.NewLLMCallRepository(db)
 	for _, ensure := range []func(context.Context) error{
 		users.EnsureIndexes, tokens.EnsureIndexes, mfa.EnsureIndexes,
 		sessions.EnsureIndexes, devices.EnsureIndexes, denetim.EnsureIndexes, sozRepo.EnsureIndexes,
 		orgs.EnsureIndexes, davets.EnsureIndexes, promptlar.EnsureIndexes, ayarlarRepo.EnsureIndexes,
+		llmCagrilari.EnsureIndexes,
 		users.BackfillAccountFields,
 	} {
 		if err := ensure(ctx); err != nil {
@@ -186,6 +188,7 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 	}
 	authSvc := service.NewAuthService(users, tokens, mfa, sessions, devices, sozRepo, orgs, davets, denetim, mail, testParams(), signer, db)
 	authSvc.AttachOrgLLM(promptlar, ayarlarRepo)
+	authSvc.AttachLLMCalls(llmCagrilari)
 	sozSvc := service.NewContractService(sozRepo, users)
 	sozSvc.AttachAudit(denetim)
 	sozSvc.AttachOrgLLM(promptlar, ayarlarRepo)

@@ -12,27 +12,31 @@ import (
 )
 
 const (
-	defaultPort           = 8080
-	defaultLLMMaxTokens   = 600
-	defaultLLMTimeoutSecs = 240
+	defaultPort              = 8080
+	defaultLLMMaxTokens      = 600
+	defaultLLMTimeoutSecs    = 240
+	defaultLLMMaxConcurrency = 4
 )
 
 // Config ortam değişkenlerinden okunan ayarlardır.
 type Config struct {
-	Port           int
-	MongoURI       string
-	MongoDatabase  string
-	JWTSecret      []byte
-	Playground     bool
-	Mailer         string
-	SMTP           mailer.SMTPConfig
-	Argon2         auth.Params
-	LLMEndpointURL string
-	LLMToken       string
-	LLMMaxTokens   int
-	LLMTimeout     time.Duration
-	LLMDebugDump   bool
-	UploadDir      string
+	Port              int
+	MongoURI          string
+	MongoDatabase     string
+	JWTSecret         []byte
+	Playground        bool
+	Mailer            string
+	SMTP              mailer.SMTPConfig
+	Argon2            auth.Params
+	LLMEndpointURL    string
+	LLMToken          string
+	LLMEndpointURL2   string
+	LLMToken2         string
+	LLMMaxTokens      int
+	LLMTimeout        time.Duration
+	LLMMaxConcurrency int
+	LLMDebugDump      bool
+	UploadDir         string
 }
 
 // Load ortam değişkenlerini okur. Zorunlu bir değişken eksikse hata döner.
@@ -110,22 +114,29 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, fmt.Errorf("LLM_TIMEOUT_SECONDS geçersiz")
 	}
+	concurrency, err := parseUint32(os.Getenv("LLM_MAX_CONCURRENCY"), defaultLLMMaxConcurrency)
+	if err != nil {
+		return Config{}, fmt.Errorf("LLM_MAX_CONCURRENCY geçersiz")
+	}
 
 	return Config{
-		Port:           port,
-		MongoURI:       mongoURI,
-		MongoDatabase:  mongoDatabase,
-		JWTSecret:      []byte(jwtSecret),
-		Playground:     parseBool(os.Getenv("GRAPHQL_PLAYGROUND")),
-		Mailer:         mailerKind,
-		SMTP:           smtp,
-		Argon2:         params,
-		LLMEndpointURL: strings.TrimSpace(os.Getenv("LLM_ENDPOINT_URL")),
-		LLMToken:       strings.TrimSpace(os.Getenv("LLM_TOKEN")),
-		LLMMaxTokens:   int(maxTokens),
-		LLMTimeout:     time.Duration(timeoutSecs) * time.Second,
-		LLMDebugDump:   parseBool(os.Getenv("LLM_DEBUG_DUMP")),
-		UploadDir:      uploadDir(os.Getenv("UPLOAD_DIR")),
+		Port:              port,
+		MongoURI:          mongoURI,
+		MongoDatabase:     mongoDatabase,
+		JWTSecret:         []byte(jwtSecret),
+		Playground:        parseBool(os.Getenv("GRAPHQL_PLAYGROUND")),
+		Mailer:            mailerKind,
+		SMTP:              smtp,
+		Argon2:            params,
+		LLMEndpointURL:    strings.TrimSpace(os.Getenv("LLM_ENDPOINT_URL")),
+		LLMToken:          strings.TrimSpace(os.Getenv("LLM_TOKEN")),
+		LLMEndpointURL2:   strings.TrimSpace(os.Getenv("LLM_ENDPOINT_URL_2")),
+		LLMToken2:         strings.TrimSpace(os.Getenv("LLM_TOKEN_2")),
+		LLMMaxTokens:      int(maxTokens),
+		LLMTimeout:        time.Duration(timeoutSecs) * time.Second,
+		LLMMaxConcurrency: int(concurrency),
+		LLMDebugDump:      parseBool(os.Getenv("LLM_DEBUG_DUMP")),
+		UploadDir:         uploadDir(os.Getenv("UPLOAD_DIR")),
 	}, nil
 }
 
@@ -172,9 +183,10 @@ func parseUint32(raw string, fallback uint32) (uint32, error) {
 
 // String günlük için maskelenmiş özet döner. Hassas alanlar ve e-posta yazılmaz.
 func (c Config) String() string {
-	return fmt.Sprintf("PORT=%d MONGO_URI=%s MONGO_DATABASE=%s MAILER=%s JWT_SECRET=%s LLM_ENDPOINT_URL=%s LLM_TOKEN=%s LLM_MAX_TOKENS=%d LLM_TIMEOUT_SECONDS=%d LLM_DEBUG_DUMP=%t UPLOAD_DIR=%s",
+	return fmt.Sprintf("PORT=%d MONGO_URI=%s MONGO_DATABASE=%s MAILER=%s JWT_SECRET=%s LLM_ENDPOINT_URL=%s LLM_TOKEN=%s LLM_ENDPOINT_URL_2=%s LLM_TOKEN_2=%s LLM_MAX_TOKENS=%d LLM_TIMEOUT_SECONDS=%d LLM_MAX_CONCURRENCY=%d LLM_DEBUG_DUMP=%t UPLOAD_DIR=%s",
 		c.Port, maskSecret(c.MongoURI), c.MongoDatabase, c.Mailer, maskSecret(string(c.JWTSecret)),
-		c.LLMEndpointURL, maskSecret(c.LLMToken), c.LLMMaxTokens, int(c.LLMTimeout/time.Second), c.LLMDebugDump, c.UploadDir)
+		c.LLMEndpointURL, maskSecret(c.LLMToken), c.LLMEndpointURL2, maskSecret(c.LLMToken2),
+		c.LLMMaxTokens, int(c.LLMTimeout/time.Second), c.LLMMaxConcurrency, c.LLMDebugDump, c.UploadDir)
 }
 
 func maskSecret(value string) string {

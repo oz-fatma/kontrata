@@ -117,6 +117,46 @@ type ComplexityRoot struct {
 		Mesaj    func(childComplexity int) int
 	}
 
+	LlmAgentMetrik struct {
+		Agent          func(childComplexity int) int
+		BasariOrani    func(childComplexity int) int
+		Cagri          func(childComplexity int) int
+		OrtalamaSureMs func(childComplexity int) int
+	}
+
+	LlmCagri struct {
+		Agent     func(childComplexity int) int
+		Basarili  func(childComplexity int) int
+		Baslangic func(childComplexity int) int
+		DenemeNo  func(childComplexity int) int
+		HataTipi  func(childComplexity int) int
+		SureMs    func(childComplexity int) int
+		UcAdi     func(childComplexity int) int
+	}
+
+	LlmHataAdet struct {
+		Adet     func(childComplexity int) int
+		HataTipi func(childComplexity int) int
+	}
+
+	LlmMetrik struct {
+		AgentBazinda   func(childComplexity int) int
+		BasariliCagri  func(childComplexity int) int
+		BasarisizCagri func(childComplexity int) int
+		HataDagilimi   func(childComplexity int) int
+		OrtalamaSureMs func(childComplexity int) int
+		P95SureMs      func(childComplexity int) int
+		ToplamCagri    func(childComplexity int) int
+		UcBazinda      func(childComplexity int) int
+	}
+
+	LlmUcMetrik struct {
+		BasariOrani    func(childComplexity int) int
+		Cagri          func(childComplexity int) int
+		OrtalamaSureMs func(childComplexity int) int
+		UcAdi          func(childComplexity int) int
+	}
+
 	Mutation struct {
 		AyarlariGuncelle      func(childComplexity int, denetciRiskEsigi *float64, maxToken *int32) int
 		CihazAdlandir         func(childComplexity int, id string, ad string) int
@@ -207,6 +247,8 @@ type ComplexityRoot struct {
 		AktifPrompt     func(childComplexity int, tip model.PromptTipi) int
 		Ayarlar         func(childComplexity int) int
 		Cihazlarim      func(childComplexity int) int
+		LlmCagrilari    func(childComplexity int, limit *int32) int
+		LlmMetrikleri   func(childComplexity int, sonSaat *int32) int
 		Organizasyonum  func(childComplexity int) int
 		Oturumlarim     func(childComplexity int) int
 		PromptSurumleri func(childComplexity int, tip model.PromptTipi) int
@@ -321,6 +363,8 @@ type QueryResolver interface {
 	PromptSurumleri(ctx context.Context, tip model.PromptTipi) ([]*model.PromptSurumu, error)
 	AktifPrompt(ctx context.Context, tip model.PromptTipi) (*model.PromptSurumu, error)
 	Ayarlar(ctx context.Context) (*model.Ayarlar, error)
+	LlmMetrikleri(ctx context.Context, sonSaat *int32) (*model.LlmMetrik, error)
+	LlmCagrilari(ctx context.Context, limit *int32) ([]*model.LlmCagri, error)
 }
 
 // endregion ************************** generated!.gotpl **************************
@@ -621,6 +665,161 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 		}
 
 		return e.ComplexityRoot.KayitSonucu.Mesaj(childComplexity), true
+
+	case "LlmAgentMetrik.agent":
+		if e.ComplexityRoot.LlmAgentMetrik.Agent == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmAgentMetrik.Agent(childComplexity), true
+	case "LlmAgentMetrik.basariOrani":
+		if e.ComplexityRoot.LlmAgentMetrik.BasariOrani == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmAgentMetrik.BasariOrani(childComplexity), true
+	case "LlmAgentMetrik.cagri":
+		if e.ComplexityRoot.LlmAgentMetrik.Cagri == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmAgentMetrik.Cagri(childComplexity), true
+	case "LlmAgentMetrik.ortalamaSureMs":
+		if e.ComplexityRoot.LlmAgentMetrik.OrtalamaSureMs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmAgentMetrik.OrtalamaSureMs(childComplexity), true
+
+	case "LlmCagri.agent":
+		if e.ComplexityRoot.LlmCagri.Agent == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmCagri.Agent(childComplexity), true
+	case "LlmCagri.basarili":
+		if e.ComplexityRoot.LlmCagri.Basarili == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmCagri.Basarili(childComplexity), true
+	case "LlmCagri.baslangic":
+		if e.ComplexityRoot.LlmCagri.Baslangic == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmCagri.Baslangic(childComplexity), true
+	case "LlmCagri.denemeNo":
+		if e.ComplexityRoot.LlmCagri.DenemeNo == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmCagri.DenemeNo(childComplexity), true
+	case "LlmCagri.hataTipi":
+		if e.ComplexityRoot.LlmCagri.HataTipi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmCagri.HataTipi(childComplexity), true
+	case "LlmCagri.sureMs":
+		if e.ComplexityRoot.LlmCagri.SureMs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmCagri.SureMs(childComplexity), true
+	case "LlmCagri.ucAdi":
+		if e.ComplexityRoot.LlmCagri.UcAdi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmCagri.UcAdi(childComplexity), true
+
+	case "LlmHataAdet.adet":
+		if e.ComplexityRoot.LlmHataAdet.Adet == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmHataAdet.Adet(childComplexity), true
+	case "LlmHataAdet.hataTipi":
+		if e.ComplexityRoot.LlmHataAdet.HataTipi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmHataAdet.HataTipi(childComplexity), true
+
+	case "LlmMetrik.agentBazinda":
+		if e.ComplexityRoot.LlmMetrik.AgentBazinda == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.AgentBazinda(childComplexity), true
+	case "LlmMetrik.basariliCagri":
+		if e.ComplexityRoot.LlmMetrik.BasariliCagri == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.BasariliCagri(childComplexity), true
+	case "LlmMetrik.basarisizCagri":
+		if e.ComplexityRoot.LlmMetrik.BasarisizCagri == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.BasarisizCagri(childComplexity), true
+	case "LlmMetrik.hataDagilimi":
+		if e.ComplexityRoot.LlmMetrik.HataDagilimi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.HataDagilimi(childComplexity), true
+	case "LlmMetrik.ortalamaSureMs":
+		if e.ComplexityRoot.LlmMetrik.OrtalamaSureMs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.OrtalamaSureMs(childComplexity), true
+	case "LlmMetrik.p95SureMs":
+		if e.ComplexityRoot.LlmMetrik.P95SureMs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.P95SureMs(childComplexity), true
+	case "LlmMetrik.toplamCagri":
+		if e.ComplexityRoot.LlmMetrik.ToplamCagri == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.ToplamCagri(childComplexity), true
+	case "LlmMetrik.ucBazinda":
+		if e.ComplexityRoot.LlmMetrik.UcBazinda == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmMetrik.UcBazinda(childComplexity), true
+
+	case "LlmUcMetrik.basariOrani":
+		if e.ComplexityRoot.LlmUcMetrik.BasariOrani == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmUcMetrik.BasariOrani(childComplexity), true
+	case "LlmUcMetrik.cagri":
+		if e.ComplexityRoot.LlmUcMetrik.Cagri == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmUcMetrik.Cagri(childComplexity), true
+	case "LlmUcMetrik.ortalamaSureMs":
+		if e.ComplexityRoot.LlmUcMetrik.OrtalamaSureMs == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmUcMetrik.OrtalamaSureMs(childComplexity), true
+	case "LlmUcMetrik.ucAdi":
+		if e.ComplexityRoot.LlmUcMetrik.UcAdi == nil {
+			break
+		}
+
+		return e.ComplexityRoot.LlmUcMetrik.UcAdi(childComplexity), true
 
 	case "Mutation.ayarlariGuncelle":
 		if e.ComplexityRoot.Mutation.AyarlariGuncelle == nil {
@@ -1134,6 +1333,28 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 
 		return e.ComplexityRoot.Query.Cihazlarim(childComplexity), true
 
+	case "Query.llmCagrilari":
+		if e.ComplexityRoot.Query.LlmCagrilari == nil {
+			break
+		}
+
+		args, err := ec.field_Query_llmCagrilari_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.LlmCagrilari(childComplexity, args["limit"].(*int32)), true
+	case "Query.llmMetrikleri":
+		if e.ComplexityRoot.Query.LlmMetrikleri == nil {
+			break
+		}
+
+		args, err := ec.field_Query_llmMetrikleri_args(ctx, rawArgs)
+		if err != nil {
+			return 0, false
+		}
+
+		return e.ComplexityRoot.Query.LlmMetrikleri(childComplexity, args["sonSaat"].(*int32)), true
 	case "Query.organizasyonum":
 		if e.ComplexityRoot.Query.Organizasyonum == nil {
 			break
@@ -1725,6 +1946,86 @@ func (ec *executionContext) childFields_KayitSonucu(ctx context.Context, field g
 		return ec.fieldContext_KayitSonucu_mesaj(ctx, field)
 	}
 	return nil, fmt.Errorf("no field named %q was found under type KayitSonucu", field.Name)
+}
+
+func (ec *executionContext) childFields_LlmAgentMetrik(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "agent":
+		return ec.fieldContext_LlmAgentMetrik_agent(ctx, field)
+	case "cagri":
+		return ec.fieldContext_LlmAgentMetrik_cagri(ctx, field)
+	case "ortalamaSureMs":
+		return ec.fieldContext_LlmAgentMetrik_ortalamaSureMs(ctx, field)
+	case "basariOrani":
+		return ec.fieldContext_LlmAgentMetrik_basariOrani(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LlmAgentMetrik", field.Name)
+}
+
+func (ec *executionContext) childFields_LlmCagri(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "agent":
+		return ec.fieldContext_LlmCagri_agent(ctx, field)
+	case "ucAdi":
+		return ec.fieldContext_LlmCagri_ucAdi(ctx, field)
+	case "sureMs":
+		return ec.fieldContext_LlmCagri_sureMs(ctx, field)
+	case "basarili":
+		return ec.fieldContext_LlmCagri_basarili(ctx, field)
+	case "hataTipi":
+		return ec.fieldContext_LlmCagri_hataTipi(ctx, field)
+	case "denemeNo":
+		return ec.fieldContext_LlmCagri_denemeNo(ctx, field)
+	case "baslangic":
+		return ec.fieldContext_LlmCagri_baslangic(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LlmCagri", field.Name)
+}
+
+func (ec *executionContext) childFields_LlmHataAdet(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "hataTipi":
+		return ec.fieldContext_LlmHataAdet_hataTipi(ctx, field)
+	case "adet":
+		return ec.fieldContext_LlmHataAdet_adet(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LlmHataAdet", field.Name)
+}
+
+func (ec *executionContext) childFields_LlmMetrik(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "toplamCagri":
+		return ec.fieldContext_LlmMetrik_toplamCagri(ctx, field)
+	case "basariliCagri":
+		return ec.fieldContext_LlmMetrik_basariliCagri(ctx, field)
+	case "basarisizCagri":
+		return ec.fieldContext_LlmMetrik_basarisizCagri(ctx, field)
+	case "ortalamaSureMs":
+		return ec.fieldContext_LlmMetrik_ortalamaSureMs(ctx, field)
+	case "p95SureMs":
+		return ec.fieldContext_LlmMetrik_p95SureMs(ctx, field)
+	case "agentBazinda":
+		return ec.fieldContext_LlmMetrik_agentBazinda(ctx, field)
+	case "ucBazinda":
+		return ec.fieldContext_LlmMetrik_ucBazinda(ctx, field)
+	case "hataDagilimi":
+		return ec.fieldContext_LlmMetrik_hataDagilimi(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LlmMetrik", field.Name)
+}
+
+func (ec *executionContext) childFields_LlmUcMetrik(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+	switch field.Name {
+	case "ucAdi":
+		return ec.fieldContext_LlmUcMetrik_ucAdi(ctx, field)
+	case "cagri":
+		return ec.fieldContext_LlmUcMetrik_cagri(ctx, field)
+	case "ortalamaSureMs":
+		return ec.fieldContext_LlmUcMetrik_ortalamaSureMs(ctx, field)
+	case "basariOrani":
+		return ec.fieldContext_LlmUcMetrik_basariOrani(ctx, field)
+	}
+	return nil, fmt.Errorf("no field named %q was found under type LlmUcMetrik", field.Name)
 }
 
 func (ec *executionContext) childFields_NoShow(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
@@ -2562,6 +2863,34 @@ func (ec *executionContext) field_Query_aktifPrompt_args(ctx context.Context, ra
 		return nil, err
 	}
 	args["tip"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_llmCagrilari_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "limit",
+		func(ctx context.Context, v any) (*int32, error) {
+			return ec.unmarshalOInt2ᚖint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["limit"] = arg0
+	return args, nil
+}
+
+func (ec *executionContext) field_Query_llmMetrikleri_args(ctx context.Context, rawArgs map[string]any) (map[string]any, error) {
+	var err error
+	args := map[string]any{}
+	arg0, err := graphql.ProcessArgField(ctx, rawArgs, "sonSaat",
+		func(ctx context.Context, v any) (*int32, error) {
+			return ec.unmarshalOInt2ᚖint32(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["sonSaat"] = arg0
 	return args, nil
 }
 
@@ -3717,6 +4046,608 @@ func (ec *executionContext) _KayitSonucu_mesaj(ctx context.Context, field graphq
 }
 func (ec *executionContext) fieldContext_KayitSonucu_mesaj(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
 	return graphql.NewScalarFieldContext("KayitSonucu", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LlmAgentMetrik_agent(ctx context.Context, field graphql.CollectedField, obj *model.LlmAgentMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmAgentMetrik_agent(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Agent, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.PromptTipi) graphql.Marshaler {
+			return ec.marshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmAgentMetrik_agent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmAgentMetrik", field, false, false, errors.New("field of type PromptTipi does not have child fields"))
+}
+
+func (ec *executionContext) _LlmAgentMetrik_cagri(ctx context.Context, field graphql.CollectedField, obj *model.LlmAgentMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmAgentMetrik_cagri(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Cagri, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmAgentMetrik_cagri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmAgentMetrik", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmAgentMetrik_ortalamaSureMs(ctx context.Context, field graphql.CollectedField, obj *model.LlmAgentMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmAgentMetrik_ortalamaSureMs(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OrtalamaSureMs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmAgentMetrik_ortalamaSureMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmAgentMetrik", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LlmAgentMetrik_basariOrani(ctx context.Context, field graphql.CollectedField, obj *model.LlmAgentMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmAgentMetrik_basariOrani(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BasariOrani, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmAgentMetrik_basariOrani(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmAgentMetrik", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LlmCagri_agent(ctx context.Context, field graphql.CollectedField, obj *model.LlmCagri) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmCagri_agent(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Agent, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v model.PromptTipi) graphql.Marshaler {
+			return ec.marshalNPromptTipi2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐPromptTipi(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmCagri_agent(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmCagri", field, false, false, errors.New("field of type PromptTipi does not have child fields"))
+}
+
+func (ec *executionContext) _LlmCagri_ucAdi(ctx context.Context, field graphql.CollectedField, obj *model.LlmCagri) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmCagri_ucAdi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UcAdi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmCagri_ucAdi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmCagri", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LlmCagri_sureMs(ctx context.Context, field graphql.CollectedField, obj *model.LlmCagri) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmCagri_sureMs(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.SureMs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmCagri_sureMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmCagri", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmCagri_basarili(ctx context.Context, field graphql.CollectedField, obj *model.LlmCagri) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmCagri_basarili(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Basarili, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v bool) graphql.Marshaler {
+			return ec.marshalNBoolean2bool(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmCagri_basarili(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmCagri", field, false, false, errors.New("field of type Boolean does not have child fields"))
+}
+
+func (ec *executionContext) _LlmCagri_hataTipi(ctx context.Context, field graphql.CollectedField, obj *model.LlmCagri) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmCagri_hataTipi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HataTipi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmCagri_hataTipi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmCagri", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LlmCagri_denemeNo(ctx context.Context, field graphql.CollectedField, obj *model.LlmCagri) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmCagri_denemeNo(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.DenemeNo, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmCagri_denemeNo(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmCagri", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmCagri_baslangic(ctx context.Context, field graphql.CollectedField, obj *model.LlmCagri) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmCagri_baslangic(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Baslangic, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v time.Time) graphql.Marshaler {
+			return ec.marshalNTime2timeᚐTime(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmCagri_baslangic(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmCagri", field, false, false, errors.New("field of type Time does not have child fields"))
+}
+
+func (ec *executionContext) _LlmHataAdet_hataTipi(ctx context.Context, field graphql.CollectedField, obj *model.LlmHataAdet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmHataAdet_hataTipi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HataTipi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmHataAdet_hataTipi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmHataAdet", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LlmHataAdet_adet(ctx context.Context, field graphql.CollectedField, obj *model.LlmHataAdet) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmHataAdet_adet(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Adet, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmHataAdet_adet(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmHataAdet", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmMetrik_toplamCagri(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_toplamCagri(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.ToplamCagri, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_toplamCagri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmMetrik", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmMetrik_basariliCagri(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_basariliCagri(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BasariliCagri, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_basariliCagri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmMetrik", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmMetrik_basarisizCagri(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_basarisizCagri(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BasarisizCagri, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_basarisizCagri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmMetrik", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmMetrik_ortalamaSureMs(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_ortalamaSureMs(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OrtalamaSureMs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_ortalamaSureMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmMetrik", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LlmMetrik_p95SureMs(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_p95SureMs(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.P95SureMs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_p95SureMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmMetrik", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LlmMetrik_agentBazinda(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_agentBazinda(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.AgentBazinda, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LlmAgentMetrik) graphql.Marshaler {
+			return ec.marshalNLlmAgentMetrik2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmAgentMetrikᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_agentBazinda(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LlmMetrik",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LlmAgentMetrik(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LlmMetrik_ucBazinda(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_ucBazinda(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UcBazinda, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LlmUcMetrik) graphql.Marshaler {
+			return ec.marshalNLlmUcMetrik2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmUcMetrikᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_ucBazinda(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LlmMetrik",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LlmUcMetrik(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LlmMetrik_hataDagilimi(ctx context.Context, field graphql.CollectedField, obj *model.LlmMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmMetrik_hataDagilimi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.HataDagilimi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LlmHataAdet) graphql.Marshaler {
+			return ec.marshalNLlmHataAdet2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmHataAdetᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmMetrik_hataDagilimi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "LlmMetrik",
+		Field:      field,
+		IsMethod:   false,
+		IsResolver: false,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LlmHataAdet(ctx, field)
+		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _LlmUcMetrik_ucAdi(ctx context.Context, field graphql.CollectedField, obj *model.LlmUcMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmUcMetrik_ucAdi(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.UcAdi, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v string) graphql.Marshaler {
+			return ec.marshalNString2string(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmUcMetrik_ucAdi(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmUcMetrik", field, false, false, errors.New("field of type String does not have child fields"))
+}
+
+func (ec *executionContext) _LlmUcMetrik_cagri(ctx context.Context, field graphql.CollectedField, obj *model.LlmUcMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmUcMetrik_cagri(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.Cagri, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v int32) graphql.Marshaler {
+			return ec.marshalNInt2int32(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmUcMetrik_cagri(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmUcMetrik", field, false, false, errors.New("field of type Int does not have child fields"))
+}
+
+func (ec *executionContext) _LlmUcMetrik_ortalamaSureMs(ctx context.Context, field graphql.CollectedField, obj *model.LlmUcMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmUcMetrik_ortalamaSureMs(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.OrtalamaSureMs, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmUcMetrik_ortalamaSureMs(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmUcMetrik", field, false, false, errors.New("field of type Float does not have child fields"))
+}
+
+func (ec *executionContext) _LlmUcMetrik_basariOrani(ctx context.Context, field graphql.CollectedField, obj *model.LlmUcMetrik) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_LlmUcMetrik_basariOrani(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			return obj.BasariOrani, nil
+		},
+		nil,
+		func(ctx context.Context, selections ast.SelectionSet, v float64) graphql.Marshaler {
+			return ec.marshalNFloat2float64(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_LlmUcMetrik_basariOrani(_ context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	return graphql.NewScalarFieldContext("LlmUcMetrik", field, false, false, errors.New("field of type Float does not have child fields"))
 }
 
 func (ec *executionContext) _Mutation_sozlesmeYukle(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
@@ -6339,6 +7270,120 @@ func (ec *executionContext) fieldContext_Query_ayarlar(_ context.Context, field 
 		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
 			return ec.childFields_Ayarlar(ctx, field)
 		},
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_llmMetrikleri(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_llmMetrikleri(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().LlmMetrikleri(ctx, fc.Args["sonSaat"].(*int32))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal *model.LlmMetrik
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v *model.LlmMetrik) graphql.Marshaler {
+			return ec.marshalNLlmMetrik2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmMetrik(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_llmMetrikleri(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LlmMetrik(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_llmMetrikleri_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
+	}
+	return fc, nil
+}
+
+func (ec *executionContext) _Query_llmCagrilari(ctx context.Context, field graphql.CollectedField) (ret graphql.Marshaler) {
+	return graphql.ResolveField(
+		ctx,
+		ec.OperationContext,
+		field,
+		func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.fieldContext_Query_llmCagrilari(ctx, field)
+		},
+		func(ctx context.Context) (any, error) {
+			fc := graphql.GetFieldContext(ctx)
+			return ec.Resolvers.Query().LlmCagrilari(ctx, fc.Args["limit"].(*int32))
+		},
+		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
+			directive0 := next
+
+			directive1 := func(ctx context.Context) (any, error) {
+				if ec.Directives.Auth == nil {
+					var zeroVal []*model.LlmCagri
+					return zeroVal, errors.New("directive auth is not implemented")
+				}
+				return ec.Directives.Auth(ctx, nil, directive0)
+			}
+
+			next = directive1
+			return next
+		},
+		func(ctx context.Context, selections ast.SelectionSet, v []*model.LlmCagri) graphql.Marshaler {
+			return ec.marshalNLlmCagri2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmCagriᚄ(ctx, selections, v)
+		},
+		true,
+		true,
+	)
+}
+func (ec *executionContext) fieldContext_Query_llmCagrilari(ctx context.Context, field graphql.CollectedField) (fc *graphql.FieldContext, err error) {
+	fc = &graphql.FieldContext{
+		Object:     "Query",
+		Field:      field,
+		IsMethod:   true,
+		IsResolver: true,
+		Child: func(ctx context.Context, field graphql.CollectedField) (*graphql.FieldContext, error) {
+			return ec.childFields_LlmCagri(ctx, field)
+		},
+	}
+	defer func() {
+		if r := recover(); r != nil {
+			err = ec.Recover(ctx, r)
+			ec.Error(ctx, err)
+		}
+	}()
+	ctx = graphql.WithFieldContext(ctx, fc)
+	if fc.Args, err = ec.field_Query_llmCagrilari_args(ctx, field.ArgumentMap(ec.Variables)); err != nil {
+		ec.Error(ctx, err)
+		return fc, err
 	}
 	return fc, nil
 }
@@ -9950,6 +10995,296 @@ func (ec *executionContext) _KayitSonucu(ctx context.Context, sel ast.SelectionS
 	return out
 }
 
+var llmAgentMetrikImplementors = []string{"LlmAgentMetrik"}
+
+func (ec *executionContext) _LlmAgentMetrik(ctx context.Context, sel ast.SelectionSet, obj *model.LlmAgentMetrik) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, llmAgentMetrikImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LlmAgentMetrik")
+		case "agent":
+			out.Values[i] = ec._LlmAgentMetrik_agent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cagri":
+			out.Values[i] = ec._LlmAgentMetrik_cagri(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ortalamaSureMs":
+			out.Values[i] = ec._LlmAgentMetrik_ortalamaSureMs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "basariOrani":
+			out.Values[i] = ec._LlmAgentMetrik_basariOrani(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var llmCagriImplementors = []string{"LlmCagri"}
+
+func (ec *executionContext) _LlmCagri(ctx context.Context, sel ast.SelectionSet, obj *model.LlmCagri) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, llmCagriImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LlmCagri")
+		case "agent":
+			out.Values[i] = ec._LlmCagri_agent(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ucAdi":
+			out.Values[i] = ec._LlmCagri_ucAdi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "sureMs":
+			out.Values[i] = ec._LlmCagri_sureMs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "basarili":
+			out.Values[i] = ec._LlmCagri_basarili(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hataTipi":
+			out.Values[i] = ec._LlmCagri_hataTipi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "denemeNo":
+			out.Values[i] = ec._LlmCagri_denemeNo(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "baslangic":
+			out.Values[i] = ec._LlmCagri_baslangic(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var llmHataAdetImplementors = []string{"LlmHataAdet"}
+
+func (ec *executionContext) _LlmHataAdet(ctx context.Context, sel ast.SelectionSet, obj *model.LlmHataAdet) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, llmHataAdetImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LlmHataAdet")
+		case "hataTipi":
+			out.Values[i] = ec._LlmHataAdet_hataTipi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "adet":
+			out.Values[i] = ec._LlmHataAdet_adet(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var llmMetrikImplementors = []string{"LlmMetrik"}
+
+func (ec *executionContext) _LlmMetrik(ctx context.Context, sel ast.SelectionSet, obj *model.LlmMetrik) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, llmMetrikImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LlmMetrik")
+		case "toplamCagri":
+			out.Values[i] = ec._LlmMetrik_toplamCagri(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "basariliCagri":
+			out.Values[i] = ec._LlmMetrik_basariliCagri(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "basarisizCagri":
+			out.Values[i] = ec._LlmMetrik_basarisizCagri(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ortalamaSureMs":
+			out.Values[i] = ec._LlmMetrik_ortalamaSureMs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "p95SureMs":
+			out.Values[i] = ec._LlmMetrik_p95SureMs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "agentBazinda":
+			out.Values[i] = ec._LlmMetrik_agentBazinda(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ucBazinda":
+			out.Values[i] = ec._LlmMetrik_ucBazinda(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "hataDagilimi":
+			out.Values[i] = ec._LlmMetrik_hataDagilimi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
+var llmUcMetrikImplementors = []string{"LlmUcMetrik"}
+
+func (ec *executionContext) _LlmUcMetrik(ctx context.Context, sel ast.SelectionSet, obj *model.LlmUcMetrik) graphql.Marshaler {
+	fields := graphql.CollectFields(ec.OperationContext, sel, llmUcMetrikImplementors)
+
+	out := graphql.NewFieldSet(fields)
+	deferredFieldSet := graphql.NewFieldSet(nil)
+	deferLabelToView := make(map[string]*graphql.FieldSetView)
+	for i, field := range fields {
+		switch field.Name {
+		case "__typename":
+			out.Values[i] = graphql.MarshalString("LlmUcMetrik")
+		case "ucAdi":
+			out.Values[i] = ec._LlmUcMetrik_ucAdi(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "cagri":
+			out.Values[i] = ec._LlmUcMetrik_cagri(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "ortalamaSureMs":
+			out.Values[i] = ec._LlmUcMetrik_ortalamaSureMs(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		case "basariOrani":
+			out.Values[i] = ec._LlmUcMetrik_basariOrani(ctx, field, obj)
+			if out.Values[i] == graphql.Null {
+				out.Invalids++
+			}
+		default:
+			panic("unknown field " + strconv.Quote(field.Name))
+		}
+	}
+	out.Dispatch(ctx)
+	if out.Invalids > 0 {
+		return graphql.Null
+	}
+
+	atomic.AddInt32(&ec.Deferred, int32(min(len(deferLabelToView), math.MaxInt32)))
+
+	ec.ProcessDeferredGroup(graphql.DeferredGroup{
+		Defers:   deferLabelToView,
+		Path:     graphql.GetPath(ctx),
+		FieldSet: deferredFieldSet,
+		Context:  ctx,
+	})
+
+	return out
+}
+
 var mutationImplementors = []string{"Mutation"}
 
 func (ec *executionContext) _Mutation(ctx context.Context, sel ast.SelectionSet) graphql.Marshaler {
@@ -10836,6 +12171,50 @@ func (ec *executionContext) _Query(ctx context.Context, sel ast.SelectionSet) gr
 					}
 				}()
 				res = ec._Query_ayarlar(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "llmMetrikleri":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_llmMetrikleri(ctx, field)
+				if res == graphql.Null {
+					atomic.AddUint32(&fs.Invalids, 1)
+				}
+				return res
+			}
+
+			rrm := func(ctx context.Context) graphql.Marshaler {
+				return ec.OperationContext.RootResolverMiddleware(ctx,
+					func(ctx context.Context) graphql.Marshaler { return innerFunc(ctx, out) })
+			}
+
+			out.Concurrently(i, func(ctx context.Context) graphql.Marshaler { return rrm(innerCtx) })
+		case "llmCagrilari":
+			field := field
+
+			innerFunc := func(ctx context.Context, fs *graphql.FieldSet) (res graphql.Marshaler) {
+				defer func() {
+					if r := recover(); r != nil {
+						ec.Error(ctx, ec.Recover(ctx, r))
+					}
+				}()
+				res = ec._Query_llmCagrilari(ctx, field)
 				if res == graphql.Null {
 					atomic.AddUint32(&fs.Invalids, 1)
 				}
@@ -12008,6 +13387,124 @@ func (ec *executionContext) marshalNKayitSonucu2ᚖgithubᚗcomᚋozᚑfatmaᚋk
 		return graphql.Null
 	}
 	return ec._KayitSonucu(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNLlmAgentMetrik2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmAgentMetrikᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.LlmAgentMetrik) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNLlmAgentMetrik2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmAgentMetrik(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLlmAgentMetrik2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmAgentMetrik(ctx context.Context, sel ast.SelectionSet, v *model.LlmAgentMetrik) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LlmAgentMetrik(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNLlmCagri2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmCagriᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.LlmCagri) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNLlmCagri2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmCagri(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLlmCagri2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmCagri(ctx context.Context, sel ast.SelectionSet, v *model.LlmCagri) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LlmCagri(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNLlmHataAdet2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmHataAdetᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.LlmHataAdet) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNLlmHataAdet2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmHataAdet(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLlmHataAdet2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmHataAdet(ctx context.Context, sel ast.SelectionSet, v *model.LlmHataAdet) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LlmHataAdet(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNLlmMetrik2githubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmMetrik(ctx context.Context, sel ast.SelectionSet, v model.LlmMetrik) graphql.Marshaler {
+	return ec._LlmMetrik(ctx, sel, &v)
+}
+
+func (ec *executionContext) marshalNLlmMetrik2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmMetrik(ctx context.Context, sel ast.SelectionSet, v *model.LlmMetrik) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LlmMetrik(ctx, sel, v)
+}
+
+func (ec *executionContext) marshalNLlmUcMetrik2ᚕᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmUcMetrikᚄ(ctx context.Context, sel ast.SelectionSet, v []*model.LlmUcMetrik) graphql.Marshaler {
+	ret := graphql.MarshalSliceConcurrently(ctx, len(v), 0, false, func(ctx context.Context, i int) graphql.Marshaler {
+		fc := graphql.GetFieldContext(ctx)
+		fc.Result = &v[i]
+		return ec.marshalNLlmUcMetrik2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmUcMetrik(ctx, sel, v[i])
+	})
+
+	for _, e := range ret {
+		if e == graphql.Null {
+			return graphql.Null
+		}
+	}
+
+	return ret
+}
+
+func (ec *executionContext) marshalNLlmUcMetrik2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐLlmUcMetrik(ctx context.Context, sel ast.SelectionSet, v *model.LlmUcMetrik) graphql.Marshaler {
+	if v == nil {
+		if !graphql.HasFieldError(ctx, graphql.GetFieldContext(ctx)) {
+			graphql.AddErrorf(ctx, "the requested element is null which the schema does not allow")
+		}
+		return graphql.Null
+	}
+	return ec._LlmUcMetrik(ctx, sel, v)
 }
 
 func (ec *executionContext) marshalNOdaKontenjani2ᚖgithubᚗcomᚋozᚑfatmaᚋkontrataᚋbackendᚋgraphᚋmodelᚐOdaKontenjani(ctx context.Context, sel ast.SelectionSet, v *model.OdaKontenjani) graphql.Marshaler {

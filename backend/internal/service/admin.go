@@ -31,13 +31,28 @@ func (s *AuthService) AttachOrgLLM(prompts *repository.PromptVersionRepository, 
 	s.settings = settings
 }
 
-func (s *AuthService) requirePromptAdmin(ctx context.Context) (actor, error) {
+func (s *AuthService) AttachLLMCalls(calls *repository.LLMCallRepository) {
+	if s == nil {
+		return
+	}
+	s.llmCalls = calls
+}
+
+func (s *AuthService) requireOwnerOrg(ctx context.Context) (actor, error) {
 	act, err := s.actor(ctx)
 	if err != nil {
 		return actor{}, err
 	}
 	if !act.can(opPromptManage) || !act.hasOrg() {
 		return actor{}, auth.ErrForbidden
+	}
+	return act, nil
+}
+
+func (s *AuthService) requirePromptAdmin(ctx context.Context) (actor, error) {
+	act, err := s.requireOwnerOrg(ctx)
+	if err != nil {
+		return actor{}, err
 	}
 	if s.prompts == nil || s.settings == nil {
 		return actor{}, repository.ErrUnavailable

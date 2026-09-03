@@ -52,6 +52,7 @@ type AuthService struct {
 	files         *filestore.Store
 	prompts       *repository.PromptVersionRepository
 	settings      *repository.OrgSettingsRepository
+	llmCalls      *repository.LLMCallRepository
 }
 
 func NewAuthService(

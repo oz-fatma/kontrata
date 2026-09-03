@@ -211,6 +211,16 @@ func (r *queryResolver) Ayarlar(ctx context.Context) (*model.Ayarlar, error) {
 	return r.Auth.Settings(ctx)
 }
 
+// LlmMetrikleri is the resolver for the llmMetrikleri field.
+func (r *queryResolver) LlmMetrikleri(ctx context.Context, sonSaat *int32, baslangic *time.Time) (*model.LlmMetrik, error) {
+	return r.Auth.LLMMetrics(ctx, sonSaat, baslangic)
+}
+
+// LlmCagrilari is the resolver for the llmCagrilari field.
+func (r *queryResolver) LlmCagrilari(ctx context.Context, limit *int32) ([]*model.LlmCagri, error) {
+	return r.Auth.LLMCalls(ctx, limit)
+}
+
 // Mutation returns MutationResolver implementation.
 func (r *Resolver) Mutation() MutationResolver { return &mutationResolver{r} }
 
