@@ -1,2 +1,0 @@
-
-İşbuçuk yazılımcı, alottedment合同のテキストを元に、correctified JSON nesnesi üretmiştir. Her değeri yeterince detayla ifade edilmiştir.

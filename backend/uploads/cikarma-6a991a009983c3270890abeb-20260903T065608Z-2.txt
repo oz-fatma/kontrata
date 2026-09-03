@@ -1,1 +1,0 @@
- {"donem":{"baslangic":"2026-04-01","bitis":"2026-10-31","alt_donemler":[]}},"oda_kontenjanlari":[{"oda_tipi":"standart","adet":150},{"oda_tipi":"family","adet":40}]},{"fiyatlar":[{"oda_tipi":"standart","tutar":65,"birim":"oda_gecelik","pansiyon":"bb"}},{"oda_tipi":"family","tutar":98,"birim":"oda_gecelik","pansiyon":"bb"}]}},{"release":{"gun":10,"kapsam":"isim_listesi"}}}]

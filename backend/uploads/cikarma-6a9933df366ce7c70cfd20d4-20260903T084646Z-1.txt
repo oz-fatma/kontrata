@@ -1,6 +1,0 @@
-{
-{"meta", {"otel_adi", "Belek Palace Hotel"}, {"acente_adi", "Antalya"}, {"para_birimi", "EUR"}, {"kur_esasi", "isim_listesi"}, {"yetkili_mahkeme", "Antalya"}, {"sezon", "yaz"}}, "donem", {
-    {"baslangic", "2026-05-01"},
-     {"bitis", "2026-10-20"},
-     {"alt_donemler", []}]
-}, "oda_kontenjanlari", [{"oda_tipi": "standart", "adet": 150}], "fiyatlar", [{"oda_tipi": "standart", "pansiyon": "RO", "birim": "kisi_gecelik", "tutar": 65.0, "release": 10, "kapsam": "isim_listesi"}], {"oda_tipi": "standart", "pansiyon": "BB", "birim": "kisi_gecelik", "tutar": 65.0, "release": 10, "kapsam": "isim_listesi"}], {"oda_tipi": "standart", "pansiyon": "HB", "birim": "kisi_gecelik", "tutar": 65.0, "release": 10, "kapsam": "isim_listesi"}], {"oda_tipi": "standart", "pansiyon": "FB", "birim": "kisi_gecelik", "tutar": 65.0, "release": 10, "kapsam": "isim_listesi"}], {"oda_tipi": "standart", "pansiyon": "AI", "birim": "kisi_gecelik", "tutar": 65.0, "release": 10, "kapsam": "isim_listesi"}], {"oda_tipi": "standart", "pansiyon": "belirtilmemis", "birim": "kisi_gecelik", "tutar": 65.0, "release": 10, "kapsam": "isim_listesi"}], {"oda_tipi": "standart", "pansiyon": "RO", "birim": "kisi_gecelik", "tutar": 65.0, "release": 10, "kapsam": "isim_listesi"}], {"oda_tipi": "standart", "pansiyon": "BB", "birim": "kisi_gecelik", "tutar": 65.0,
