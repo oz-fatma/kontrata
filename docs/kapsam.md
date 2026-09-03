@@ -33,3 +33,23 @@ adı kısıtı ve “meta yalnızca kökte bir kez” kuralı prompt'ta yazılı
 Notebook ve `evaluate.py` aynı metni taşır; mevcut model yeniden
 eğitilmedi — meta opsiyonel olduğu için tarifi izlemesi beklenir.
 
+
+# Model yukseltmesi (Asama 11 sonrasi)
+
+Qwen2.5-1.5B uzun ve karmasik sozlesmelerde JSON yapisini tutamiyor:
+nesneyi parcaliyor, alanlari atliyor, bazen sozdizimi bozuk cikti
+veriyor. Ayni PDF ayni ayarlarla farkli sonuc verebiliyor.
+
+Karar: Qwen2.5-3B-Instruct'a gecilecek. Ayni aile, ayni tokenizer,
+ayni chat sablonu; notebook'ta tek satir degisiyor.
+
+Adimlar:
+1. Colab'da BASE_MODEL degistirip yeniden egit (~25 dk)
+2. HF'ye adapter + merged yukle
+3. Iki endpoint'i de sil ve yeniden kur (HF model guncellemesini
+   otomatik cekmiyor)
+4. Tekrarlanabilirlik olcumu: ayni sozlesme 10 kez islenip basari
+   orani raporlanacak (Asama 11 izleme katmani ile)
+
+Beklenen etki: uzun girdide yapi tutma belirgin iyilesir, cikarim
+suresi ~12 sn'den ~20-25 sn'ye cikar.
