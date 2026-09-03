@@ -248,7 +248,7 @@ type ComplexityRoot struct {
 		Ayarlar         func(childComplexity int) int
 		Cihazlarim      func(childComplexity int) int
 		LlmCagrilari    func(childComplexity int, limit *int32) int
-		LlmMetrikleri   func(childComplexity int, sonSaat *int32) int
+		LlmMetrikleri   func(childComplexity int, sonSaat *int32, baslangic *time.Time) int
 		Organizasyonum  func(childComplexity int) int
 		Oturumlarim     func(childComplexity int) int
 		PromptSurumleri func(childComplexity int, tip model.PromptTipi) int
@@ -363,7 +363,7 @@ type QueryResolver interface {
 	PromptSurumleri(ctx context.Context, tip model.PromptTipi) ([]*model.PromptSurumu, error)
 	AktifPrompt(ctx context.Context, tip model.PromptTipi) (*model.PromptSurumu, error)
 	Ayarlar(ctx context.Context) (*model.Ayarlar, error)
-	LlmMetrikleri(ctx context.Context, sonSaat *int32) (*model.LlmMetrik, error)
+	LlmMetrikleri(ctx context.Context, sonSaat *int32, baslangic *time.Time) (*model.LlmMetrik, error)
 	LlmCagrilari(ctx context.Context, limit *int32) ([]*model.LlmCagri, error)
 }
 
@@ -1354,7 +1354,7 @@ func (e *executableSchema) Complexity(ctx context.Context, typeName, field strin
 			return 0, false
 		}
 
-		return e.ComplexityRoot.Query.LlmMetrikleri(childComplexity, args["sonSaat"].(*int32)), true
+		return e.ComplexityRoot.Query.LlmMetrikleri(childComplexity, args["sonSaat"].(*int32), args["baslangic"].(*time.Time)), true
 	case "Query.organizasyonum":
 		if e.ComplexityRoot.Query.Organizasyonum == nil {
 			break
@@ -2891,6 +2891,14 @@ func (ec *executionContext) field_Query_llmMetrikleri_args(ctx context.Context, 
 		return nil, err
 	}
 	args["sonSaat"] = arg0
+	arg1, err := graphql.ProcessArgField(ctx, rawArgs, "baslangic",
+		func(ctx context.Context, v any) (*time.Time, error) {
+			return ec.unmarshalOTime2ᚖtimeᚐTime(ctx, v)
+		})
+	if err != nil {
+		return nil, err
+	}
+	args["baslangic"] = arg1
 	return args, nil
 }
 
@@ -7284,7 +7292,7 @@ func (ec *executionContext) _Query_llmMetrikleri(ctx context.Context, field grap
 		},
 		func(ctx context.Context) (any, error) {
 			fc := graphql.GetFieldContext(ctx)
-			return ec.Resolvers.Query().LlmMetrikleri(ctx, fc.Args["sonSaat"].(*int32))
+			return ec.Resolvers.Query().LlmMetrikleri(ctx, fc.Args["sonSaat"].(*int32), fc.Args["baslangic"].(*time.Time))
 		},
 		func(ctx context.Context, next graphql.Resolver) graphql.Resolver {
 			directive0 := next
@@ -14683,6 +14691,24 @@ func (ec *executionContext) marshalOString2ᚖstring(ctx context.Context, sel as
 	_ = sel
 	_ = ctx
 	res := graphql.MarshalString(*v)
+	return res
+}
+
+func (ec *executionContext) unmarshalOTime2ᚖtimeᚐTime(ctx context.Context, v any) (*time.Time, error) {
+	if v == nil {
+		return nil, nil
+	}
+	res, err := graphql.UnmarshalTime(v)
+	return &res, graphql.ErrorOnPath(ctx, err)
+}
+
+func (ec *executionContext) marshalOTime2ᚖtimeᚐTime(ctx context.Context, sel ast.SelectionSet, v *time.Time) graphql.Marshaler {
+	if v == nil {
+		return graphql.Null
+	}
+	_ = sel
+	_ = ctx
+	res := graphql.MarshalTime(*v)
 	return res
 }
 

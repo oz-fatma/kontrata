@@ -98,6 +98,8 @@ type registerEnv struct {
 	files    *filestore.Store
 	prompts  *repository.PromptVersionRepository
 	settings *repository.OrgSettingsRepository
+	llmCalls *repository.LLMCallRepository
+	davets   *repository.InviteRepository
 }
 
 func testParams() auth.Params {
@@ -197,6 +199,7 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 		t.Fatalf("dosya deposu: %v", err)
 	}
 	sozSvc.AttachExtract(files, nil, "")
+	authSvc.AttachFiles(files)
 	srv := handler.New(NewExecutableSchema(Config{
 		Resolvers:  &Resolver{Service: sozSvc, Auth: authSvc},
 		Directives: DirectiveRoot{Auth: AuthDirective},
@@ -210,7 +213,7 @@ func setupRegister(t *testing.T) (context.Context, registerEnv) {
 		h: mux, c: graphqlClient(mux, "", ""), users: users, tokens: tokens,
 		mfa: mfa, sessions: sessions, soz: sozRepo, audit: denetim, mail: mail,
 		devices: devices, orgs: orgs, db: db, sozSvc: sozSvc, files: files,
-		prompts: promptlar, settings: ayarlarRepo,
+		prompts: promptlar, settings: ayarlarRepo, llmCalls: llmCagrilari, davets: davets,
 	}
 }
 

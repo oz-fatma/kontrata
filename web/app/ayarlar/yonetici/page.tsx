@@ -124,7 +124,7 @@ function AdminBody() {
 
       <p className="rounded-card border-[0.5px] border-[var(--line)] bg-[var(--yellow-bg)] px-3 py-2 text-[13px] text-[var(--yellow-ink)]">
         Prompt değişiklikleri tüm yeni çıkarımları etkiler. Kişisel veri maskelemesi
-        prompt'tan bağımsız olarak her zaman çalışır.
+        prompt metninden bağımsız olarak her zaman çalışır.
       </p>
 
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}

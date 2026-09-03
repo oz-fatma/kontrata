@@ -128,3 +128,16 @@ func (r *OrgSettingsRepository) DeleteByOrg(ctx context.Context, orgID bson.Obje
 	}
 	return nil
 }
+
+func (r *OrgSettingsRepository) CountByOrg(ctx context.Context, orgID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"organizasyonId": orgID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
+}

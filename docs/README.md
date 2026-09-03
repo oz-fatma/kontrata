@@ -1,6 +1,11 @@
 # docs
 
-Mimari kararlar ve KVKK notları.
-
-Kararlar `kararlar.md` dosyasına tarihiyle yazılır.
-Kişisel veri ve uyum notları `kvkk.md` dosyasındadır.
+| Dosya | İçerik |
+| --- | --- |
+| `kararlar.md` | Mimari kararlar, tarih sırasıyla |
+| `kvkk.md` | Kişisel veri envanteri, maskeleme, silme |
+| `mimari.md` | Bileşen ve veri akışı |
+| `teslim.md` | Zorunlu madde → dosya/ekran tablosu |
+| `kapsam.md` | Ölçekleme, prompt hizası, model notları |
+| `ornek-maskelenmis-metin.md` | LLM'e giden örtülü metin örneği |
+| `yuk-testi-*.md` | Yük testi raporları |

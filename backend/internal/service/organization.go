@@ -356,7 +356,9 @@ func (s *AuthService) deleteOrg(ctx context.Context, orgID bson.ObjectID, remove
 	if err := s.orgs.Delete(ctx, orgID); err != nil && !errors.Is(err, repository.ErrNotFound) {
 		return err
 	}
-	s.deleteOrgLLM(ctx, orgID)
+	if err := s.deleteOrgLLM(ctx, orgID); err != nil {
+		return err
+	}
 	if removeFiles {
 		s.removeStoredFiles(ids)
 	}

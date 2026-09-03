@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"log"
 	"strings"
 	"time"
 
@@ -276,15 +275,21 @@ func settingsToModel(doc *repository.OrgSettings) *model.Ayarlar {
 	return out
 }
 
-func (s *AuthService) deleteOrgLLM(ctx context.Context, orgID bson.ObjectID) {
+func (s *AuthService) deleteOrgLLM(ctx context.Context, orgID bson.ObjectID) error {
 	if s.prompts != nil {
 		if err := s.prompts.DeleteByOrg(ctx, orgID); err != nil {
-			log.Printf("prompt sürümleri silinemedi: %v", err)
+			return err
 		}
 	}
 	if s.settings != nil {
 		if err := s.settings.DeleteByOrg(ctx, orgID); err != nil {
-			log.Printf("ayarlar silinemedi: %v", err)
+			return err
 		}
 	}
+	if s.llmCalls != nil {
+		if err := s.llmCalls.DeleteByOrg(ctx, orgID); err != nil {
+			return err
+		}
+	}
+	return nil
 }

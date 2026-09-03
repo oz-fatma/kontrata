@@ -200,3 +200,25 @@ func (r *AuditRepository) CountDeleted(ctx context.Context) (int64, error) {
 	}
 	return n, nil
 }
+
+func (r *AuditRepository) ListDeleted(ctx context.Context) ([]AuditRecord, error) {
+	if !r.ready() {
+		return nil, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	cur, err := r.col.Find(ctx, bson.M{"kullaniciId": UserDeleted},
+		options.Find().SetSort(bson.D{{Key: "zaman", Value: -1}}))
+	if err != nil {
+		return nil, ErrStore
+	}
+	defer func() { _ = cur.Close(ctx) }()
+	var out []AuditRecord
+	if err := cur.All(ctx, &out); err != nil {
+		return nil, ErrStore
+	}
+	if out == nil {
+		out = []AuditRecord{}
+	}
+	return out, nil
+}

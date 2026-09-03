@@ -35,6 +35,14 @@ type Store struct {
 	dir string
 }
 
+// Dir yükleme dizininin mutlak yolunu döner.
+func (s *Store) Dir() string {
+	if s == nil {
+		return ""
+	}
+	return s.dir
+}
+
 // New dizini oluşturur (yoksa) ve deposu döner.
 func New(dir string) (*Store, error) {
 	dir = strings.TrimSpace(dir)

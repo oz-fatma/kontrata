@@ -7,6 +7,7 @@ package graph
 
 import (
 	"context"
+	"time"
 
 	"github.com/99designs/gqlgen/graphql"
 	"github.com/oz-fatma/kontrata/backend/graph/model"

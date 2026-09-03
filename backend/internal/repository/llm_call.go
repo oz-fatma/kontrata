@@ -136,3 +136,29 @@ func (r *LLMCallRepository) ListRecent(ctx context.Context, orgID bson.ObjectID,
 	}
 	return out, nil
 }
+
+func (r *LLMCallRepository) CountByOrg(ctx context.Context, orgID bson.ObjectID) (int64, error) {
+	if !r.ready() {
+		return 0, ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	n, err := r.col.CountDocuments(ctx, bson.M{"organizasyonId": orgID})
+	if err != nil {
+		return 0, ErrStore
+	}
+	return n, nil
+}
+
+func (r *LLMCallRepository) DeleteByOrg(ctx context.Context, orgID bson.ObjectID) error {
+	if !r.ready() {
+		return ErrUnavailable
+	}
+	ctx, cancel := withTimeout(ctx)
+	defer cancel()
+	_, err := r.col.DeleteMany(ctx, bson.M{"organizasyonId": orgID})
+	if err != nil {
+		return ErrStore
+	}
+	return nil
+}
