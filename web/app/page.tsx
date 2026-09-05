@@ -22,7 +22,7 @@ import {
 import { usePolling } from "@/lib/use-polling";
 import { AppShell } from "@/components/shell";
 import { ConfirmDialog } from "@/components/confirm-dialog";
-import { FileText } from "lucide-react";
+import { FileText, Trash2 } from "lucide-react";
 import { EmptyState, ErrorState, LoadingState } from "@/components/states";
 import { StatusBadge } from "@/components/status-badge";
 
@@ -214,22 +214,30 @@ function ContractList() {
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
       {rows === null && !error ? <LoadingState /> : null}
       {rows && filtered.length === 0 ? (
-        <EmptyState
-          icon={FileText}
-          title="Sözleşme yok"
-          detail="Yüklenen sözleşmeler burada listelenir."
-        />
+        query.trim() || status !== "all" ? (
+          <EmptyState
+            icon={FileText}
+            title="Eşleşen kayıt yok"
+            detail="Arama veya durum filtresini değiştirin."
+          />
+        ) : (
+          <EmptyState
+            icon={FileText}
+            title="Sözleşme yok"
+            detail="Yüklenen sözleşmeler burada listelenir."
+          />
+        )
       ) : null}
       {rows && filtered.length > 0 ? (
         <div className="card overflow-x-auto">
-          <table className="w-full text-left text-[14px]">
-            <thead className="border-b-[0.5px] border-[var(--border)] bg-[var(--surface-subtle)] text-[12px] text-[var(--ink-muted)]">
+          <table className="data-table w-full text-left text-[14px]">
+            <thead>
               <tr>
-                <th className="px-4 py-3 font-medium">Dosya</th>
-                <th className="px-4 py-3 font-medium">Dönem</th>
-                <th className="px-4 py-3 font-medium">Bulgu</th>
-                <th className="px-4 py-3 font-medium">Durum</th>
-                {canWrite ? <th className="px-4 py-3 font-medium sr-only">İşlem</th> : null}
+                <th className="font-medium">Dosya</th>
+                <th className="font-medium">Dönem</th>
+                <th className="font-medium">Bulgu</th>
+                <th className="font-medium">Durum</th>
+                {canWrite ? <th className="font-medium sr-only">İşlem</th> : null}
               </tr>
             </thead>
             <tbody>
@@ -273,11 +281,8 @@ const ContractRow = memo(function ContractRow({
 }) {
   const processing = isExtractPending(row.durum);
   return (
-    <tr
-      className="cursor-pointer border-b-[0.5px] border-[var(--border)] last:border-0 transition-colors hover:bg-[var(--surface-subtle)]"
-      onClick={() => onOpen(row.id)}
-    >
-      <td className="min-h-14 px-4 py-3 align-middle">
+    <tr className="cursor-pointer" onClick={() => onOpen(row.id)}>
+      <td>
         <div className="font-medium text-[var(--ink)]">{row.dosyaAdi || "Adsız dosya"}</div>
         <div className="meta-text tabular-nums">
           {row.meta?.acenteAdi || row.meta?.otelAdi || "Operatör yok"}
@@ -285,17 +290,13 @@ const ContractRow = memo(function ContractRow({
           {formatDateTime(row.olusturmaTarihi)}
         </div>
       </td>
-      <td className="min-h-14 px-4 py-3 align-middle tabular-nums">
+      <td className="tabular-nums">
         {processing ? "—" : formatPeriod(row.donem?.baslangic, row.donem?.bitis)}
       </td>
-      <td className="min-h-14 px-4 py-3 align-middle">
-        {processing ? (
-          "—"
-        ) : (
-          <FindingCount findings={row.bulgular} />
-        )}
+      <td>
+        {processing ? "—" : <FindingCount findings={row.bulgular} />}
       </td>
-      <td className="min-h-14 px-4 py-3 align-middle">
+      <td>
         <StatusBadge
           label={statusLabel(row.durum)}
           tone={statusTone(row.durum)}
@@ -303,14 +304,14 @@ const ContractRow = memo(function ContractRow({
         />
       </td>
       {canWrite ? (
-        <td className="min-h-14 px-4 py-3 align-middle">
+        <td className="text-right">
           <button
             type="button"
-            className="btn btn-danger"
+            className="inline-flex items-center justify-center rounded-control p-1.5 text-[var(--ink-muted)] transition-colors hover:bg-[var(--red-bg)] hover:text-[var(--danger)]"
             aria-label="Sözleşmeyi sil"
             onClick={(e) => void onDelete(row.id, e)}
           >
-            Sil
+            <Trash2 className="size-4" strokeWidth={1.75} aria-hidden />
           </button>
         </td>
       ) : null}

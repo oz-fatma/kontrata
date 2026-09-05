@@ -239,6 +239,7 @@ func fillRequired(root map[string]any, notes *[]string) {
 		root["fiyatlar"] = []any{}
 		*notes = append(*notes, "zorunlu alan dolduruldu: fiyatlar")
 	}
+	coerceRelease(root, notes)
 	if !isMap(root["release"]) {
 		root["release"] = map[string]any{"gun": nil}
 		*notes = append(*notes, "zorunlu alan dolduruldu: release")
@@ -248,6 +249,29 @@ func fillRequired(root map[string]any, notes *[]string) {
 	if !isSlice(root["stop_sale"]) {
 		root["stop_sale"] = []any{}
 		*notes = append(*notes, "zorunlu alan dolduruldu: stop_sale")
+	}
+}
+
+// coerceRelease modelin release'i dizi olarak üretmesini nesneye çevirir.
+func coerceRelease(root map[string]any, notes *[]string) {
+	if isMap(root["release"]) {
+		return
+	}
+	arr, ok := root["release"].([]any)
+	if !ok || len(arr) == 0 {
+		return
+	}
+	for _, item := range arr {
+		m, ok := item.(map[string]any)
+		if !ok {
+			continue
+		}
+		if _, hasGun := m["gun"]; !hasGun && len(m) == 0 {
+			continue
+		}
+		root["release"] = m
+		*notes = append(*notes, "release dizi yerine nesne yapıldı")
+		return
 	}
 }
 
@@ -388,6 +412,13 @@ func canonicalEnum(raw, setName string) string {
 				return a
 			}
 		}
+	}
+	if setName == "birim" {
+		low := foldTR(raw)
+		if strings.Contains(low, "kisi") || strings.Contains(low, "person") {
+			return "kisi_gecelik"
+		}
+		return "oda_gecelik"
 	}
 	return "belirtilmemis"
 }

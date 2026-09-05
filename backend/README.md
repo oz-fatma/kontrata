@@ -71,15 +71,19 @@ make verify
 | `ARGON2_MEMORY` | hayır | `19456` | argon2id bellek (KiB) |
 | `ARGON2_THREADS` | hayır | `1` | argon2id paralellik |
 | `JWT_SECRET` | evet | — | HS256 imza anahtarı. Eksikse süreç açılmaz. Günlüğe yazılmaz. |
-| `LLM_ENDPOINT_URL` | hayır | — | HuggingFace Inference Endpoint 1 |
-| `LLM_TOKEN` | hayır | — | Uç 1 jetonu. Günlüğe yazılmaz. |
+| `APP_URL` | hayır | `http://localhost:3000` | Doğrulama / sıfırlama link kökü |
+| `LLM_ENDPOINT_URL` | PDF çıkarımı için | — | HuggingFace Inference Endpoint 1 |
+| `LLM_TOKEN` | PDF çıkarımı için | — | Uç 1 jetonu. Günlüğe yazılmaz. |
 | `LLM_ENDPOINT_URL_2` | hayır | — | İkinci uç. Boşsa yönlendirici tek uçla çalışır. |
 | `LLM_TOKEN_2` | hayır | — | Uç 2 jetonu. Günlüğe yazılmaz. |
-| `LLM_MAX_TOKENS` | hayır | `600` | `max_new_tokens` |
+| `LLM_MAX_TOKENS` | hayır | `600` | `max_new_tokens` (single mod) |
 | `LLM_TIMEOUT_SECONDS` | hayır | `240` | Uç HTTP zaman aşımı |
 | `LLM_MAX_CONCURRENCY` | hayır | `4` | Eşzamanlı çıkarım üst sınırı |
+| `EXTRACT_MODE` | hayır | `single` | `single` veya `chunked` (A/B/C/D paralel) |
 | `LLM_DEBUG_DUMP` | hayır | kapalı | Geliştirmede maskelenmiş istek ve model çıktısını `UPLOAD_DIR` altına yazar |
 | `UPLOAD_DIR` | hayır | `data/uploads` | PDF ve debug dump dizini |
+
+`MAILER=console` iken e-posta doğrulama ve MFA kodları API günlüğüne yazılır.
 
 Yük testi MFA'yı her `girisYap` çağrısında yeniler; bu yüzden giriş ile koşu ayrı adımlardır. `LOADTEST_EPOSTA` ve `LOADTEST_SIFRE` ortamda (veya `.env` içinde) olmalı.
 

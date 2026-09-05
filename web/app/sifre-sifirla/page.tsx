@@ -18,7 +18,13 @@ import { ErrorState, Field, LoadingState } from "@/components/states";
 
 export default function ResetPage() {
   return (
-    <Suspense fallback={<LoadingState />}>
+    <Suspense
+      fallback={
+        <AuthLayout title="Şifre sıfırlama">
+          <LoadingState />
+        </AuthLayout>
+      }
+    >
       <ResetInner />
     </Suspense>
   );
@@ -49,7 +55,7 @@ function ResetRequest() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout title="Şifre sıfırlama">
       {done ? (
         <p className="text-[13px]">
           E-posta kayıtlıysa sıfırlama bağlantısı gönderildi.
@@ -100,7 +106,7 @@ function ResetConfirm({ token }: { token: string }) {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout title="Yeni şifre">
       {done ? (
         <div>
           <p className="text-[13px]">Şifreniz güncellendi.</p>

@@ -210,7 +210,12 @@ Bağlam: Kayıt sonrası ekranda yalnızca «Girişe git» vardı. Tarayıcıda 
 Karar: Kayıt sonrası ekran ve `/dogrula` (sorgu token'ı yoksa veya geçersizse) ham kod ya da `?token=` içeren metin yapıştırma alanı sunar. `epostaDogrula` false dönerse başarı gösterilmez. `kontrata://` derin bağlantı bu aşamada yok.
 Sonuç: Masaüstünde doğrulama, tarayıcı bağlantısına bağlı olmadan tamamlanır.
 
-
+## 30. Bölümsel çıkarım (chunking)
+Tarih: 2026-09-04
+Durum: kabul edildi
+Bağlam: Qwen2.5-1.5B tek seferde uzun JSON üretirken alan kaybı ve biçim hatası yapıyor (`docs/kapsam.md` — model kararsızlığı). Tam şema tek çağrıda 700 token'a yaklaşıyor; küçük modelde son alanlar kesiliyor veya bozuluyor.
+Karar: `EXTRACT_MODE=chunked` ile Okuyucu dört bağımsız parçaya bölünür: (A) donem + oda_kontenjanlari, (B) fiyatlar, (C) release + stop_sale, (D) meta. Dört çağrı aynı maskelenmiş metinle paralel gider; A için `max_new_tokens` 500, B/C 300, D 200. Meta Parça A'ya eklenince model bozulduğu için ayrı parçaya alındı. Her parça ayrı `RepairJSON` ve en fazla bir düzeltme turu alır; birleşim `Normalize` → `Validate` → Denetçi hattına verilir. İzlemede agent alanı `OKUYUCU_PARCA_A/B/C/D` olarak ayrılır. Varsayılan `EXTRACT_MODE=single` kalır; mevcut tek çağrılık akış silinmez.
+Sonuç: Karmaşık sözleşmelerde alan kaybı azalması beklenir; paralel çağrı toplam süreyi tek sıralı çağrıya göre kısaltır. Yeni mod üretimde temkinli açılır, regresyon riski düşük tutulur. Parça D (meta) metinde net olan otel/acente/para birimini geri doldurur; sozlesme_tipi, sezon ve kur_esasi yalnızca metin kanıtı varsa tutulur — "erken/yüksek sezon" dönem adlarından yaz sezonu uydurulmaz. Ters dönem tarihleri sessizce swap edilmez (denetçi R1). Kontenjan süzgeci yalnızca kontenjan bölümündeki tip+adedi kabul eder (fiyat satırı karışmaz); eksik tipler kontenjan maddesinden geri doldurulur. Parça B rates satırlarından junior/penthouse gibi eksik fiyatları tamamlar. Stop-sale yalnızca metinde stop-sale/satış durdurma geçiyorsa ve tarihler metinde varsa tutulur.
 
 
 

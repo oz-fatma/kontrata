@@ -111,11 +111,11 @@ func rulePriceAllotmentMismatch(data map[string]any) []Finding {
 		if m == nil {
 			continue
 		}
-		tip := strings.TrimSpace(asString(m["oda_tipi"]))
+		tip := normalizeOdaTipiKey(m["oda_tipi"])
 		if tip == "" {
 			continue
 		}
-		allotted[strings.ToLower(tip)] = struct{}{}
+		allotted[tip] = struct{}{}
 	}
 	seen := map[string]struct{}{}
 	var out []Finding
@@ -124,28 +124,35 @@ func rulePriceAllotmentMismatch(data map[string]any) []Finding {
 		if m == nil {
 			continue
 		}
-		tip := strings.TrimSpace(asString(m["oda_tipi"]))
+		tip := normalizeOdaTipiKey(m["oda_tipi"])
 		if tip == "" {
 			continue
 		}
-		key := strings.ToLower(tip)
-		if _, ok := allotted[key]; ok {
+		if _, ok := allotted[tip]; ok {
 			continue
 		}
-		if _, dup := seen[key]; dup {
+		if _, dup := seen[tip]; dup {
 			continue
 		}
-		seen[key] = struct{}{}
+		seen[tip] = struct{}{}
+		raw := strings.TrimSpace(asString(m["oda_tipi"]))
 		out = append(out, Finding{
 			Code:        CodePriceAllotmentMismatch,
 			Title:       "Fiyat–kontenjan uyuşmazlığı",
-			Description: "fiyatlar içindeki oda_tipi (" + tip + ") oda_kontenjanlari listesinde yok. Kontenjan tablosunu veya oda tipini düzeltin.",
+			Description: "fiyatlar içindeki oda_tipi (" + raw + ") oda_kontenjanlari listesinde yok. Kontenjan tablosunu veya oda tipini düzeltin.",
 			Severity:    SeverityCritical,
 			Source:      SourceRule,
 			FieldPath:   "fiyatlar/oda_tipi",
 		})
 	}
 	return out
+}
+
+func normalizeOdaTipiKey(v any) string {
+	if tip := chunkAOdaTipi(v); tip != "" {
+		return tip
+	}
+	return strings.ToLower(strings.TrimSpace(asString(v)))
 }
 
 func ruleMissingStopSale(data map[string]any) []Finding {

@@ -104,10 +104,7 @@ func buildLLMMetrics(rows []repository.LLMCall) *model.LlmMetrik {
 		}
 		durs = append(durs, row.DurationMs)
 		sum += row.DurationMs
-		agent := row.Agent
-		if agent == "" {
-			agent = llm.AgentReader
-		}
+		agent := metricsAgentBucket(row.Agent)
 		if byAgent[agent] == nil {
 			byAgent[agent] = &agg{}
 		}
@@ -134,9 +131,9 @@ func buildLLMMetrics(rows []repository.LLMCall) *model.LlmMetrik {
 	out.P95SureMs = p95(durs)
 	for _, name := range sortedKeys(byAgent) {
 		a := byAgent[name]
-		tip := model.PromptTipi(name)
-		if tip != model.PromptTipiOkuyucu && tip != model.PromptTipiDenetci {
-			tip = model.PromptTipiOkuyucu
+		tip := model.PromptTipiOkuyucu
+		if name == llm.AgentAuditor {
+			tip = model.PromptTipiDenetci
 		}
 		out.AgentBazinda = append(out.AgentBazinda, &model.LlmAgentMetrik{
 			Agent:          tip,
@@ -177,7 +174,7 @@ func sortedKeys[T any](m map[string]*T) []string {
 
 func llmCallToModel(row *repository.LLMCall) *model.LlmCagri {
 	agent := model.PromptTipiOkuyucu
-	if row.Agent == llm.AgentAuditor {
+	if metricsAgentBucket(row.Agent) == llm.AgentAuditor {
 		agent = model.PromptTipiDenetci
 	}
 	tipi := row.ErrorType
@@ -193,6 +190,15 @@ func llmCallToModel(row *repository.LLMCall) *model.LlmCagri {
 		DenemeNo:  row.Attempt,
 		Baslangic: row.Start,
 	}
+}
+
+// metricsAgentBucket GraphQL PromptTipi enum'una sığdırır: parça
+// OKUYUCU_PARCA_* çağrıları tek OKUYUCU satırında toplanır.
+func metricsAgentBucket(agent string) string {
+	if agent == llm.AgentAuditor {
+		return llm.AgentAuditor
+	}
+	return llm.AgentReader
 }
 
 // p95 nearest-rank: 1-tabanlı sıra ceil(0.95*n). (n-1)*0.95 kırpımı

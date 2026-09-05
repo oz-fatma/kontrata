@@ -4,8 +4,8 @@ import { useEffect, useState } from "react";
 import type { ExtractionMeta } from "@/lib/graphql-types";
 import { confidenceLabel, missingField } from "@/lib/format";
 
-const LOW_CONFIDENCE = 0.75;
-const WARN_CONFIDENCE = 0.85;
+/** Düzenleme ve uyarı için tek eşik */
+const REVIEW_CONFIDENCE = 0.85;
 
 export function lookupMeta(
   metas: readonly ExtractionMeta[] | null | undefined,
@@ -34,16 +34,16 @@ export function ExtractedField({
 }) {
   const meta = lookupMeta(metas, path);
   const score = meta?.guven ?? null;
-  const low = typeof score === "number" && score < LOW_CONFIDENCE;
-  const warn = typeof score === "number" && score < WARN_CONFIDENCE;
-  const displayLines = lines.length > 0 ? lines : [missingField()];
   const empty = lines.length === 0;
-  const joined = displayLines.join("\n");
+  const needsReview =
+    empty || (typeof score === "number" && score < REVIEW_CONFIDENCE);
+  const displayLines = empty ? [missingField()] : lines;
+  const joined = empty ? "" : lines.join("\n");
   const [draft, setDraft] = useState(joined);
   const [saving, setSaving] = useState(false);
   const source = confidenceLabel(meta?.kaynakSayfa, score);
-  const editable = Boolean(low && !empty && !readOnly && onSave);
-  const multiLine = listStyle || displayLines.length > 1;
+  const editable = Boolean(needsReview && !readOnly && onSave);
+  const multiLine = listStyle || (!empty && lines.length > 1);
 
   useEffect(() => {
     setDraft(joined);
@@ -64,15 +64,15 @@ export function ExtractedField({
   return (
     <div
       className={`border-b-[0.5px] border-[var(--border)] px-[var(--space-card)] py-3 last:border-0 ${
-        low && !readOnly ? "bg-[var(--yellow-bg)]" : ""
+        needsReview && !readOnly ? "bg-[var(--yellow-bg)]" : ""
       }`}
     >
       <div className="flex items-baseline justify-between gap-3">
         <span className="inline-flex items-center gap-1.5 meta-text">
-          {warn ? (
+          {needsReview && !readOnly ? (
             <span
               className="inline-block h-1.5 w-1.5 shrink-0 rounded-full bg-[var(--warning)]"
-              title="Düşük güven skoru"
+              title={empty ? "Eksik alan" : "Düşük güven skoru"}
               aria-hidden
             />
           ) : null}
@@ -81,7 +81,7 @@ export function ExtractedField({
         {source ? (
           <span
             className={`tabular-nums text-[11px] font-medium ${
-              warn ? "text-[var(--yellow-ink)]" : "text-[var(--ink-muted)]"
+              needsReview ? "text-[var(--yellow-ink)]" : "text-[var(--ink-muted)]"
             }`}
           >
             {source}
@@ -93,12 +93,13 @@ export function ExtractedField({
           <label htmlFor={`alan-${path}`} className="sr-only">
             {label}
           </label>
-          {displayLines.length > 1 ? (
+          {multiLine ? (
             <textarea
               id={`alan-${path}`}
               value={draft}
-              rows={Math.min(8, Math.max(3, displayLines.length))}
+              rows={Math.min(8, Math.max(3, empty ? 3 : lines.length))}
               disabled={saving}
+              placeholder={missingField()}
               onChange={(e) => setDraft(e.target.value)}
               onBlur={() => void commit()}
             />
@@ -107,6 +108,7 @@ export function ExtractedField({
               id={`alan-${path}`}
               value={draft}
               disabled={saving}
+              placeholder={missingField()}
               onChange={(e) => setDraft(e.target.value)}
               onBlur={() => void commit()}
               onKeyDown={(e) => {
@@ -117,7 +119,7 @@ export function ExtractedField({
             />
           )}
           <p className="mt-1 text-[12px] text-[var(--yellow-ink)]">
-            Düşük güven, kontrol edin
+            {empty ? "Eksik alan, doldurun" : "Düşük güven, kontrol edin"}
           </p>
         </div>
       ) : (

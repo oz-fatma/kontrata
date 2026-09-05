@@ -98,8 +98,9 @@ func TestRulePriceAllotmentMismatch(t *testing.T) {
 			map[string]any{"oda_tipi": "penthouse", "tutar": 1500.0},
 		}
 		got := rulePriceAllotmentMismatch(data)
-		if len(got) != 2 {
-			t.Fatalf("2 R3 beklenirdi, geldi %#v", got)
+		// junior suite ve penthouse ikisi de suit'e normalize edilir; tek bulgu.
+		if len(got) != 1 {
+			t.Fatalf("1 R3 beklenirdi, geldi %#v", got)
 		}
 		for _, f := range got {
 			if f.Code != CodePriceAllotmentMismatch {
@@ -114,6 +115,20 @@ func TestRulePriceAllotmentMismatch(t *testing.T) {
 			if strings.Contains(f.Description, "999") || strings.Contains(f.Description, "1500") {
 				t.Fatalf("açıklama fiyat değeri içermemeli: %q", f.Description)
 			}
+		}
+	})
+	t.Run("englishMatchesTurkish", func(t *testing.T) {
+		data := validContract()
+		data["oda_kontenjanlari"] = []any{
+			map[string]any{"oda_tipi": "standart", "adet": 10},
+			map[string]any{"oda_tipi": "aile", "adet": 5},
+		}
+		data["fiyatlar"] = []any{
+			map[string]any{"oda_tipi": "standard", "tutar": 65.0},
+			map[string]any{"oda_tipi": "family", "tutar": 98.0},
+		}
+		if got := rulePriceAllotmentMismatch(data); len(got) != 0 {
+			t.Fatalf("standard/family Türkçe kontenjanla eşleşmeli: %#v", got)
 		}
 	})
 	t.Run("negative", func(t *testing.T) {

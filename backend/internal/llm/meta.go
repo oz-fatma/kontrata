@@ -10,8 +10,12 @@ type attemptKey struct{}
 type temperatureKey struct{}
 
 const (
-	AgentReader  = "OKUYUCU"
-	AgentAuditor = "DENETCI"
+	AgentReader        = "OKUYUCU"
+	AgentReaderChunkA  = "OKUYUCU_PARCA_A"
+	AgentReaderChunkB  = "OKUYUCU_PARCA_B"
+	AgentReaderChunkC  = "OKUYUCU_PARCA_C"
+	AgentReaderChunkD  = "OKUYUCU_PARCA_D"
+	AgentAuditor       = "DENETCI"
 
 	HataYok     = "yok"
 	HataTimeout = "zaman_asimi"

@@ -27,7 +27,9 @@ npm run dev
 
 İlk açılışta kurulum ekranı `MONGO_URI`, `LLM_ENDPOINT_URL` ve `LLM_TOKEN` ister. URI kaydedilmeden önce `/healthz` 200 dönene kadar (en fazla 30 sn) yoklanır. Ayarlar ve yenileme jetonu `app.getPath('userData')` altında `safeStorage` ile şifrelenir.
 
-Geliştirmede (`NODE_ENV=development`) Go sürecinin stdout/stderr çıktısı Electron uçbirimine `[backend]` önekiyle düşer. MFA kodu ve doğrulama linki ConsoleMailer ile buraya yazılır. Üretim paketinde bu aktarım kapalıdır.
+**E-posta (SMTP) ayarları opsiyoneldir.** Kurulum ekranındaki «E-posta ayarları» bölümünde `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD` ve `SMTP_FROM` girilebilir. Alanlar boş bırakılırsa arka plan `MAILER=console` ile başlar; doğrulama ve sıfırlama kodları yalnızca geliştirme günlüğüne (ConsoleMailer) yazılır. `SMTP_HOST` ve `SMTP_FROM` doldurulduğunda `MAILER=smtp` olur ve gerçek e-posta gönderilir. `SMTP_PASSWORD` diğer hassas alanlar gibi şifreli `settings.bin` içinde saklanır. Kurulum ekranı yeniden açıldığında (ör. bağlantı hatası sonrası) kayıtlı ayarlar forma yüklenir; parola alanları güvenlik için boş gelir — değiştirmeyecekseniz boş bırakın, mevcut değer korunur.
+
+Geliştirmede (`NODE_ENV=development`) Go sürecinin stdout/stderr çıktısı Electron uçbirimine `[backend]` önekiyle düşer. MFA kodu ve doğrulama linki ConsoleMailer ile buraya yazılır. Üretim paketinde SMTP yapılandırılmadıysa e-posta yine konsola düşmez (log aktarımı kapalı); SMTP doldurulmuşsa gerçek gönderim yapılır.
 
 Tarayıcıdan `http://localhost:3000` ile çalışmaya devam etmek için API'yi ayrıca `make run` (`:8080`) ile açın. Electron içindeki arayüz her zaman gömülü API'ye (`:17890`) gider.
 

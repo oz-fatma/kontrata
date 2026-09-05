@@ -49,7 +49,7 @@ export default function RegisterPage() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout title={done ? "E-posta doğrulama" : "Kayıt ol"}>
       {done ? (
         <div className="flex flex-col gap-4">
           <p className="text-[13px]">{done}</p>

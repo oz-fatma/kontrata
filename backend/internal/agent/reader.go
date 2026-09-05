@@ -38,9 +38,16 @@ func (r *Reader) systemPrompt() string {
 }
 
 // Extract sayfaları birleştirir, modeli çağırır, onarır, doğrular.
-// Şema hatasında en fazla iki düzeltme turu daha çalışır; ikinci turda
-// sıcaklık artırılır.
+// EXTRACT_MODE=chunked ise dört parça (A/B/C/D) paralel çıkarım yapılır; aksi halde tek çağrı.
+// Şema hatasında en fazla iki düzeltme turu daha çalışır; ikinci turda sıcaklık artırılır.
 func (r *Reader) Extract(ctx context.Context, pages []string) (*ExtractResult, error) {
+	if ExtractModeFromEnv() == ExtractModeChunked {
+		return r.extractChunked(ctx, pages)
+	}
+	return r.extractSingle(ctx, pages)
+}
+
+func (r *Reader) extractSingle(ctx context.Context, pages []string) (*ExtractResult, error) {
 	start := time.Now()
 	out := &ExtractResult{Data: map[string]any{}}
 	if r == nil || r.LLM == nil {

@@ -9,7 +9,8 @@ nerede olduğunu gösterir.
 | Okuyucu: PDF → şema | `backend/internal/agent` Okuyucu, `internal/pdf`, `internal/extract`. Arayüz: yükleme sonrası liste/detay |
 | Denetçi: çelişki, eksik, risk | Kural motoru `internal/agent/rules.go`; LLM denetçi ayrı prompt. Detay ekranı `bulgular`. Karar 23 |
 | Onarım katmanı (bozuk JSON / şema) | `internal/extract` RepairJSON + Normalize. Test: `extract_test.go` |
-| Model: HF Inference Endpoint, fine-tune Qwen | `internal/llm`, `ml/train_colab.ipynb`. README Ölçümler |
+| Model: HF Inference Endpoint, fine-tune Qwen | `internal/llm`, `ml/train_colab.ipynb` (v1). Chunked SFT deneyi: `ml/colab_train_chunked.py` (v2, rafta). README Ölçümler |
+| Bölümsel çıkarım (chunked) | `EXTRACT_MODE=chunked`, `internal/agent/chunk.go` + `chunk_prompt.go`. Karar 30. Üretimde önerilir |
 | İki uç, yüke göre yönlendirme | `internal/llm/router.go`, `LLM_ENDPOINT_URL_2`. Karar 29 |
 | Eşzamanlı çıkarım kuyruğu | `LLM_MAX_CONCURRENCY`, durum **Sırada** (`YUKLENDI`). `extract_job.go` |
 | LLM izleme tesiste (Langfuse yok) | `llm_cagrilari`, `llmMetrikleri`. Yönetici → Metrikler. Karar 28 |
@@ -31,7 +32,7 @@ nerede olduğunu gösterir.
 | PDF yerel disk, hesap silinince dosya da | `UPLOAD_DIR`, `filestore`. Karar 17 |
 | Çalışma zamanı prompt / ayar | Yönetici paneli Promptlar + Ayarlar. Yalnızca SAHIP |
 | Next.js static export | `web/` `output: 'export'`. Detay `?id=` |
-| Electron Windows + macOS | `desktop/dist/Kontrata-0.1.0-arm64.dmg` (113 MB), `Kontrata-0.1.0.dmg` (118 MB), `Kontrata Setup 0.1.0.exe` (91 MB). Windows kurulumu macOS'ta üretildi, Windows'ta çalıştırılmadı |
+| Electron Windows + macOS | `desktop/dist/`: `Kontrata-0.1.0-arm64.dmg` (113 MB), `Kontrata-0.1.0.dmg` (118 MB), `Kontrata Setup 0.1.0.exe` (91 MB). Yeniden üretildi 2026-09-05. Windows kurulumu macOS'ta üretildi, Windows'ta çalıştırılmadı. `desktop/dist/` gitignore'da; teslimde ayrı paylaşılır |
 | Kod imzalama / auto-update yok | Bilinçli sınırlama. Karar 26 |
 | Yük testi komutu | `make loadtest-giris` / `make loadtest`. `docs/yuk-testi-*.md` |
 | Mimari kararlar tarihli | `docs/kararlar.md` |

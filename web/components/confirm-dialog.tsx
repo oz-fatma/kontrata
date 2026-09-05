@@ -1,5 +1,7 @@
 "use client";
 
+import { useEffect, useId, useRef } from "react";
+
 export function ConfirmDialog({
   title,
   message,
@@ -17,28 +19,53 @@ export function ConfirmDialog({
   onConfirm: () => void;
   onCancel: () => void;
 }) {
+  const titleId = useId();
+  const descId = useId();
+  const cancelRef = useRef<HTMLButtonElement>(null);
+
+  useEffect(() => {
+    cancelRef.current?.focus();
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && !busy) {
+        onCancel();
+      }
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [busy, onCancel]);
+
   return (
     <div
       className="fixed inset-0 z-50 flex items-center justify-center bg-black/30 px-4"
       role="presentation"
-      onClick={onCancel}
+      onClick={() => {
+        if (!busy) {
+          onCancel();
+        }
+      }}
     >
       <div
         role="dialog"
         aria-modal="true"
-        aria-labelledby="onay-baslik"
-        aria-describedby="onay-metin"
+        aria-labelledby={titleId}
+        aria-describedby={descId}
         className="card w-full max-w-sm p-[var(--space-card)]"
         onClick={(e) => e.stopPropagation()}
       >
-        <h2 id="onay-baslik" className="mb-2">
+        <h2 id={titleId} className="mb-2">
           {title}
         </h2>
-        <p id="onay-metin" className="meta-text mb-4">
+        <p id={descId} className="meta-text mb-4">
           {message}
         </p>
         <div className="flex justify-end gap-2">
-          <button type="button" className="btn" disabled={busy} onClick={onCancel}>
+          <button
+            ref={cancelRef}
+            type="button"
+            className="btn"
+            disabled={busy}
+            onClick={onCancel}
+          >
             {cancelLabel}
           </button>
           <button

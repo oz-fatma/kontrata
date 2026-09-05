@@ -92,7 +92,7 @@ function createSetupWindow(): BrowserWindow {
   const win = new BrowserWindow({
     ...windowPrefs(),
     width: 520,
-    height: 640,
+    height: 820,
   });
   win.once("ready-to-show", () => win.show());
   void win.loadFile(setupHtml());
@@ -149,11 +149,34 @@ function bindIpc(): void {
     }
     writeRefreshToken(token);
   });
+  ipcMain.handle("setup:load", () => {
+    const settings = loadSettings();
+    if (!settings) {
+      return null;
+    }
+    return {
+      mongoUri: settings.mongoUri,
+      llmEndpointUrl: settings.llmEndpointUrl,
+      smtpHost: settings.smtpHost ?? "",
+      smtpPort: settings.smtpPort ? String(settings.smtpPort) : "",
+      smtpUser: settings.smtpUser ?? "",
+      smtpFrom: settings.smtpFrom ?? "",
+    };
+  });
   ipcMain.handle(
     "setup:save",
     async (
       _e,
-      input: { mongoUri?: string; llmEndpointUrl?: string; llmToken?: string },
+      input: {
+        mongoUri?: string;
+        llmEndpointUrl?: string;
+        llmToken?: string;
+        smtpHost?: string;
+        smtpPort?: string;
+        smtpUser?: string;
+        smtpPassword?: string;
+        smtpFrom?: string;
+      },
     ): Promise<{ ok: true } | { ok: false; error: string }> => {
       const mongoUri = typeof input?.mongoUri === "string" ? input.mongoUri.trim() : "";
       if (!mongoUri) {
@@ -164,6 +187,11 @@ function bindIpc(): void {
           mongoUri,
           llmEndpointUrl: typeof input.llmEndpointUrl === "string" ? input.llmEndpointUrl : "",
           llmToken: typeof input.llmToken === "string" ? input.llmToken : "",
+          smtpHost: typeof input.smtpHost === "string" ? input.smtpHost : "",
+          smtpPort: typeof input.smtpPort === "string" ? input.smtpPort : "",
+          smtpUser: typeof input.smtpUser === "string" ? input.smtpUser : "",
+          smtpPassword: typeof input.smtpPassword === "string" ? input.smtpPassword : "",
+          smtpFrom: typeof input.smtpFrom === "string" ? input.smtpFrom : "",
         });
         await startBackend(settings);
         await waitForDevUi();

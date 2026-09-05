@@ -51,6 +51,24 @@ func TestRepairJSON_MultipleObjects(t *testing.T) {
 	}
 }
 
+func TestRepairJSON_LeadingJunkAndSplitObjects(t *testing.T) {
+	raw := `]
+{"donem":{"baslangic":"2026-05-01","bitis":"2026-10-31","alt_donemler":[]}}
+{"oda_kontenjanlari":[{"oda_tipi":"standard","adet":150},{"oda_tipi":"family","adet":40}]}
+`
+	got, err := RepairJSON(raw)
+	if err != nil {
+		t.Fatalf("RepairJSON: %v", err)
+	}
+	if _, ok := got["donem"]; !ok {
+		t.Fatal("donem birlesmedi")
+	}
+	oda, ok := got["oda_kontenjanlari"].([]any)
+	if !ok || len(oda) != 2 {
+		t.Fatalf("oda_kontenjanlari = %v", got["oda_kontenjanlari"])
+	}
+}
+
 func TestRepairJSON_Truncated(t *testing.T) {
 	raw := readTestdata(t, "truncated.txt")
 	got, err := RepairJSON(raw)
@@ -389,6 +407,9 @@ func TestNormalize_IntegerFromProse(t *testing.T) {
 	}{
 		{"approximately 10 days", 10, "sayı temizlendi: release.gun"},
 		{"10 days", 10, "sayı temizlendi: release.gun"},
+		{"10 gün", 10, "sayı temizlendi: release.gun"},
+		{"yaklaşık 7", 7, "sayı temizlendi: release.gun"},
+		{"14", 14, "sayı temizlendi: release.gun"},
 		{"~10", 10, "sayı temizlendi: release.gun"},
 		{"10", 10, "sayı temizlendi: release.gun"},
 		{"belirtilmedi", 0, "release.gun metinden çıkarıldı"},
@@ -422,5 +443,34 @@ func TestNormalize_IntegerFromProse(t *testing.T) {
 		if errs := Validate(got); len(errs) != 0 {
 			t.Fatalf("gun %q şema hataları: %v", tc.gun, errs)
 		}
+	}
+}
+
+func TestNormalize_ReleaseArrayCoerced(t *testing.T) {
+	got, notes := Normalize(map[string]any{
+		"donem":             map[string]any{"baslangic": "2026-04-01", "bitis": "2026-10-31"},
+		"oda_kontenjanlari": []any{map[string]any{"oda_tipi": "standart", "adet": 170}},
+		"fiyatlar":          []any{map[string]any{"oda_tipi": "standart", "tutar": 50, "birim": "oda_gecelik"}},
+		"release": []any{
+			map[string]any{"gun": "10 gün", "kapsam": "isim_listesi"},
+		},
+		"stop_sale": []any{},
+	})
+	rel, ok := got["release"].(map[string]any)
+	if !ok {
+		t.Fatalf("release nesne olmali: %T %v", got["release"], got["release"])
+	}
+	if rel["gun"] != 10 {
+		t.Fatalf("release.gun = %v tip=%T", rel["gun"], rel["gun"])
+	}
+	joined := strings.Join(notes, "\n")
+	if !strings.Contains(joined, "release dizi yerine nesne yapıldı") {
+		t.Fatalf("dizi->nesne notu yok: %s", joined)
+	}
+	if !strings.Contains(joined, "sayı temizlendi: release.gun") {
+		t.Fatalf("sayı temizleme notu yok: %s", joined)
+	}
+	if errs := Validate(got); len(errs) != 0 {
+		t.Fatalf("şema hataları: %v", errs)
 	}
 }

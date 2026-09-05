@@ -29,13 +29,19 @@
       }
       main {
         max-width: 28rem;
-        margin: 3rem auto;
-        padding: 0 1.25rem;
+        margin: 2rem auto;
+        padding: 0 1.25rem 2rem;
       }
       h1 {
         font-size: 15px;
         font-weight: 500;
         margin: 0 0 0.35rem;
+      }
+      h2 {
+        font-size: 13px;
+        font-weight: 500;
+        margin: 1.25rem 0 0.35rem;
+        color: var(--fg);
       }
       p {
         color: var(--muted);
@@ -105,6 +111,20 @@
         <input id="llmUrl" name="llmUrl" type="url" autocomplete="off" placeholder="https://…" />
         <label for="llmToken">LLM_TOKEN</label>
         <input id="llmToken" name="llmToken" type="password" autocomplete="off" />
+
+        <h2>E-posta ayarları (opsiyonel)</h2>
+        <p>Boş bırakılırsa doğrulama kodları yalnızca geliştirme günlüğüne yazılır.</p>
+        <label for="smtpHost">SMTP_HOST</label>
+        <input id="smtpHost" name="smtpHost" type="text" autocomplete="off" placeholder="smtp.ornek.test" />
+        <label for="smtpPort">SMTP_PORT</label>
+        <input id="smtpPort" name="smtpPort" type="number" autocomplete="off" placeholder="587" min="1" max="65535" />
+        <label for="smtpUser">SMTP_USER</label>
+        <input id="smtpUser" name="smtpUser" type="text" autocomplete="off" />
+        <label for="smtpPassword">SMTP_PASSWORD</label>
+        <input id="smtpPassword" name="smtpPassword" type="password" autocomplete="off" />
+        <label for="smtpFrom">SMTP_FROM</label>
+        <input id="smtpFrom" name="smtpFrom" type="email" autocomplete="off" placeholder="kontrata@ornek.test" />
+
         <button class="btn" type="submit" id="kaydet">Kaydet ve dene</button>
         <p class="err" id="hata" role="alert"></p>
       </form>

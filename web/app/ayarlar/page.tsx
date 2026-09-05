@@ -19,7 +19,9 @@ import { useAuth } from "@/lib/auth";
 import { AuthExpiredError, gqlRequest, graphqlMessage } from "@/lib/client";
 import { formatDateTime, formatUserAgent } from "@/lib/format";
 import { deleteAccountSchema } from "@/lib/schemas";
+import { HesapTipi } from "@/lib/enums";
 import { AppShell } from "@/components/shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState, ErrorState, Field, LoadingState } from "@/components/states";
 
 type Device = CihazlarimQuery["cihazlarim"][number];
@@ -149,6 +151,8 @@ function DeviceRow({
   const [editing, setEditing] = useState(false);
   const [name, setName] = useState(device.ad);
   const [err, setErr] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState(false);
+  const [busy, setBusy] = useState(false);
 
   async function saveName() {
     setErr(null);
@@ -161,17 +165,32 @@ function DeviceRow({
     }
   }
 
+  async function confirmRemove() {
+    setBusy(true);
+    setErr(null);
+    try {
+      await gqlRequest(CihazKaldirDocument, { id: device.id });
+      setPendingRemove(false);
+      onChanged();
+    } catch (e) {
+      setErr(graphqlMessage(e));
+    } finally {
+      setBusy(false);
+    }
+  }
+
   return (
     <li className="text-[14px]">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <div>
+        <div className="min-w-0">
           {editing ? (
-            <div className="flex gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <label htmlFor={`cihaz-${device.id}`} className="sr-only">
                 Cihaz adı
               </label>
               <input
                 id={`cihaz-${device.id}`}
+                className="input-inline"
                 value={name}
                 onChange={(e) => setName(e.target.value)}
               />
@@ -215,29 +234,29 @@ function DeviceRow({
           <button
             type="button"
             className="btn btn-danger"
-            onClick={async () => {
-              if (!window.confirm("Bu cihazı kaldırmak istiyor musunuz?")) {
-                return;
-              }
-              try {
-                await gqlRequest(CihazKaldirDocument, { id: device.id });
-                onChanged();
-              } catch (e) {
-                setErr(graphqlMessage(e));
-              }
-            }}
+            onClick={() => setPendingRemove(true)}
           >
             Kaldır
           </button>
         </div>
       </div>
       {err ? <p className="mt-1 text-[12px] text-[var(--red)]">{err}</p> : null}
+      {pendingRemove ? (
+        <ConfirmDialog
+          title="Cihazı kaldır"
+          message="Bu cihazı güvenilir listeden kaldırmak istiyor musunuz?"
+          confirmLabel="Kaldır"
+          busy={busy}
+          onCancel={() => setPendingRemove(false)}
+          onConfirm={() => void confirmRemove()}
+        />
+      ) : null}
     </li>
   );
 }
 
 function DeleteAccount() {
-  const { logout } = useAuth();
+  const { logout, user } = useAuth();
   const [requested, setRequested] = useState(false);
   const [done, setDone] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -248,25 +267,26 @@ function DeleteAccount() {
 
   if (done) {
     return (
-      <section>
-        <h2>Hesabı sil</h2>
+      <section className="card border-[var(--danger)]/40 px-[var(--space-card)] py-[var(--space-card)]">
+        <h2 className="text-[var(--danger)]">Hesabı sil</h2>
         <p className="mt-2 text-[13px]">Hesabınız silindi.</p>
       </section>
     );
   }
 
   return (
-    <section>
-      <h2>Hesabı sil</h2>
+    <section className="card border-[var(--danger)]/40 px-[var(--space-card)] py-[var(--space-card)]">
+      <h2 className="text-[var(--danger)]">Hesabı sil</h2>
       <p className="mt-1 text-[14px] text-[var(--ink-muted)]">
-        Silme kalıcıdır. Kurumsal hesapta başka üye varsa önce devir veya organizasyonu
-        silmeniz gerekir.
+        {user?.hesapTipi === HesapTipi.Kurumsal
+          ? "Silme kalıcıdır. Kurumsal hesapta başka üye varsa önce devir veya organizasyonu silmeniz gerekir."
+          : "Silme kalıcıdır. Bu işlem geri alınamaz."}
       </p>
       {error ? <ErrorState message={error} /> : null}
       {!requested ? (
         <button
           type="button"
-          className="btn btn-danger mt-2"
+          className="btn btn-danger mt-3"
           onClick={async () => {
             setError(null);
             try {

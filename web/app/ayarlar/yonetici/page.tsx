@@ -129,17 +129,30 @@ function AdminBody() {
 
       {error ? <ErrorState message={error} onRetry={() => void load()} /> : null}
 
-      <div className="flex gap-2">
-        {tabs.map((item) => (
-          <button
-            key={item.id}
-            type="button"
-            className={tab === item.id ? "btn btn-primary" : "btn"}
-            onClick={() => setTab(item.id)}
-          >
-            {item.label}
-          </button>
-        ))}
+      <div
+        className="flex flex-wrap gap-1 border-b-[0.5px] border-[var(--border)]"
+        role="tablist"
+        aria-label="Yönetici panelleri"
+      >
+        {tabs.map((item) => {
+          const active = tab === item.id;
+          return (
+            <button
+              key={item.id}
+              type="button"
+              role="tab"
+              aria-selected={active}
+              className={`-mb-px border-b-2 px-3 py-2 text-[13px] font-medium transition-colors ${
+                active
+                  ? "border-[var(--accent)] text-[var(--accent)]"
+                  : "border-transparent text-[var(--ink-muted)] hover:text-[var(--ink)]"
+              }`}
+              onClick={() => setTab(item.id)}
+            >
+              {item.label}
+            </button>
+          );
+        })}
       </div>
 
       {tab === "METRIKLER" ? (

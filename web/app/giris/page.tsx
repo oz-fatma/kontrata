@@ -14,7 +14,13 @@ import { ErrorState, Field, LoadingState } from "@/components/states";
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<LoadingState />}>
+    <Suspense
+      fallback={
+        <AuthLayout title="Giriş">
+          <LoadingState />
+        </AuthLayout>
+      }
+    >
       <LoginForm />
     </Suspense>
   );
@@ -43,7 +49,7 @@ function LoginForm() {
   }
 
   return (
-    <AuthLayout>
+    <AuthLayout title="Giriş">
       <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>
         {serverError ? <ErrorState message={serverError} /> : null}
         <Field id="eposta" label="E-posta" error={form.formState.errors.eposta?.message}>

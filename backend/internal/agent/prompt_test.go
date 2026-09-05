@@ -57,11 +57,33 @@ func TestSYSTEM_PROMPTMatchesMLCopies(t *testing.T) {
 	if err != nil {
 		t.Fatalf("train_colab.ipynb prompt: %v", err)
 	}
+	chunkSrc, err := os.ReadFile(filepath.Join(root, "ml", "colab_train_chunked.py"))
+	if err != nil {
+		t.Fatalf("colab_train_chunked.py: %v", err)
+	}
+	chunkPrompt, err := extractTripleQuotedPrompt(string(chunkSrc))
+	if err != nil {
+		t.Fatalf("colab_train_chunked.py prompt: %v", err)
+	}
 	if evalPrompt != SYSTEM_PROMPT {
 		t.Fatal("evaluate.py SYSTEM_PROMPT agent ile aynı değil")
 	}
 	if nbPrompt != SYSTEM_PROMPT {
 		t.Fatal("train_colab.ipynb SYSTEM_PROMPT agent ile aynı değil")
+	}
+	if chunkPrompt != SYSTEM_PROMPT {
+		t.Fatal("colab_train_chunked.py SYSTEM_PROMPT agent ile aynı değil")
+	}
+	for _, name := range []string{"CHUNK_PROMPT_A", "CHUNK_PROMPT_B", "CHUNK_PROMPT_C", "CHUNK_PROMPT_D"} {
+		if !strings.Contains(string(chunkSrc), name+" = \"\"\"") {
+			t.Fatalf("colab_train_chunked.py içinde %s yok", name)
+		}
+	}
+	if !strings.Contains(string(chunkSrc), chunkPromptA[:80]) {
+		t.Fatal("colab_train_chunked.py CHUNK_PROMPT_A üretim promptu ile uyuşmuyor")
+	}
+	if !strings.Contains(string(chunkSrc), "Qwen/Qwen2.5-1.5B-Instruct") {
+		t.Fatal("colab_train_chunked.py taban model 1.5B olmalı")
 	}
 }
 

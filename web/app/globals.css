@@ -171,6 +171,11 @@ textarea {
   color: var(--ink);
 }
 
+.input-inline {
+  width: auto;
+  max-width: 20rem;
+}
+
 input:focus-visible,
 select:focus-visible,
 textarea:focus-visible {

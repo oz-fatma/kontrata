@@ -21,8 +21,9 @@ Asama 12 (5->4).
 Durum: çözüldü (2026-09-03).
 
 Eğitimdeki uzun SYSTEM_PROMPT gerçek PDF'lerde markdown tablo tetikliyordu.
-Üretim kısa örnek-JSON prompt'una geçti; `ml/train_colab.ipynb` hücre 2 ve
-`ml/evaluate.py` artık `backend/internal/agent` ile birebir aynı metni kullanır.
+Üretim kısa örnek-JSON prompt'una geçti; `ml/train_colab.ipynb` hücre 2,
+`ml/evaluate.py` ve `ml/colab_train_chunked.py` artık `backend/internal/agent`
+ile birebir aynı metni kullanır (`prompt_test.go` doğrular).
 Sentetik veri `%50` TR / `%50` EN, İngilizce şablonlar operatör kontratı diline
 çekildi. Modelin yeniden eğitilmesi bu hizalamayı kalıcı kılar.
 
@@ -30,49 +31,32 @@ Sentetik veri `%50` TR / `%50` EN, İngilizce şablonlar operatör kontratı dil
 para_birimi, kur_esasi, yetkili_mahkeme, sozlesme_tipi, sezon) eklendi.
 `sozlesme_tipi` ve `sezon` geçerli değerleri, `yetkili_mahkeme` için şehir
 adı kısıtı ve “meta yalnızca kökte bir kez” kuralı prompt'ta yazılıdır.
-Notebook ve `evaluate.py` aynı metni taşır; mevcut model yeniden
-eğitilmedi — meta opsiyonel olduğu için tarifi izlemesi beklenir.
+Notebook, `evaluate.py` ve chunked Colab script aynı metni taşır.
 
 
 # Model yukseltmesi (Asama 11 sonrasi)
 
-Qwen2.5-1.5B uzun ve karmasik sozlesmelerde JSON yapisini tutamiyor:
-nesneyi parcaliyor, alanlari atliyor, bazen sozdizimi bozuk cikti
-veriyor. Ayni PDF ayni ayarlarla farkli sonuc verebiliyor.
+Durum: ertelendi (2026-09-05). Önce 3B denendi; val kaybı düştü ama
+üretimde JSON parçalanması ve T4 gecikmesi nedeniyle vazgeçildi.
+Asıl çözüm olarak **bölümsel çıkarım** uygulandı (aşağıdaki bölüm).
 
-Karar: Qwen2.5-3B-Instruct'a gecilecek. Ayni aile, ayni tokenizer,
-ayni chat sablonu; notebook'ta tek satir degisiyor.
+Üretim: `Qwen2.5-1.5B` + `…-merged-v1` + `EXTRACT_MODE=chunked`.
+Daha büyük taban (3B+) ileride ayrı karar; şu an öncelik değil.
 
-Adimlar:
-1. Colab'da BASE_MODEL degistirip yeniden egit (~25 dk)
-2. HF'ye adapter + merged yukle
-3. Iki endpoint'i de sil ve yeniden kur (HF model guncellemesini
-   otomatik cekmiyor)
-4. Tekrarlanabilirlik olcumu: ayni sozlesme 10 kez islenip basari
-   orani raporlanacak (Asama 11 izleme katmani ile)
+# Bölümsel çıkarım (chunking)
 
-Beklenen etki: uzun girdide yapi tutma belirgin iyilesir, cikarim
-suresi ~12 sn'den ~20-25 sn'ye cikar.
+Durum: uygulandı (2026-09-04). Karar: `docs/kararlar.md` §30.
 
-# Bölümsel çıkarım (chunking) — gelecek iş
+`EXTRACT_MODE=chunked` ile Okuyucu dört paralel çağrı yapar:
+1. A — donem + oda_kontenjanlari
+2. B — fiyatlar
+3. C — release + stop_sale
+4. D — meta (ayrı; A'ya eklenince model bozuluyordu)
 
-Durum: planlandi, uygulanmadi (2026-09-03).
-
-Karmasik ve cok sayfali sozlesmelerde (or. iki sayfa, cok satirli fiyat
-tablosu, alt donemler) Okuyucu tek LLM cagrisinda JSON yapisini tutamiyor.
-Duzeltme turu artirmak ve token siniri yukseltmek tek basina yeterli
-olmadi.
-
-Planlanan yaklasim: PDF metnini mantiksal bolumlere ayirip ayri cikarim
-cagrilari yapmak, sonra birlestirmek. Ornek parcalar:
-1. donem + oda_kontenjanlari + meta
-2. fiyatlar (alt_donem_ad dahil)
-3. release + stop_sale
-
-Maliyet: ~3x LLM cagrisi. Merge sonrasi mevcut Normalize + Validate +
-Denetci kurallari tutarliligi kontrol eder.
-
-Oncelik: teslim sonrasi; 1.5B + mevcut onarim hattinda denenecek.
+Birleşim sonrası mevcut Normalize + Validate + Denetçi hattı çalışır.
+Varsayılan hâlâ `single`; üretimde `chunked` önerilir.
+Chunked SFT deneyi: `ml/colab_train_chunked.py` → `…-merged-v2` (rafta).
+Üretim endpoint'i şimdilik `…-merged-v1` + chunked çıkarım.
 
 # Model kararsizligi - kok neden analizi ve gelecek plan
 
@@ -93,17 +77,6 @@ Kok neden (uc farkli hata profili var):
   kontenjan) tek JSON'da tutarli uretilemiyor, yapisal olarak
   eksik kaliyor
 
-Sonraki adim (zaman kalirsa): bolumsel cikarim (chunking).
-Sozlesmeyi 3 parcaya bolup ayri LLM cagrisi yapmak:
-  1. Meta + donem + kontenjan
-  2. Fiyatlar (en buyuk parca)
-  3. Release + stop_sale
-Sonra merge edip mevcut Normalize/Validate/Denetci hattina sokmak.
-Maliyet ~3x LLM cagrisi (~18-36 sn 1.5B+L4 ile tahmini). Bu,
-retry/siracklik artirmaktan cok daha yuksek basari sansi tasiyor
-cunku kucuk modelin tek seferde tasimasi gereken bilissel yuku
-azaltiyor.
-
-Karar: 1.5B model + orijinal prompt (hafif coral/tui iyilestirmesi
-ile) uretimde kaliyor. Chunking mimarisi tasarlandi ama zaman
-kisitindan uygulanmadi.
+Sonraki adim uygulandi: bolumsel cikarim (yukaridaki bolum + karar §30).
+Uretim: 1.5B (`…-merged-v1`) + `EXTRACT_MODE=chunked`. Chunked-egitilmis
+v2 agirligi Hub'da duruyor; zor PDF'lerde v1+chunked simdilik daha guvenilir.

@@ -4,6 +4,10 @@ import (
 	"math"
 	"testing"
 	"time"
+
+	"github.com/oz-fatma/kontrata/backend/graph/model"
+	"github.com/oz-fatma/kontrata/backend/internal/llm"
+	"github.com/oz-fatma/kontrata/backend/internal/repository"
 )
 
 func TestMetricsSince_BaslangicOverridesHours(t *testing.T) {
@@ -112,5 +116,36 @@ func TestP95Index_OldFormulaWouldUndershoot(t *testing.T) {
 	}
 	if math.Ceil(0.95*float64(n)) != float64(n) {
 		t.Fatalf("n=%d için ceil(0.95n) n olmalı", n)
+	}
+}
+
+func TestBuildLLMMetrics_ChunksRollUpToOkuyucu(t *testing.T) {
+	rows := []repository.LLMCall{
+		{Agent: llm.AgentReader, DurationMs: 100, Success: true},
+		{Agent: llm.AgentReaderChunkA, DurationMs: 200, Success: true},
+		{Agent: llm.AgentReaderChunkB, DurationMs: 300, Success: false},
+		{Agent: llm.AgentAuditor, DurationMs: 50, Success: true},
+	}
+	got := buildLLMMetrics(rows)
+	if len(got.AgentBazinda) != 2 {
+		t.Fatalf("agent satırı = %d, 2 beklenirdi (OKUYUCU+DENETCI)", len(got.AgentBazinda))
+	}
+	var okuyucu, denetci *model.LlmAgentMetrik
+	for _, a := range got.AgentBazinda {
+		switch a.Agent {
+		case model.PromptTipiOkuyucu:
+			okuyucu = a
+		case model.PromptTipiDenetci:
+			denetci = a
+		}
+	}
+	if okuyucu == nil || denetci == nil {
+		t.Fatalf("kovalar eksik: %+v", got.AgentBazinda)
+	}
+	if okuyucu.Cagri != 3 {
+		t.Fatalf("okuyucu çağrı = %d, 3 beklenirdi", okuyucu.Cagri)
+	}
+	if denetci.Cagri != 1 {
+		t.Fatalf("denetçi çağrı = %d", denetci.Cagri)
 	}
 }

@@ -45,6 +45,7 @@ func (s *stubLLM) Generate(ctx context.Context, _, userPrompt string) (string, e
 }
 
 func TestReader_CleanOutput(t *testing.T) {
+	t.Setenv("EXTRACT_MODE", ExtractModeSingle)
 	stub := &stubLLM{responses: []string{validJSON}}
 	r := &Reader{LLM: stub}
 	pages := []string{"Sezon 1 Nisan 2026 - 31 Ekim 2026. Standart oda 10 adet, 85 EUR."}
@@ -68,6 +69,7 @@ func TestReader_CleanOutput(t *testing.T) {
 }
 
 func TestReader_RepairRound(t *testing.T) {
+	t.Setenv("EXTRACT_MODE", ExtractModeSingle)
 	broken := "açıklama\n```json\n{\"donem\": {\"baslangic\": \"2026-04-01\", \"bitis\": \"2026-10-31\"}}\n```"
 	stub := &stubLLM{responses: []string{broken, validJSON}}
 	r := &Reader{LLM: stub}
@@ -90,6 +92,7 @@ func TestReader_RepairRound(t *testing.T) {
 }
 
 func TestReader_FailsThrice(t *testing.T) {
+	t.Setenv("EXTRACT_MODE", ExtractModeSingle)
 	stub := &stubLLM{responses: []string{"bu json değil", "yine değil", "hala değil"}}
 	r := &Reader{LLM: stub}
 	res, err := r.Extract(context.Background(), []string{"metin"})
@@ -114,6 +117,7 @@ func TestReader_FailsThrice(t *testing.T) {
 }
 
 func TestReader_SecondRepairUsesTemperature(t *testing.T) {
+	t.Setenv("EXTRACT_MODE", ExtractModeSingle)
 	stub := &stubLLM{responses: []string{"not json", "still not json", validJSON}}
 	r := &Reader{LLM: stub}
 	res, err := r.Extract(context.Background(), []string{"standart oda kontenjanı 10"})
@@ -138,6 +142,7 @@ func TestReader_SecondRepairUsesTemperature(t *testing.T) {
 }
 
 func TestReader_DumpsRawWhenConfigured(t *testing.T) {
+	t.Setenv("EXTRACT_MODE", ExtractModeSingle)
 	dir := t.TempDir()
 	stub := &stubLLM{responses: []string{validJSON}}
 	r := &Reader{LLM: stub, DumpDir: dir, ContractID: "abc123"}
@@ -186,6 +191,7 @@ func TestReader_DumpsRawWhenConfigured(t *testing.T) {
 }
 
 func TestReader_NoDumpByDefault(t *testing.T) {
+	t.Setenv("EXTRACT_MODE", ExtractModeSingle)
 	dir := t.TempDir()
 	stub := &stubLLM{responses: []string{validJSON}}
 	r := &Reader{LLM: stub}
@@ -203,6 +209,7 @@ func TestReader_NoDumpByDefault(t *testing.T) {
 }
 
 func TestReader_DumpUsesMaskedPrompt(t *testing.T) {
+	t.Setenv("EXTRACT_MODE", ExtractModeSingle)
 	dir := t.TempDir()
 	stub := &stubLLM{responses: []string{validJSON}}
 	r := &Reader{LLM: stub, DumpDir: dir, ContractID: "pii1"}

@@ -16,6 +16,7 @@ import { AuthExpiredError, gqlRequest, graphqlMessage } from "@/lib/client";
 import { roleLabel } from "@/lib/format";
 import { inviteSchema, type InviteValues } from "@/lib/schemas";
 import { AppShell } from "@/components/shell";
+import { ConfirmDialog } from "@/components/confirm-dialog";
 import { EmptyState, ErrorState, Field, LoadingState } from "@/components/states";
 
 export default function MembersPage() {
@@ -30,6 +31,8 @@ function MembersBody() {
   const { org, userId, canManageMembers, canViewMembers } = useAuth();
   const [members, setMembers] = useState<Member[] | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [pendingRemove, setPendingRemove] = useState<Member | null>(null);
+  const [busy, setBusy] = useState(false);
 
   const load = useCallback(async () => {
     setError(null);
@@ -50,6 +53,23 @@ function MembersBody() {
       void load();
     }
   }, [canViewMembers, load]);
+
+  async function confirmRemove() {
+    if (!pendingRemove) {
+      return;
+    }
+    setBusy(true);
+    setError(null);
+    try {
+      await gqlRequest(UyeCikarDocument, { kullaniciId: pendingRemove.id });
+      setPendingRemove(null);
+      await load();
+    } catch (err) {
+      setError(graphqlMessage(err));
+    } finally {
+      setBusy(false);
+    }
+  }
 
   if (!org || !canViewMembers) {
     return (
@@ -112,17 +132,7 @@ function MembersBody() {
                   <button
                     type="button"
                     className="btn btn-danger"
-                    onClick={async () => {
-                      if (!window.confirm("Üyeyi çıkarmak istiyor musunuz?")) {
-                        return;
-                      }
-                      try {
-                        await gqlRequest(UyeCikarDocument, { kullaniciId: member.id });
-                        await load();
-                      } catch (err) {
-                        setError(graphqlMessage(err));
-                      }
-                    }}
+                    onClick={() => setPendingRemove(member)}
                   >
                     Çıkar
                   </button>
@@ -131,6 +141,17 @@ function MembersBody() {
             </li>
           ))}
         </ul>
+      ) : null}
+
+      {pendingRemove ? (
+        <ConfirmDialog
+          title="Üyeyi çıkar"
+          message={`${pendingRemove.eposta} üyeliğini kaldırmak istiyor musunuz?`}
+          confirmLabel="Çıkar"
+          busy={busy}
+          onCancel={() => setPendingRemove(null)}
+          onConfirm={() => void confirmRemove()}
+        />
       ) : null}
     </div>
   );
@@ -146,7 +167,7 @@ function InviteForm({ onInvited }: { onInvited: () => void }) {
 
   return (
     <form
-      className="card mb-[var(--space-card-gap)] flex flex-col gap-3 p-[var(--space-card)] sm:flex-row sm:items-end"
+      className="card mb-[var(--space-card-gap)] flex flex-col gap-3 p-[var(--space-card)]"
       onSubmit={form.handleSubmit(async (values) => {
         setError(null);
         setMessage(null);
@@ -160,20 +181,22 @@ function InviteForm({ onInvited }: { onInvited: () => void }) {
         }
       })}
     >
-      <Field id="davet-eposta" label="E-posta" error={form.formState.errors.eposta?.message}>
-        <input id="davet-eposta" type="email" autoComplete="email" {...form.register("eposta")} />
-      </Field>
-      <Field id="davet-rol" label="Rol">
-        <select id="davet-rol" {...form.register("rol")}>
-          <option value={Rol.Yonetici}>Yönetici</option>
-          <option value={Rol.Goruntuleyici}>Görüntüleyici</option>
-        </select>
-      </Field>
-      <button type="submit" className="btn btn-primary" disabled={form.formState.isSubmitting}>
-        Davet et
-      </button>
-      {error ? <p className="w-full text-[12px] text-[var(--red)]">{error}</p> : null}
-      {message ? <p className="w-full text-[12px] text-[var(--green)]">{message}</p> : null}
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-end">
+        <Field id="davet-eposta" label="E-posta" error={form.formState.errors.eposta?.message}>
+          <input id="davet-eposta" type="email" autoComplete="email" {...form.register("eposta")} />
+        </Field>
+        <Field id="davet-rol" label="Rol">
+          <select id="davet-rol" {...form.register("rol")}>
+            <option value={Rol.Yonetici}>Yönetici</option>
+            <option value={Rol.Goruntuleyici}>Görüntüleyici</option>
+          </select>
+        </Field>
+        <button type="submit" className="btn btn-primary shrink-0" disabled={form.formState.isSubmitting}>
+          Davet et
+        </button>
+      </div>
+      {error ? <p className="text-[12px] text-[var(--red)]">{error}</p> : null}
+      {message ? <p className="text-[12px] text-[var(--green)]">{message}</p> : null}
     </form>
   );
 }

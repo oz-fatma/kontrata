@@ -49,10 +49,14 @@ gizlilik argümanıdır. Dağıtım maliyeti: kod imzası ve otomatik güncellem
 
 ### Fine-tune
 
-| Ölçüt | Değer |
+Üretim endpoint'i: `fatmaoz/kontrata-qwen-merged-v1` (FULL SFT, `train_colab.ipynb`).
+Chunked eğitim deneyi: `ml/colab_train_chunked.py` → Hub'da `…-merged-v2`
+(rafta; v1'i ezmez). Ayrıntı: `ml/README.md`.
+
+| Ölçüt | Değer (v1) |
 | --- | --- |
-| Eğitim | 320 sentetik örnek (`ml/generate.py --seed 42`) |
-| Doğrulama | 80 sentetik örnek |
+| Eğitim | 320 sentetik sözleşme (`ml/generate.py --seed 42`) |
+| Doğrulama | 80 sentetik sözleşme |
 | Dil | yaklaşık %50 Türkçe / %50 İngilizce |
 | Val kaybı | 0.290 (4. epoch) |
 | Token doğruluğu | %92.5 (4. epoch) |
@@ -60,7 +64,7 @@ gizlilik argümanıdır. Dağıtım maliyeti: kod imzası ve otomatik güncellem
 | Donanım | Colab L4 GPU, ~11 dk |
 
 MEGEP Argos örneği eğitim kümesine **karışmaz**; modelin tek gerçek metni
-ezberlemesi istenmez. Ayrıntı: `ml/README.md`.
+ezberlemesi istenmez.
 
 ### Ham çıktı vs onarım
 
@@ -96,13 +100,19 @@ LLM'e giden yolda e-posta, telefon ve 11 haneli sayı örtülür. Örnek:
 - Go 1.25+
 - Node.js 20+
 - Docker (MongoDB replica set)
+- PDF çıkarımı için HuggingFace Inference Endpoint + jeton
+  (`kontrata-qwen-merged-v1` veya kendi fine-tune'unuz)
 - macOS paketleme için Xcode CLT; Windows NSIS için Wine (macOS'tan üretiyorsanız)
 
 ### Geliştirme
 
 ```sh
 docker compose up -d
-cd backend && cp .env.example .env   # JWT_SECRET ve MONGO_URI
+cd backend && cp .env.example .env
+# Zorunlu: JWT_SECRET, MONGO_URI
+# PDF çıkarımı: LLM_ENDPOINT_URL, LLM_TOKEN
+# Önerilen: EXTRACT_MODE=chunked
+# İsteğe bağlı ikinci uç: LLM_ENDPOINT_URL_2, LLM_TOKEN_2
 make run                             # :8080
 
 # ayrı uçbirim
@@ -110,6 +120,11 @@ cd web && npm install && npm run dev # :3000
 ```
 
 Sağlık: `GET http://localhost:8080/healthz`.
+
+İlk kullanım: `/kayit` → e-posta doğrula → giriş → MFA.
+`MAILER=console` iken doğrulama bağlantısı ve MFA kodu **backend
+günlüğüne** yazılır (alıcı maskeli). `APP_URL` doğrulama linkinin köküdür
+(tarayıcıda `http://localhost:3000`).
 
 Masaüstü (API'yi `:17890` üzerinde kendisi açar): `desktop/README.md`.
 
@@ -138,13 +153,14 @@ npm run package:win
 ```
 
 Çıktı `desktop/dist/` altındadır. **Windows paketi macOS'ta üretildi; Windows
-makinede çalıştırılmadı.**
+makinede çalıştırılmadı.** Paketler `desktop/dist/` (gitignore) altında;
+teslimde DMG/EXE ayrı paylaşılır.
 
-| Paket | Konum | Boyut |
-| --- | --- | --- |
-| macOS arm64 | `desktop/dist/Kontrata-0.1.0-arm64.dmg` | 113 MB |
-| macOS x64 | `desktop/dist/Kontrata-0.1.0.dmg` | 118 MB |
-| Windows x64 NSIS | `desktop/dist/Kontrata Setup 0.1.0.exe` | 91 MB |
+| Paket | Konum | Boyut | Üretim |
+| --- | --- | --- | --- |
+| macOS arm64 | `desktop/dist/Kontrata-0.1.0-arm64.dmg` | 113 MB | 2026-09-05 |
+| macOS x64 | `desktop/dist/Kontrata-0.1.0.dmg` | 118 MB | 2026-09-05 |
+| Windows x64 NSIS | `desktop/dist/Kontrata Setup 0.1.0.exe` | 91 MB | 2026-09-05 |
 
 ### Ortam değişkenleri
 
@@ -160,11 +176,13 @@ makinede çalıştırılmadı.**
 | `ARGON2_MEMORY` | hayır | `19456` | KiB |
 | `ARGON2_THREADS` | hayır | `1` | paralellik |
 | `JWT_SECRET` | evet | — | HS256. Eksikse süreç açılmaz |
-| `LLM_ENDPOINT_URL` / `LLM_TOKEN` | hayır | — | Uç 1 |
+| `APP_URL` | hayır | `http://localhost:3000` | Doğrulama / sıfırlama link kökü |
+| `LLM_ENDPOINT_URL` / `LLM_TOKEN` | PDF çıkarımı için | — | Uç 1 (HF Inference Endpoint) |
 | `LLM_ENDPOINT_URL_2` / `LLM_TOKEN_2` | hayır | — | Uç 2; boşsa tek uç |
-| `LLM_MAX_TOKENS` | hayır | `600` | `max_new_tokens` |
+| `LLM_MAX_TOKENS` | hayır | `600` | `max_new_tokens` (single mod) |
 | `LLM_TIMEOUT_SECONDS` | hayır | `240` | HTTP zaman aşımı |
 | `LLM_MAX_CONCURRENCY` | hayır | `4` | eşzamanlı çıkarım |
+| `EXTRACT_MODE` | hayır | `single` | `single` veya `chunked` (A/B/C/D paralel) |
 | `LLM_DEBUG_DUMP` | hayır | kapalı | Maskelenmiş istek + ham çıktı diske. Üretimde açma |
 | `UPLOAD_DIR` | hayır | `data/uploads` | PDF dizini |
 | `LOADTEST_EPOSTA` / `LOADTEST_SIFRE` | yük testi | — | `make loadtest-giris` |
@@ -185,8 +203,9 @@ makinede çalıştırılmadı.**
 
 - **Model kararsızlığı.** Aynı PDF aynı ayarlarla farklı JSON verebiliyor.
   Qwen2.5-1.5B bu görev için sınırda; uzun sözleşmede nesneyi erken kapatıyor.
+  `EXTRACT_MODE=chunked` alanı parçalayarak bu yükü azaltır (üretimde önerilir).
   Not: `docs/kapsam.md`.
-- **Eğitim verisi sentetik.** 320 şablon örneği; gerçek operatör kontratıyla
+- **Eğitim verisi sentetik.** 320 şablon sözleşmesi; gerçek operatör kontratıyla
   tutulmuş bir doğruluk ölçümü yok. Argos MEGEP örneği eğitimde değil.
 - **Taranmış PDF yok.** OCR yok; metin katmanı olmayan tarama çıkarılmaz.
 - **Kod imzalama yok, otomatik güncelleme yok.** Gatekeeper ve SmartScreen

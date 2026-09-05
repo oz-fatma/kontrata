@@ -70,29 +70,25 @@ içindeki ayrı raporda tutulur.
 
 ## Colab fine-tune
 
-`train_colab.ipynb` Google Colab **L4** GPU içindir (eğitim ~11 dk, 4 epoch). Yerelde çalıştırmayın.
+**Önerilen (chunked + meta hizası):** `colab_train_chunked.py` — tek hücre.
+Google Colab **L4** (veya T4) GPU. Yerelde çalıştırmayın.
 
-1. `python generate.py --seed 42` ile `data/train.jsonl` ve `data/val.jsonl` üretin
-   (veya defterde `VERI_KAYNAGI = "github"` bırakıp klon + üretim yaptırın).
-2. Colab'da Runtime → Change runtime type → **L4 GPU**.
-3. 🔑 Secrets'a `HF_TOKEN` ekleyin (Hugging Face yazma yetkisi). Jeton deftere
-   yapıştırılmaz; `userdata.get("HF_TOKEN")` okur.
-4. Defteri açıp hücreleri sırayla çalıştırın:
+1. `prompt.go` / `chunk_prompt.go` değişikliklerini GitHub'a push edin
+   (hücre `main`'den klonlar).
+2. Colab → Runtime → GPU.
+3. Secrets: `HF_TOKEN` (yazma yetkisi).
+4. `ml/colab_train_chunked.py` içeriğini tek hücreye yapıştırıp çalıştırın.
 
-| Hücre | İş |
-|---|---|
-| 1 | Paket kurulumu, `nvidia-smi`, HF oturumu |
-| 2 | jsonl yükleme (`files.upload`) veya GitHub klonu + `generate.py`; sohbet formatı |
-| 3 | `Qwen/Qwen2.5-1.5B-Instruct`, 4-bit nf4 + double quant, LoRA r=16 α=32 |
-| 4 | SFTTrainer, 4 epoch, batch 4 × grad acc 4, lr 2e-4 cosine; epoch sonu val kaybı (4. epoch: 0.290) ve süre (~11 dk) |
-| 5 | val'den 20 örnek: geçerli JSON, şema uyumu, alan doğruluğu |
-| 6 | Adapter `oz-fatma/kontrata-qwen-lora-v1`; birleşik `oz-fatma/kontrata-qwen-merged-v1` |
+Çıktı:
+- Adapter: `fatmaoz/kontrata-qwen-lora-v2`
+- Birleşik: `fatmaoz/kontrata-qwen-merged-v2` (endpoint; v1'i ezmez)
 
-Prompt: sistem talimatı şema özetini (alan adları ve tipler) gömer; kullanıcı
-sözleşme metnini, asistan altın JSON'u verir.
+Her sözleşme 5 örneğe açılır: FULL (`SYSTEM_PROMPT`) + A/B/C/D
+(`chunk_prompt.go`). 320 sözleşme ≈ 1600 sohbet satırı. Taban
+`Qwen/Qwen2.5-1.5B-Instruct`.
 
-Hub'a basılan birleşik repo Inference Endpoint'e bağlanır. Adapter ayrı durur
-ki LoRA yeniden eğitilebilsin.
+Eski çok hücreli defter: `train_colab.ipynb` (yalnızca FULL; v1). Yeni
+eğitim için `colab_train_chunked.py` kullanın.
 
 ## Değerlendirme (yerel)
 

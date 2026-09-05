@@ -12,7 +12,13 @@ import { VerifyTokenForm } from "@/components/verify-token-form";
 
 export default function VerifyPage() {
   return (
-    <Suspense fallback={<LoadingState />}>
+    <Suspense
+      fallback={
+        <AuthLayout title="E-posta doğrulama">
+          <LoadingState />
+        </AuthLayout>
+      }
+    >
       <VerifyInner />
     </Suspense>
   );
@@ -57,7 +63,7 @@ function VerifyInner() {
   }, [token]);
 
   return (
-    <AuthLayout>
+    <AuthLayout title="E-posta doğrulama">
       {state === "loading" ? <LoadingState label="Doğrulanıyor" /> : null}
       {state === "ok" ? (
         <div>

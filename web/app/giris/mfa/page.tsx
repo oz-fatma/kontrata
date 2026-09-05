@@ -82,7 +82,7 @@ export default function MfaPage() {
   const ss = String(left % 60).padStart(2, "0");
 
   return (
-    <AuthLayout>
+    <AuthLayout title="Doğrulama kodu">
       <form className="flex flex-col gap-3" onSubmit={form.handleSubmit(onSubmit)}>
         {serverError ? <ErrorState message={serverError} /> : null}
         <p className="text-[14px] text-[var(--ink-muted)]">

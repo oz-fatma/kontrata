@@ -3,6 +3,9 @@ import { spawn, type ChildProcess } from "node:child_process";
 import fs from "node:fs";
 import { BACKEND_PORT, backendBinary, isDev, userDataPath } from "./paths";
 import type { AppSettings } from "./config";
+import { mailerEnvVars } from "./mailer-env";
+
+export { mailerForSettings } from "./mailer-env";
 
 const healthTimeoutMs = 30_000;
 const killWaitMs = 5_000;
@@ -23,7 +26,7 @@ export function backendEnv(settings: AppSettings): NodeJS.ProcessEnv {
     LLM_TOKEN: settings.llmToken,
     UPLOAD_DIR: userDataPath("uploads"),
     GRAPHQL_PLAYGROUND: "false",
-    MAILER: "console",
+    ...mailerEnvVars(settings),
   };
 }
 
