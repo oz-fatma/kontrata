@@ -219,7 +219,7 @@ func uploadPDF(t *testing.T, ctx context.Context, env registerEnv, userID bson.O
 	if err != nil {
 		t.Fatal(err)
 	}
-	defer f.Close()
+	defer func() { _ = f.Close() }()
 	uctx := auth.WithIdentity(ctx, auth.Identity{UserID: userID})
 	m, err := env.sozSvc.Upload(uctx, name, f)
 	if err != nil {

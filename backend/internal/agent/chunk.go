@@ -1238,52 +1238,19 @@ func primaryAdetNearSyn(section string, synStart, synLen int) (int, bool) {
 }
 
 func lastIntInText(s string) (int, bool) {
-	last := -1
-	end := -1
-	for i := 0; i < len(s); i++ {
-		if s[i] >= '0' && s[i] <= '9' {
-			if last < 0 {
-				last = i
-			}
-			end = i + 1
+	for i := len(s) - 1; i >= 0; i-- {
+		if s[i] < '0' || s[i] > '9' {
 			continue
 		}
-		if last >= 0 {
-			// devam et; en son sayıyı tut
-			_ = end
+		end := i + 1
+		j := i
+		for j > 0 && s[j-1] >= '0' && s[j-1] <= '9' {
+			j--
 		}
-	}
-	if last < 0 {
-		return 0, false
-	}
-	// son sayı grubunu bul
-	end = len(s)
-	for i := len(s) - 1; i >= 0; i-- {
-		if s[i] >= '0' && s[i] <= '9' {
-			end = i + 1
-			j := i
-			for j > 0 && s[j-1] >= '0' && s[j-1] <= '9' {
-				j--
-			}
-			n, err := strconv.Atoi(s[j:end])
-			return n, err == nil
-		}
+		n, err := strconv.Atoi(s[j:end])
+		return n, err == nil
 	}
 	return 0, false
-}
-
-func containsWholeNumber(s, num string) bool {
-	for i := 0; i+len(num) <= len(s); i++ {
-		if s[i:i+len(num)] != num {
-			continue
-		}
-		leftOK := i == 0 || !isASCIILetterOrDigit(s[i-1])
-		rightOK := i+len(num) == len(s) || !isASCIILetterOrDigit(s[i+len(num)])
-		if leftOK && rightOK {
-			return true
-		}
-	}
-	return false
 }
 
 func odaMapToList(byTip map[string]int) []any {
@@ -1566,9 +1533,10 @@ func balancedEnd(s string) (int, bool) {
 			inStr = true
 			continue
 		}
-		if c == open {
+		switch c {
+		case open:
 			depth++
-		} else if c == close {
+		case close:
 			depth--
 			if depth == 0 {
 				return i + 1, true

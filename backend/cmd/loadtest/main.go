@@ -241,7 +241,7 @@ func (c *gqlClient) upload(pdf []byte, name string) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	raw, _ := io.ReadAll(resp.Body)
 	var wrap struct {
 		Data struct {
@@ -350,7 +350,7 @@ func (c *gqlClient) post(query string, vars map[string]any, dest any) error {
 	if err != nil {
 		return err
 	}
-	defer resp.Body.Close()
+	defer func() { _ = resp.Body.Close() }()
 	raw, _ := io.ReadAll(resp.Body)
 	var wrap struct {
 		Data   json.RawMessage
